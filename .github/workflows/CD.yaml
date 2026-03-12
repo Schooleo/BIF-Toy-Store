@@ -45,7 +45,7 @@ jobs:
       - name: Run Obfuscar
         working-directory: ${{ github.workspace }}\TempBuild
         run: |
-          obfuscar.console ..\src\obfuscar.xml InPath=.
+          obfuscar.console ..\src\obfuscar.xml -p InPath=. -p OutPath=Obfuscated
 
       - name: Finalize Obfuscated Build
         shell: pwsh
