@@ -47,7 +47,6 @@ jobs:
             -c Release `
             -r win-x64 `
             --no-restore `
-            /p:PublishReadyToRun=true `
             /p:GenerateAppxPackageOnBuild=true `
             /p:AppxPackageDir="${{ github.workspace }}\AppxPackages"
 
