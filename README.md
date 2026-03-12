@@ -1,5 +1,8 @@
 # BIF-Toy-Store POS
 
+[![CI Pipeline](https://github.com/Schooleo/BIF-Toy-Store/actions/workflows/CI.yaml/badge.svg)](https://github.com/Schooleo/BIF-Toy-Store/actions/workflows/CI.yaml)
+[![CD Pipeline](https://github.com/Schooleo/BIF-Toy-Store/actions/workflows/CD.yaml/badge.svg)](https://github.com/Schooleo/BIF-Toy-Store/actions/workflows/CD.yaml)
+
 A Point of Sale (POS) application for a toy store, built as a modern desktop application using **WinUI 3** and **C#** (.NET). The project follows a structured **Clean Architecture** and the **MVVM** design pattern, ensuring separation of concerns and maintainability.
 
 ## Architecture & Project Structure
@@ -18,6 +21,13 @@ The solution (`BIF-Toy-Store.slnx`) consists of four main projects located in th
 - **MVVM** (Model-View-ViewModel)
 - **GraphQL**
 - **Clean Architecture**
+
+## Automated Pipelines & Testing
+
+This repository utilizes **GitHub Actions** to automate health checks and deployment:
+
+- **CI Pipeline (`CI.yaml`)**: Triggers on pushes and Pull Requests to the `main` and `dev` branches. It restores dependencies, builds the solution, runs automated **xUnit** / **Moq** tests (such as `LoginViewModelTests`), and uploads the `.trx` test results as artifacts.
+- **CD Pipeline (`CD.yaml`)**: Manually triggered via `workflow_dispatch`. It protects the codebase using **Obfuscar**, publishes the app, and produces an MSIX installer payload ready for deployment.
 
 ## Getting Started
 

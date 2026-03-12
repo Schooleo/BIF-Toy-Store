@@ -24,13 +24,13 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet Dependencies
-        run: dotnet restore src/BIF.ToyStore.sln
+        run: dotnet restore src/BIF-Toy-Store.slnx
 
       - name: Setup Obfuscar
         run: dotnet tool install --global Obfuscar.GlobalTool
 
       - name: Build Solution for Obfuscation
-        run: dotnet build src/BIF.ToyStore.sln -c Release --no-restore
+        run: dotnet build src/BIF-Toy-Store.slnx -c Release --no-restore
 
       - name: Run Obfuscar
         run: obfuscar.console src/obfuscar.xml
