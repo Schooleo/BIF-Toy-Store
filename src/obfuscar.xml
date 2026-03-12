@@ -1,6 +1,5 @@
 <?xml version='1.0'?>
 <Obfuscator>
-  <Obfuscator>
   <Var name="InPath" value="." />
   <Var name="OutPath" value="$(InPath)\Obfuscated" />
   
