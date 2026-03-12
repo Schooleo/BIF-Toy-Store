@@ -10,6 +10,8 @@ on:
 jobs:
   build-and-package:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -20,16 +22,13 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
       - name: Restore NuGet Dependencies
         run: dotnet restore src/BIF-Toy-Store.slnx
 
       - name: Setup Obfuscar
         run: dotnet tool install --global Obfuscar.GlobalTool
 
-      - name: Build Solution for Obfuscation
+      - name: Build Solution
         run: dotnet build src/BIF-Toy-Store.slnx -c Release --no-restore
 
       - name: Publish WinUI App (Unpackaged)
@@ -40,20 +39,31 @@ jobs:
             --no-restore `
             /p:WindowsPackageType=None `
             /p:AppxPackage=false `
+            /p:SelfContained=true `
             -o "${{ github.workspace }}\TempBuild"
 
       - name: Run Obfuscar
+        working-directory: ${{ github.workspace }}\TempBuild
         run: |
-          obfuscar.console src/obfuscar.xml InPath="${{ github.workspace }}\TempBuild"
+          obfuscar.console ..\src\obfuscar.xml InPath=.
 
-      - name: Move Obfuscated Files
+      - name: Finalize Obfuscated Build
         shell: pwsh
         run: |
+          # Move protected DLLs back to root and clean up
           Copy-Item "TempBuild\Obfuscated\*.dll" -Destination "TempBuild" -Force
           Remove-Item "TempBuild\Obfuscated" -Recurse
 
-      - name: Upload Executable Package
-        uses: actions/upload-artifact@v4
+      - name: Create Release Zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "TempBuild\*" -DestinationPath "BIF-ToyStore-v${{ github.event.inputs.version }}.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: BIF-ToyStore-v${{ github.event.inputs.version }}
-          path: ${{ github.workspace }}\TempBuild
+          tag_name: v${{ github.event.inputs.version }}
+          name: Release v${{ github.event.inputs.version }}
+          files: BIF-ToyStore-v${{ github.event.inputs.version }}.zip
+          draft: false
+          prerelease: false

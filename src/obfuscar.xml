@@ -1,18 +1,17 @@
 <?xml version='1.0'?>
 <Obfuscator>
   <Var name="InPath" value="." />
-  <Var name="OutPath" value="$(InPath)\Obfuscated" />
+  <Var name="OutPath" value="Obfuscated" />
   
   <Var name="KeepPublicApi" value="false" />
   <Var name="HidePrivateApi" value="true" />
   <Var name="RenameProperties" value="true" />
   <Var name="RenameEvents" value="true" />
   <Var name="RenameFields" value="true" />
+  <Var name="UseUnicodeNames" value="false" />
   <Var name="HideStrings" value="true" />
   <Var name="OptimizeMethods" value="true" />
   <Var name="SuppressIldasm" value="true" />
-  
-  <Var name="UseUnicodeNames" value="false" />
 
   <Module file="$(InPath)\BIF.ToyStore.WinUI.dll" />
   <Module file="$(InPath)\BIF.ToyStore.Core.dll" />
@@ -20,11 +19,10 @@
   <Module file="$(InPath)\BIF.ToyStore.ViewModels.dll" />
   
   <SkipNamespace name="BIF.ToyStore.ViewModels*" skipProperties="true" skipEvents="true" />
-  <SkipNamespace name="BIF.ToyStore.ViewModels.Pages*" skipProperties="true" skipEvents="true" />
   
   <SkipNamespace name="BIF.ToyStore.Core.Models*" skipProperties="true" />
   <SkipNamespace name="BIF.ToyStore.Core.Enums*" />
   
   <SkipType name="BIF.ToyStore.WinUI.App" />
-  <SkipType name="BIF.ToyStore.WinUI.Views.*" skipProperties="true" />
+  <SkipNamespace name="BIF.ToyStore.WinUI.Views*" skipProperties="true" />
 </Obfuscator>
