@@ -1,0 +1,58 @@
+name: BIF Toy Store CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "App Version (e.g., 1.0.5)"
+        required: true
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet Dependencies
+        run: dotnet restore src/BIF.ToyStore.sln
+
+      - name: Setup Obfuscar
+        run: dotnet tool install --global Obfuscar.GlobalTool
+
+      - name: Build Solution for Obfuscation
+        run: dotnet build src/BIF.ToyStore.sln -c Release --no-restore
+
+      - name: Run Obfuscar
+        run: obfuscar.console src/obfuscar.xml
+        continue-on-error: true
+
+      - name: Replace Original DLLs with Obfuscated DLLs
+        run: |
+          Copy-Item "src\BIF.ToyStore.WinUI\bin\Release\net10.0-windows10.0.19041.0\win-x64\Obfuscated\*.dll" -Destination "src\BIF.ToyStore.WinUI\bin\Release\net10.0-windows10.0.19041.0\win-x64\" -Force
+        continue-on-error: true
+
+      - name: Publish and Package WinUI App
+        run: |
+          dotnet publish src/BIF.ToyStore.WinUI/BIF.ToyStore.WinUI.csproj `
+            -c Release `
+            -r win-x64 `
+            --no-restore `
+            /p:PublishReadyToRun=true `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:AppxPackageDir="${{ github.workspace }}\AppxPackages"
+
+      - name: Upload Application Package (MSIX)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bif-toystore-release-package
+          path: ${{ github.workspace }}\AppxPackages\**\*.msix

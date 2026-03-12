@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="BIF.ToyStore.Core/BIF.ToyStore.Core.csproj" />
+  <Project Path="BIF.ToyStore.Infrastructure/BIF.ToyStore.Infrastructure.csproj" Id="c1c978c2-dee0-424c-82b4-7f31676c5e21" />
+  <Project Path="BIF.ToyStore.ViewModels/BIF.ToyStore.ViewModels.csproj" Id="5b9bbd4c-7822-4d24-9834-edf5b1d2e525" />
+  <Project Path="BIF.ToyStore.WinUI/BIF.ToyStore.WinUI.csproj" Id="5b592bab-5513-4f06-bbd0-e72c9a206a34">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
+</Solution>

@@ -1,0 +1,36 @@
+name: BIF Toy Store CI Pipeline
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore NuGet Dependencies
+        run: dotnet restore src/BIF.ToyStore.sln
+
+      - name: Build the Solution
+        run: dotnet build src/BIF.ToyStore.sln --configuration Release --no-restore
+
+      - name: Run xUnit Tests
+        run: dotnet test src/BIF.ToyStore.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: src/**/TestResults/test_results.trx

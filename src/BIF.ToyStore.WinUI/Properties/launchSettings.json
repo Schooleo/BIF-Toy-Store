@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BIF.ToyStore.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "BIF.ToyStore.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

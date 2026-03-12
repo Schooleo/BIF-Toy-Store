@@ -42,6 +42,7 @@ Generated\ Files/
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
+*.trx
 
 # NUnit
 *.VisualState.xml
@@ -214,12 +215,16 @@ rcf/
 
 # Windows Store app package directories and files
 AppPackages/
+AppxPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml
 _pkginfo.txt
 *.appx
 *.appxbundle
 *.appxupload
+*.msix
+*.msixbundle
+*.msixupload
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
