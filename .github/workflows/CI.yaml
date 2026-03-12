@@ -34,3 +34,11 @@ jobs:
         with:
           name: test-results
           path: src/BIF.ToyStore.Tests/TestResults/test_results.trx
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()    # run this step even if previous step failed
+        with:
+          name: .NET Tests            # Name of the check run which will be created
+          path: src/BIF.ToyStore.Tests/TestResults/test_results.trx    # Path to test results
+          reporter: dotnet-trx        # Format of test results
