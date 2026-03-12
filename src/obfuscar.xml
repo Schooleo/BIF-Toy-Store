@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <Obfuscator>
-  <Var name="InPath" value="." />
+  <Var name="InPath" value="PROJECT_PATH_PLACEHOLDER" />
   <Var name="OutPath" value="Obfuscated" />
   
   <Var name="KeepPublicApi" value="false" />
@@ -19,10 +19,8 @@
   <Module file="$(InPath)\BIF.ToyStore.ViewModels.dll" />
   
   <SkipNamespace name="BIF.ToyStore.ViewModels*" skipProperties="true" skipEvents="true" />
-  
   <SkipNamespace name="BIF.ToyStore.Core.Models*" skipProperties="true" />
   <SkipNamespace name="BIF.ToyStore.Core.Enums*" />
-  
   <SkipType name="BIF.ToyStore.WinUI.App" />
   <SkipNamespace name="BIF.ToyStore.WinUI.Views*" skipProperties="true" />
 </Obfuscator>

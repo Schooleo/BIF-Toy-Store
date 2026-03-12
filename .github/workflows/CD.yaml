@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "App Version (e.g., 1.0.5)"
+        description: "App Version"
         required: true
 
 jobs:
@@ -22,17 +22,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore NuGet Dependencies
-        run: dotnet restore src/BIF-Toy-Store.slnx
-
-      - name: Setup Obfuscar
-        run: dotnet tool install --global Obfuscar.GlobalTool
-
-      - name: Build Solution
-        run: dotnet build src/BIF-Toy-Store.slnx -c Release --no-restore
-
-      - name: Publish WinUI App (Unpackaged)
+      - name: Restore & Publish
         run: |
+          dotnet restore src/BIF-Toy-Store.slnx
           dotnet publish src/BIF.ToyStore.WinUI/BIF.ToyStore.WinUI.csproj `
             -c Release `
             -r win-x64 `
@@ -42,28 +34,32 @@ jobs:
             /p:SelfContained=true `
             -o "${{ github.workspace }}\TempBuild"
 
-      - name: Run Obfuscar
-        working-directory: ${{ github.workspace }}\TempBuild
-        run: |
-          obfuscar.console ..\src\obfuscar.xml -p InPath=. -p OutPath=Obfuscated
+      - name: Setup Obfuscar
+        run: dotnet tool install --global Obfuscar.GlobalTool
 
-      - name: Finalize Obfuscated Build
+      - name: Pre-process Obfuscar Config
         shell: pwsh
         run: |
-          # Move protected DLLs back to root and clean up
-          Copy-Item "TempBuild\Obfuscated\*.dll" -Destination "TempBuild" -Force
-          Remove-Item "TempBuild\Obfuscated" -Recurse
+          $xmlPath = "src/obfuscar.xml"
+          $publishPath = "${{ github.workspace }}\TempBuild"
+          (Get-Content $xmlPath).Replace("PROJECT_PATH_PLACEHOLDER", $publishPath) | Set-Content $xmlPath
+          Write-Host "InPath updated to: $publishPath"
+
+      - name: Run Obfuscation
+        run: obfuscar.console src/obfuscar.xml
+
+      - name: Finalize Build
+        shell: pwsh
+        run: |
+          Copy-Item "${{ github.workspace }}\TempBuild\Obfuscated\*.dll" -Destination "${{ github.workspace }}\TempBuild" -Force
+          Remove-Item "${{ github.workspace }}\TempBuild\Obfuscated" -Recurse
 
       - name: Create Release Zip
         shell: pwsh
-        run: |
-          Compress-Archive -Path "TempBuild\*" -DestinationPath "BIF-ToyStore-v${{ github.event.inputs.version }}.zip"
+        run: Compress-Archive -Path "TempBuild\*" -DestinationPath "BIF-ToyStore-v${{ github.event.inputs.version }}.zip"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
-          name: Release v${{ github.event.inputs.version }}
           files: BIF-ToyStore-v${{ github.event.inputs.version }}.zip
-          draft: false
-          prerelease: false
