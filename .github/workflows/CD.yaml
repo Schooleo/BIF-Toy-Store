@@ -40,18 +40,17 @@ jobs:
             --no-restore `
             /p:WindowsPackageType=None `
             /p:AppxPackage=false `
-            /p:SelfContained=true `
-            /p:PublishSingleFile=false `
             -o "${{ github.workspace }}\TempBuild"
 
-      - name: Run Obfuscar on Published Files
-        run: obfuscar.console src/obfuscar.xml
+      - name: Run Obfuscar
+        run: |
+          obfuscar.console src/obfuscar.xml InPath="${{ github.workspace }}\TempBuild"
 
-      - name: Move Obfuscated Files to Final Output
+      - name: Move Obfuscated Files
         shell: pwsh
         run: |
-          Move-Item -Path "TempBuild\Obfuscated\*.dll" -Destination "TempBuild" -Force
-          Remove-Item -Path "TempBuild\Obfuscated" -Recurse
+          Copy-Item "TempBuild\Obfuscated\*.dll" -Destination "TempBuild" -Force
+          Remove-Item "TempBuild\Obfuscated" -Recurse
 
       - name: Upload Executable Package
         uses: actions/upload-artifact@v4
