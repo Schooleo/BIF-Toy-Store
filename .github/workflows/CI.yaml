@@ -46,4 +46,4 @@ jobs:
         with:
           name: .NET Tests
           path: src/BIF.ToyStore.Tests/TestResults/test_results.trx
-          reporter: dotnet-trxS
+          reporter: dotnet-trx
