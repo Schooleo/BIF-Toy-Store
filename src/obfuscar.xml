@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <Obfuscator>
   <Var name="InPath" value="PROJECT_PATH_PLACEHOLDER" />
-  <Var name="OutPath" value="Obfuscated" />
+  <Var name="OutPath" value="$(InPath)\Obfuscated" />
   
   <Var name="KeepPublicApi" value="false" />
   <Var name="HidePrivateApi" value="true" />
