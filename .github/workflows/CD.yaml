@@ -54,6 +54,14 @@ jobs:
           Copy-Item "${{ github.workspace }}\TempBuild\Obfuscated\*.dll" -Destination "${{ github.workspace }}\TempBuild" -Force
           Remove-Item "${{ github.workspace }}\TempBuild\Obfuscated" -Recurse
 
+      - name: Reorganize for Clean Deployment
+        shell: pwsh
+        run: |
+          New-Item -Path "TempBuild\AppFiles" -ItemType Directory
+          Get-ChildItem -Path "TempBuild" | Where-Object { $_.Name -ne 'AppFiles' } | Move-Item -Destination "TempBuild\AppFiles"
+          $launcherContent = '@echo off' + "`n" + 'start "" "%~dp0AppFiles\BIF.ToyStore.WinUI.exe"'
+          Set-Content -Path "TempBuild\Start BIF Toy Store.bat" -Value $launcherContent
+
       - name: Create Release Zip
         shell: pwsh
         run: Compress-Archive -Path "TempBuild\*" -DestinationPath "BIF-ToyStore-v${{ github.event.inputs.version }}.zip"

@@ -15,7 +15,7 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
-            <Image Source="/Assets/Branding/ToyBanner.jpg" Stretch="Fill" />
+            <Image Source="ms-appx:///Assets/Branding/ToyBanner.jpg" Stretch="Fill" />
         </StackPanel>
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Width="300" Spacing="15">
