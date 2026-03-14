@@ -2,6 +2,6 @@
 {
     public class Queries
     {
-        // Define specific queries
+        public string Ping() => "The BIF Toy Store GraphQL server is running.";
     }
 }

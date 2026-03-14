@@ -1,3 +1,4 @@
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
@@ -7,17 +8,61 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
     public class LoginViewModelTests
     {
-        private readonly Mock<IAuthService> _authServiceMock;
+        private readonly Mock<IGraphQLClient> _graphQLClientMock;
         private readonly LoginViewModel _viewModel;
+
+        // GraphQL mutation query constant – must match what LoginViewModel sends
+        private const string LoginMutation =
+            @"mutation PerformLogin($user: String!, $pass: String!) {
+                login(username: $user, password: $pass) {
+                    id
+                    username
+                    role
+                }
+            }";
 
         public LoginViewModelTests()
         {
-            _authServiceMock = new Mock<IAuthService>();
-            _viewModel = new LoginViewModel(_authServiceMock.Object);
+            _graphQLClientMock = new Mock<IGraphQLClient>();
+            _viewModel = new LoginViewModel(_graphQLClientMock.Object);
+        }
+
+        // ─── Constructor defaults ────────────────────────────────────────────────
+
+        [Fact]
+        public void Constructor_SetsCorrectTitle()
+        {
+            Assert.Equal("Login - BIF Toy Store POS", _viewModel.Title);
         }
 
         [Fact]
-        public async Task LoginAsync_EmptyUsernameOrPassword_SetsErrorMessage()
+        public void Constructor_DefaultUsername_IsEmpty()
+        {
+            Assert.Equal(string.Empty, _viewModel.Username);
+        }
+
+        [Fact]
+        public void Constructor_DefaultPassword_IsEmpty()
+        {
+            Assert.Equal(string.Empty, _viewModel.Password);
+        }
+
+        [Fact]
+        public void Constructor_DefaultErrorMessage_IsEmpty()
+        {
+            Assert.Equal(string.Empty, _viewModel.ErrorMessage);
+        }
+
+        [Fact]
+        public void Constructor_DefaultIsBusy_IsFalse()
+        {
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        // ─── Empty / whitespace input validation ─────────────────────────────────
+
+        [Fact]
+        public async Task LoginAsync_EmptyUsername_SetsValidationError()
         {
             // Arrange
             _viewModel.Username = "";
@@ -32,25 +77,144 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task LoginAsync_ValidCredentials_ClearsErrorMessage()
+        public async Task LoginAsync_EmptyPassword_SetsValidationError()
         {
             // Arrange
             _viewModel.Username = "validUser";
-            _viewModel.Password = "validPass";
-            
-            var user = new User { Username = "validUser" };
-            _authServiceMock.Setup(x => x.LoginAsync("validUser", "validPass"))
-                            .ReturnsAsync(user);
+            _viewModel.Password = "";
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
 
             // Assert
-            Assert.Empty(_viewModel.ErrorMessage);
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
             Assert.False(_viewModel.IsBusy);
-            // Verify that the service was called exactly once with the expected parameters
-            _authServiceMock.Verify(x => x.LoginAsync("validUser", "validPass"), Times.Once);
         }
+
+        [Fact]
+        public async Task LoginAsync_BothEmpty_SetsValidationError()
+        {
+            // Arrange
+            _viewModel.Username = "";
+            _viewModel.Password = "";
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_WhitespaceUsername_SetsValidationError()
+        {
+            // Arrange
+            _viewModel.Username = "   ";
+            _viewModel.Password = "password123";
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task LoginAsync_WhitespacePassword_SetsValidationError()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "   ";
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ValidationFailure_DoesNotCallGraphQL()
+        {
+            // Arrange
+            _viewModel.Username = "";
+            _viewModel.Password = "";
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert – GraphQL must never be called on invalid input
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
+                Times.Never);
+        }
+
+        // ─── Successful login ────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_AdminRole_SetsSuccessMessage()
+        {
+            // Arrange
+            _viewModel.Username = "adminUser";
+            _viewModel.Password = "adminPass";
+
+            var user = new User { Id = 1, Username = "adminUser", Role = UserRole.Admin };
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(user);
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Contains("adminUser", _viewModel.ErrorMessage);
+            Assert.Contains("Admin", _viewModel.ErrorMessage);
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_SaleRole_SetsSuccessMessage()
+        {
+            // Arrange
+            _viewModel.Username = "saleUser";
+            _viewModel.Password = "salePass";
+
+            var user = new User { Id = 2, Username = "saleUser", Role = UserRole.Sale };
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(user);
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Contains("saleUser", _viewModel.ErrorMessage);
+            Assert.Contains("Sale", _viewModel.ErrorMessage);
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_CallsGraphQL_ExactlyOnce()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new User { Username = "validUser" });
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"),
+                Times.Once);
+        }
+
+        // ─── Failed login ─────────────────────────────────────────────────────────
 
         [Fact]
         public async Task LoginAsync_InvalidCredentials_SetsErrorMessage()
@@ -59,8 +223,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Username = "invalidUser";
             _viewModel.Password = "invalidPass";
 
-            _authServiceMock.Setup(x => x.LoginAsync("invalidUser", "invalidPass"))
-                            .ReturnsAsync((User?)null);
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync((User?)null);
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
@@ -68,6 +233,103 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Assert
             Assert.Equal("Invalid username or password.", _viewModel.ErrorMessage);
             Assert.False(_viewModel.IsBusy);
+        }
+
+        // ─── Exception handling ───────────────────────────────────────────────────
+
+        [Fact]
+        public async Task LoginAsync_GraphQLThrowsException_SetsConnectionError()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ThrowsAsync(new Exception("Server unavailable"));
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.StartsWith("Connection Error:", _viewModel.ErrorMessage);
+            Assert.Contains("Server unavailable", _viewModel.ErrorMessage);
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_GraphQLThrowsException_IsBusy_ResetToFalse()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ThrowsAsync(new HttpRequestException("Network failure"));
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert – finally block must always clear IsBusy
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        // ─── IsBusy state management ──────────────────────────────────────────────
+
+        [Fact]
+        public async Task LoginAsync_AfterSuccessfulLogin_IsBusyResetToFalse()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new User { Username = "validUser" });
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_AfterFailedLogin_IsBusyResetToFalse()
+        {
+            // Arrange
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync((User?)null);
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ErrorMessageClearedBeforeAttempt()
+        {
+            // Arrange – set a pre-existing error to verify it gets cleared
+            _viewModel.Username = "validUser";
+            _viewModel.Password = "validPass";
+            _viewModel.ErrorMessage = "Old error";
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new User { Username = "validUser" });
+
+            // Act
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            // Assert – the old error is gone (replaced with the success message)
+            Assert.DoesNotContain("Old error", _viewModel.ErrorMessage);
         }
     }
 }

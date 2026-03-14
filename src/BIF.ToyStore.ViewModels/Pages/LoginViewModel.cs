@@ -1,13 +1,15 @@
-﻿using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Text.Json;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class LoginViewModel : BaseViewModel
     {
-        private readonly IAuthService _authService;
+        private readonly IGraphQLClient _graphQLClient;
 
         [ObservableProperty]
         private string _username = string.Empty;
@@ -18,9 +20,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _errorMessage = string.Empty;
 
-        public LoginViewModel(IAuthService authService)
+        public LoginViewModel(IGraphQLClient graphQLClient)
         {
-            _authService = authService;
+            _graphQLClient = graphQLClient;
             Title = "Login - BIF Toy Store POS";
         }
 
@@ -36,21 +38,42 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            var user = await _authService.LoginAsync(Username, Password);
-
-            if (user != null)
+            try
             {
-                // Login successful!
-                // TODO: Save the logged-in user state ("Remember Me" requirement)
-                // TODO: Navigate to the Dashboard
-            }
-            else
-            {
-                // Login failed
-                ErrorMessage = "Invalid username or password.";
-            }
+                string query = 
+                    @"mutation PerformLogin($user: String!, $pass: String!) {
+                        login(username: $user, password: $pass) {
+                            id
+                            username
+                            role
+                        }
+                    }";
 
-            IsBusy = false;
+                var variables = new { user = Username, pass = Password };
+
+                var user = await _graphQLClient.ExecuteAsync<User>(query, variables, dataKey: "login");
+
+                if (user != null)
+                {
+                    var role = user.Role;
+
+                    ErrorMessage = $"User: {user.Username} | Role: {user.Role}";
+
+                    // TODO: Navigate to Dashboard based on role
+                }
+                else
+                {
+                    ErrorMessage = "Invalid username or password.";
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Connection Error: " + ex.Message;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }

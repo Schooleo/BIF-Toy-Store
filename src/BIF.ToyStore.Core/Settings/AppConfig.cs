@@ -2,10 +2,14 @@
 {
     public class AppConfig
     {
+        public int Id { get; set; } = 1;
+        public string DisplayName { get; set; } = "BIF Toy Store";
+
         // "Hiệu chỉnh số lượng sản phẩm mỗi trang"
         public int ItemsPerPage { get; set; } = 10;
 
         // "Lưu lại chức năng chính lần cuối mở"
+        public bool ShouldSaveLastPage { get; set; } = true;
         public string LastOpenedPage { get; set; } = "Dashboard";
 
         // "Nếu có thông tin đăng nhập lưu từ lần trước thì tự động đăng nhập"
