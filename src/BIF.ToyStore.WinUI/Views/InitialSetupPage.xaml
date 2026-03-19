@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BIF.ToyStore.WinUI.Views.InitialSetupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <Grid Padding="24" RowSpacing="16" MaxWidth="840" HorizontalAlignment="Center">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel>
+                <TextBlock Text="Initial Setup" Style="{ThemeResource HeaderTextBlockStyle}" />
+                <TextBlock Text="Configure your store before first login." Opacity="0.8" />
+                <TextBlock Text="{x:Bind ViewModel.AppVersion, Mode=OneWay}" Opacity="0.7" />
+            </StackPanel>
+
+            <Grid Grid.Row="1" ColumnSpacing="16" RowSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBox Grid.Column="0" Grid.Row="0"
+                         Header="Store Name"
+                         Text="{x:Bind ViewModel.StoreName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <ToggleSwitch Grid.Column="1" Grid.Row="0"
+                              Header="Use Dark Mode"
+                              IsOn="{x:Bind ViewModel.UseDarkTheme, Mode=TwoWay}" />
+
+                <TextBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
+                         Header="Receipt Header"
+                         Text="{x:Bind ViewModel.ReceiptHeader, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBox Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
+                         Header="Receipt Footer"
+                         Text="{x:Bind ViewModel.ReceiptFooter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <NumberBox Grid.Column="0" Grid.Row="3"
+                           Header="Tax Rate (%)"
+                           SmallChange="0.5"
+                           SpinButtonPlacementMode="Inline"
+                           Minimum="0"
+                           Maximum="100"
+                           Value="{x:Bind ViewModel.TaxRate, Mode=TwoWay}" />
+
+                <NumberBox Grid.Column="1" Grid.Row="3"
+                           Header="Local Server Port"
+                           SmallChange="1"
+                           SpinButtonPlacementMode="Inline"
+                           Minimum="1024"
+                           Maximum="65535"
+                           Value="{x:Bind ViewModel.LocalServerPort, Mode=TwoWay}" />
+            </Grid>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="24">
+                <ToggleSwitch Header="Enable Loyalty Points"
+                              IsOn="{x:Bind ViewModel.EnableLoyaltyPoints, Mode=TwoWay}" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="3"
+                       Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                       Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                       TextWrapping="Wrap" />
+
+            <Button Grid.Row="4"
+                    Content="Save Configuration"
+                    Click="OnSaveConfigurationClick"
+                    HorizontalAlignment="Stretch"
+                    Style="{ThemeResource AccentButtonStyle}" />
+        </Grid>
+    </ScrollViewer>
+</Page>

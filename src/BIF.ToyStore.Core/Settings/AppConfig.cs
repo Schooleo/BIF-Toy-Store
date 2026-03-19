@@ -4,20 +4,13 @@
     {
         public int Id { get; set; } = 1;
         public string DisplayName { get; set; } = "BIF Toy Store";
-
-        // "Hiệu chỉnh số lượng sản phẩm mỗi trang"
-        public int ItemsPerPage { get; set; } = 10;
-
-        // "Lưu lại chức năng chính lần cuối mở"
-        public bool ShouldSaveLastPage { get; set; } = true;
-        public string LastOpenedPage { get; set; } = "Dashboard";
-
-        // "Nếu có thông tin đăng nhập lưu từ lần trước thì tự động đăng nhập"
-        public bool RememberMe { get; set; } = false;
-        public string SavedUsername { get; set; } = string.Empty;
-
-        // "Cho phép cấu hình thông tin server"
+        public string ReceiptHeader { get; set; } = "Welcome to BIF Toy Store";
+        public string ReceiptFooter { get; set; } = "Thank you for your purchase!";
+        public string ThemePreference { get; set; } = "System";
+        public bool EnableLoyaltyPoints { get; set; } = true;
+        public decimal TaxRate { get; set; } = 0.10m;
         public int LocalServerPort { get; set; } = 5000;
         public string DatabasePath { get; set; } = "ToyStore.db";
+        public bool IsInitialSetupCompleted { get; set; } = false;
     }
 }

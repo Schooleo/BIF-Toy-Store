@@ -10,9 +10,9 @@ namespace BIF.ToyStore.ViewModels.Utils
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public GraphQLClient()
+        public GraphQLClient(string baseAddress = "http://localhost:5000/")
         {
-            _httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5000/") };
+            _httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
 
             // Ensures JSON properties map correctly
             _jsonOptions = new JsonSerializerOptions

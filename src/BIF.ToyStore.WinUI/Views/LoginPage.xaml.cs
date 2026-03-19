@@ -15,6 +15,12 @@ namespace BIF.ToyStore.WinUI.Views
             ViewModel = App.Current.Services.GetRequiredService<LoginViewModel>();
 
             this.DataContext = ViewModel;
+            Loaded += OnLoaded;
+        }
+
+        private async void OnLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            await ViewModel.TryAutoLoginAsync();
         }
     }
 }
