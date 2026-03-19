@@ -36,6 +36,13 @@ namespace BIF.ToyStore.Infrastructure.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
+
+            modelBuilder.Entity<AppConfig>()
+                .ToTable(t => t.HasCheckConstraint("CK_AppConfig_SingleRow", "Id = 1"));
+
+            modelBuilder.Entity<AppConfig>()
+                .Property(c => c.Id)
+                .ValueGeneratedNever();
         }
     }
 }

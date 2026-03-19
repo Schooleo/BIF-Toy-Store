@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.12" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.4">
       <PrivateAssets>all</PrivateAssets>

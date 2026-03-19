@@ -5,6 +5,8 @@ using BIF.ToyStore.Infrastructure.Repositories;
 using BIF.ToyStore.Infrastructure.Services;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
+using BIF.ToyStore.WinUI.Services;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,7 @@ namespace BIF.ToyStore.WinUI
     public partial class App : Application
     {
         public IServiceProvider Services { get; }
+        public MainWindow? MainWindowInstance => _window as MainWindow;
 
         private readonly IHost _host;
 
@@ -28,6 +31,9 @@ namespace BIF.ToyStore.WinUI
         {
             InitializeComponent();
 
+            var bootstrapSettings = new LocalSettingsService();
+            var serverPort = bootstrapSettings.GetInt(AppPreferenceKeys.LocalServerPort, 5000);
+
             // Create the Host Builder
             _host = Host.CreateDefaultBuilder()
                 .ConfigureWebHostDefaults(webBuilder =>
@@ -35,7 +41,7 @@ namespace BIF.ToyStore.WinUI
                     // Configure the Kestrel Web Server
                     webBuilder.UseKestrel(options =>
                     {
-                        options.ListenLocalhost(5000);
+                        options.ListenLocalhost(serverPort);
                     });
 
                     // Configure your Services & GraphQL
@@ -48,7 +54,13 @@ namespace BIF.ToyStore.WinUI
                         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
 
                         // Services
+                        services.AddMemoryCache();
                         services.AddScoped<IAuthService, AuthService>();
+                        services.AddScoped<IConfigService, ConfigService>();
+                        services.AddSingleton<ICredentialVaultService, CredentialVaultService>();
+                        services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
+                        services.AddSingleton<IAppInfoService, AppInfoService>();
+                        services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
                         // GraphQL
                         services.AddGraphQLServer()
@@ -58,9 +70,10 @@ namespace BIF.ToyStore.WinUI
                                 .AddSorting();
 
                         // Utils
-                        services.AddSingleton<IGraphQLClient, GraphQLClient>();
+                        services.AddSingleton<IGraphQLClient>(_ => new GraphQLClient($"http://localhost:{serverPort}/"));
 
                         // ViewModels
+                        services.AddTransient<InitialSetupViewModel>();
                         services.AddTransient<LoginViewModel>();
                     });
 
@@ -97,11 +110,35 @@ namespace BIF.ToyStore.WinUI
 
                 // Run the seeder
                 await DatabaseSeeder.SeedAsync(dbContext);
+
+                var graphQLClient = _host.Services.GetRequiredService<IGraphQLClient>();
+                var setupState = await graphQLClient.ExecuteAsync<SetupStateView>(
+                    @"query SetupState {
+                        setupState {
+                            isInitialSetupCompleted
+                        }
+                    }",
+                    dataKey: "setupState");
+
+                var mainWindow = (MainWindow)_window;
+                if (setupState?.IsInitialSetupCompleted == true)
+                {
+                    mainWindow.NavigateToLogin();
+                }
+                else
+                {
+                    mainWindow.NavigateToInitialSetup();
+                }
             }
             catch (Exception ex)
             {
                 await ShowErrorDialogAsync(ex);
             }
+        }
+
+        private sealed class SetupStateView
+        {
+            public bool IsInitialSetupCompleted { get; set; }
         }
 
         // Shows a ContentDialog safely

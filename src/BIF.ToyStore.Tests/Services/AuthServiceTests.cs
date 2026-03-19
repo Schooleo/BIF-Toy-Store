@@ -29,7 +29,13 @@ namespace BIF.ToyStore.Tests.Services
         public async Task LoginAsync_ValidCredentials_ReturnsUser()
         {
             // Arrange
-            _dbContext.Users.Add(new User { Id = 1, Username = "admin", PasswordHash = "pass123", Role = UserRole.Admin });
+            _dbContext.Users.Add(new User
+            {
+                Id = 1,
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass123"),
+                Role = UserRole.Admin
+            });
             await _dbContext.SaveChangesAsync();
 
             // Act
@@ -44,7 +50,13 @@ namespace BIF.ToyStore.Tests.Services
         public async Task LoginAsync_WrongPassword_ReturnsNull()
         {
             // Arrange
-            _dbContext.Users.Add(new User { Id = 2, Username = "admin", PasswordHash = "correct", Role = UserRole.Admin });
+            _dbContext.Users.Add(new User
+            {
+                Id = 2,
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct"),
+                Role = UserRole.Admin
+            });
             await _dbContext.SaveChangesAsync();
 
             // Act
@@ -58,7 +70,13 @@ namespace BIF.ToyStore.Tests.Services
         public async Task LoginAsync_WrongUsername_ReturnsNull()
         {
             // Arrange
-            _dbContext.Users.Add(new User { Id = 3, Username = "admin", PasswordHash = "pass123", Role = UserRole.Admin });
+            _dbContext.Users.Add(new User
+            {
+                Id = 3,
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass123"),
+                Role = UserRole.Admin
+            });
             await _dbContext.SaveChangesAsync();
 
             // Act
@@ -82,7 +100,13 @@ namespace BIF.ToyStore.Tests.Services
         public async Task LoginAsync_CorrectRole_IsReturnedWithUser()
         {
             // Arrange
-            _dbContext.Users.Add(new User { Id = 4, Username = "seller", PasswordHash = "pass", Role = UserRole.Sale });
+            _dbContext.Users.Add(new User
+            {
+                Id = 4,
+                Username = "seller",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass"),
+                Role = UserRole.Sale
+            });
             await _dbContext.SaveChangesAsync();
 
             // Act
@@ -97,11 +121,61 @@ namespace BIF.ToyStore.Tests.Services
         public async Task LoginAsync_CaseSensitiveUsername_ReturnsNull()
         {
             // Arrange
-            _dbContext.Users.Add(new User { Id = 5, Username = "Admin", PasswordHash = "pass", Role = UserRole.Admin });
+            _dbContext.Users.Add(new User
+            {
+                Id = 5,
+                Username = "Admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass"),
+                Role = UserRole.Admin
+            });
             await _dbContext.SaveChangesAsync();
 
             // Act – lowercase "admin" should NOT match "Admin"
             var result = await _authService.LoginAsync("admin", "pass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task LoginAsync_LegacyPlainTextPassword_MigratesToBcryptAndReturnsUser()
+        {
+            // Arrange
+            _dbContext.Users.Add(new User
+            {
+                Id = 6,
+                Username = "legacy",
+                PasswordHash = "legacy123",
+                Role = UserRole.Admin
+            });
+            await _dbContext.SaveChangesAsync();
+
+            // Act
+            var result = await _authService.LoginAsync("legacy", "legacy123");
+
+            // Assert
+            Assert.NotNull(result);
+
+            var updatedUser = await _dbContext.Users.SingleAsync(u => u.Username == "legacy");
+            Assert.NotEqual("legacy123", updatedUser.PasswordHash);
+            Assert.True(BCrypt.Net.BCrypt.Verify("legacy123", updatedUser.PasswordHash));
+        }
+
+        [Fact]
+        public async Task LoginAsync_InvalidLegacySaltAndWrongPassword_ReturnsNull()
+        {
+            // Arrange
+            _dbContext.Users.Add(new User
+            {
+                Id = 7,
+                Username = "broken",
+                PasswordHash = "not-a-bcrypt-hash",
+                Role = UserRole.Admin
+            });
+            await _dbContext.SaveChangesAsync();
+
+            // Act
+            var result = await _authService.LoginAsync("broken", "wrong-password");
 
             // Assert
             Assert.Null(result);

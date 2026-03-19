@@ -39,6 +39,10 @@
                     Command="{x:Bind ViewModel.LoginCommand}" 
                     Width="300" 
                     Style="{ThemeResource AccentButtonStyle}" />
+
+            <TextBlock Text="{x:Bind ViewModel.AppVersion, Mode=OneWay}"
+                       HorizontalAlignment="Center"
+                       Opacity="0.7" />
         </StackPanel>
     </Grid>
 </Page>

@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Settings;
 
 namespace BIF.ToyStore.Tests.Core
 {
@@ -318,6 +319,56 @@ namespace BIF.ToyStore.Tests.Core
             Assert.Equal(4, detail.Quantity);
             Assert.Equal(25m, detail.UnitPrice);
             Assert.Equal(15m, detail.UnitImportPrice);
+        }
+    }
+
+    // ============================================================
+    //  AppConfig Model Tests
+    // ============================================================
+    public class AppConfigModelTests
+    {
+        [Fact]
+        public void AppConfig_Defaults_AreExpected()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal(1, config.Id);
+            Assert.Equal("BIF Toy Store", config.DisplayName);
+            Assert.Equal("Welcome to BIF Toy Store", config.ReceiptHeader);
+            Assert.Equal("Thank you for your purchase!", config.ReceiptFooter);
+            Assert.Equal("System", config.ThemePreference);
+            Assert.True(config.EnableLoyaltyPoints);
+            Assert.Equal(0.10m, config.TaxRate);
+            Assert.Equal(5000, config.LocalServerPort);
+            Assert.Equal("ToyStore.db", config.DatabasePath);
+            Assert.False(config.IsInitialSetupCompleted);
+        }
+    }
+
+    // ============================================================
+    //  InitialSetupConfiguration Model Tests
+    // ============================================================
+    public class InitialSetupConfigurationModelTests
+    {
+        [Fact]
+        public void InitialSetupConfiguration_CanSetAllProperties()
+        {
+            var setup = new InitialSetupConfiguration
+            {
+                DisplayName = "Store",
+                ReceiptHeader = "Header",
+                ReceiptFooter = "Footer",
+                ThemePreference = "Dark",
+                EnableLoyaltyPoints = false,
+                TaxRate = 0.075m
+            };
+
+            Assert.Equal("Store", setup.DisplayName);
+            Assert.Equal("Header", setup.ReceiptHeader);
+            Assert.Equal("Footer", setup.ReceiptFooter);
+            Assert.Equal("Dark", setup.ThemePreference);
+            Assert.False(setup.EnableLoyaltyPoints);
+            Assert.Equal(0.075m, setup.TaxRate);
         }
     }
 }
