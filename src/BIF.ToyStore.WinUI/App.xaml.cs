@@ -52,6 +52,8 @@ namespace BIF.ToyStore.WinUI
 
                         // Repositories
                         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
+                        services.AddScoped<IProductRepository, ProductRepository>();
+                        services.AddScoped<ICategoryRepository, CategoryRepository>();
 
                         // Services
                         services.AddMemoryCache();
