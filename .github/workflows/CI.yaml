@@ -54,7 +54,7 @@ jobs:
           path: src/BIF.ToyStore.Tests/TestResults/test_results.trx
 
       - name: Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: success() || failure()
         with:
           name: .NET Tests
