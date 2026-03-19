@@ -7,8 +7,21 @@ on:
     branches: ["main", "dev"]
 
 jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: zricethezav/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
   build-and-test:
     runs-on: windows-latest
+    needs: gitleaks
 
     permissions:
       checks: write
