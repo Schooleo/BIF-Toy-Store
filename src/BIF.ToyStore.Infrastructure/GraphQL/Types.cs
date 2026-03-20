@@ -1,3 +1,5 @@
+using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
@@ -54,6 +56,107 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 IsInitialSetupCompleted = config.IsInitialSetupCompleted
             };
         }
+    }
+    public class CreateOrderDetailInput
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+
+    public class CreateOrderInput
+    {
+        public int SaleId { get; set; }
+        public int? CustomerId { get; set; }
+        public List<CreateOrderDetailInput> Items { get; set; } = [];
+    }
+
+    public class UpdateOrderInput
+    {
+        public int Id { get; set; }
+        public OrderStatus? Status { get; set; }
+        public int? CustomerId { get; set; }
+    }
+
+    public class ProductPayload
+    {
+        public int Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public decimal RetailPrice { get; init; }
+
+        public static ProductPayload FromProduct(Product product)
+        {
+            return new ProductPayload
+            {
+                Id = product.Id,
+                Name = product.Name,
+                RetailPrice = product.RetailPrice
+            };
+        }
+    }
+
+    public class OrderDetailPayload
+    {
+        public int Id { get; init; }
+        public int ProductId { get; init; }
+        public int Quantity { get; init; }
+        public decimal UnitPrice { get; init; }
+        public decimal UnitImportPrice { get; init; }
+        public ProductPayload? Product { get; init; }
+
+        public static OrderDetailPayload FromOrderDetail(OrderDetail detail)
+        {
+            return new OrderDetailPayload
+            {
+                Id = detail.Id,
+                ProductId = detail.ProductId,
+                Quantity = detail.Quantity,
+                UnitPrice = detail.UnitPrice,
+                UnitImportPrice = detail.UnitImportPrice,
+                Product = detail.Product is not null
+                    ? ProductPayload.FromProduct(detail.Product)
+                    : null
+            };
+        }
+    }
+
+    public class OrderPayload
+    {
+        public int Id { get; init; }
+        public DateTime OrderDate { get; init; }
+        public OrderStatus Status { get; init; }
+        public decimal TotalAmount { get; init; }
+        public int SaleId { get; init; }
+        public string? SaleName { get; init; }
+        public int? CustomerId { get; init; }
+        public string? CustomerName { get; init; }
+        public List<OrderDetailPayload> OrderDetails { get; init; } = [];
+
+        public static OrderPayload FromOrder(Order order)
+        {
+            return new OrderPayload
+            {
+                Id = order.Id,
+                OrderDate = order.OrderDate,
+                Status = order.Status,
+                TotalAmount = order.TotalAmount,
+                SaleId = order.SaleId,
+                SaleName = order.Sale?.Username,
+                CustomerId = order.CustomerId,
+                CustomerName = order.Customer?.FullName,
+                OrderDetails = order.OrderDetails
+                    .Select(OrderDetailPayload.FromOrderDetail)
+                    .ToList()
+            };
+        }
+    }
+
+    public class OrderListPayload
+    {
+        public List<OrderPayload> Items { get; init; } = [];
+        public int TotalCount { get; init; }
+        public int Page { get; init; }
+        public int PageSize { get; init; }
     }
 
     public class CreateProductInput
