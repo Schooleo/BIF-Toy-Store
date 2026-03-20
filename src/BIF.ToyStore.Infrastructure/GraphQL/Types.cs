@@ -157,6 +157,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public int TotalCount { get; init; }
         public int Page { get; init; }
         public int PageSize { get; init; }
+    }
 
     public class CreateProductInput
     {
@@ -178,4 +179,3 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public List<string> Errors { get; set; } = new();
     }
 }
-

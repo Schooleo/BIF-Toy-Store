@@ -121,6 +121,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             [Service] IOrderService orderService)
         {
             return await orderService.DeleteOrderAsync(id);
+        }
 
         public async Task<Product> CreateProduct(CreateProductInput input, [Service] IProductRepository repo)
         {

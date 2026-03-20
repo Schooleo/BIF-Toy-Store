@@ -53,7 +53,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var order = await orderService.GetOrderByIdAsync(id);
             return order is not null ? OrderPayload.FromOrder(order) : null;
         }
-    }
+
         [UsePaging(IncludeTotalCount = true)]
         [UseFiltering]
         [UseSorting]
