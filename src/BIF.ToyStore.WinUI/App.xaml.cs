@@ -7,6 +7,7 @@ using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
 using BIF.ToyStore.WinUI.Services;
 using CommunityToolkit.Mvvm.Messaging;
+using HotChocolate.Types;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,6 +53,8 @@ namespace BIF.ToyStore.WinUI
 
                         // Repositories
                         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
+                        services.AddScoped<IProductRepository, ProductRepository>();
+                        services.AddScoped<ICategoryRepository, CategoryRepository>();
 
                         // Services
                         services.AddMemoryCache();
@@ -67,6 +70,7 @@ namespace BIF.ToyStore.WinUI
                         services.AddGraphQLServer()
                                 .AddQueryType<Queries>()
                                 .AddMutationType<Mutations>()
+                                .AddType<UploadType>()
                                 .AddFiltering()
                                 .AddSorting();
 

@@ -1,7 +1,13 @@
+﻿using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Infrastructure.Data;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
-    using BIF.ToyStore.Core.Interfaces;
-
     public class Queries
     {
         public string Ping() => "The BIF Toy Store GraphQL server is running.";
@@ -48,5 +54,21 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return order is not null ? OrderPayload.FromOrder(order) : null;
         }
     }
+        [UsePaging(IncludeTotalCount = true)]
+        [UseFiltering]
+        [UseSorting]
+        public IQueryable<Product> Products([Service] AppDbContext dbContext)
+        {
+            return dbContext.Products.Include(p => p.Category).AsNoTracking();
+        }
+
+        [UsePaging(IncludeTotalCount = true)]
+        [UseFiltering]
+        [UseSorting]
+        public IQueryable<Category> Categories([Service] AppDbContext dbContext)
+        {
+            return dbContext.Categories.Include(c => c.Products).AsNoTracking();
+        }
+    } 
 }
 
