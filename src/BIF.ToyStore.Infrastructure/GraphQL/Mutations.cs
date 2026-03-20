@@ -1,8 +1,10 @@
-﻿using BIF.ToyStore.Core.Interfaces;
-using BIF.ToyStore.Core.Enums;
+﻿using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
+using HotChocolate.Types;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
@@ -85,6 +87,88 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             });
 
             return AppConfigPayload.FromConfig(updatedConfig);
+        }
+
+        public async Task<Product> CreateProduct(CreateProductInput input, [Service] IProductRepository repo)
+        {
+            var product = new Product
+            {
+                Name = input.Name,
+                CategoryId = input.CategoryId,
+                RetailPrice = input.RetailPrice,
+                ImportPrice = input.ImportPrice,
+                StockQuantity = input.StockQuantity
+            };
+            return await repo.AddAsync(product);
+        }
+
+        public async Task<Product> UpdateProduct(UpdateProductInput input, [Service] IProductRepository repo)
+        {
+            var product = await repo.GetByIdAsync(input.Id);
+            if (product is null)
+            {
+                throw new InvalidOperationException("Product not found.");
+            }
+            product.Name = input.Name;
+            product.CategoryId = input.CategoryId;
+            product.RetailPrice = input.RetailPrice;
+            product.ImportPrice = input.ImportPrice;
+            product.StockQuantity = input.StockQuantity;
+            
+            await repo.UpdateAsync(product);
+            return product;
+        }
+
+        public async Task<bool> DeleteProduct(int id, [Service] IProductRepository repo)
+        {
+            await repo.DeleteAsync(id);
+            return true;
+        }
+
+        public async Task<ImportProductsPayload> ImportProducts(IFile file, [Service] IProductRepository repo)
+        {
+            var payload = new ImportProductsPayload();
+            var products = new List<Product>();
+            try
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using var stream = file.OpenReadStream();
+
+                using var reader = ExcelReaderFactory.CreateReader(stream);
+                var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
+                });
+                var table = dataSet.Tables[0];
+                foreach (System.Data.DataRow row in table.Rows)
+                {
+                    try
+                    {
+                        var product = new Product
+                        {
+                            Name = row["Name"]?.ToString() ?? "Unknown",
+                            CategoryId = Convert.ToInt32(row["CategoryId"]),
+                            RetailPrice = Convert.ToDecimal(row["RetailPrice"]),
+                            ImportPrice = Convert.ToDecimal(row["ImportPrice"]),
+                            StockQuantity = Convert.ToInt32(row["StockQuantity"])
+                        };
+                        products.Add(product);
+                    }
+                    catch (Exception ex)
+                    {
+                        payload.Errors.Add($"Error parsing row (skipped): {ex.Message}");
+                    }
+                }
+                if (products.Count > 0)
+                {
+                    payload.ImportedCount = await repo.BulkInsertAsync(products);
+                }
+            }
+            catch (Exception ex)
+            {
+                payload.Errors.Add($"Error processing file: {ex.Message}");
+            }
+            return payload;
         }
     }
 }

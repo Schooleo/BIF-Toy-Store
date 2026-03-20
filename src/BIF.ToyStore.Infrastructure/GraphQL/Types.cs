@@ -55,4 +55,24 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             };
         }
     }
+
+    public class CreateProductInput
+    {
+        public string Name { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
+        public decimal RetailPrice { get; set; }
+        public decimal ImportPrice { get; set; }
+        public int StockQuantity { get; set; }
+    }
+
+    public class UpdateProductInput : CreateProductInput
+    {
+        public int Id { get; set; }
+    }
+
+    public class ImportProductsPayload
+    {
+        public int ImportedCount { get; set; }
+        public List<string> Errors { get; set; } = new();
+    }
 }

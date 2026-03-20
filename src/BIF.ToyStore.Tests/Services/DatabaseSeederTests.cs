@@ -63,13 +63,49 @@ namespace BIF.ToyStore.Tests.Services
             Assert.True(BCrypt.Net.BCrypt.Verify("admin123", admin.PasswordHash));
         }
 
+        [Fact]
+        public async Task SeedAsync_EmptyDatabase_CreatesDefaultCategoriesAndProducts()
+        {
+            // Use a unique Data Source for this specific test
+            const string connectionString = "Data Source=SeederDb3;Mode=Memory;Cache=Shared";
+            await using var keeperConnection = new SqliteConnection(connectionString);
+            await keeperConnection.OpenAsync();
+
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connection)
+                .Options;
+
+            await using var context = new AppDbContext(options);
+            await context.Database.EnsureCreatedAsync();
+
+            // Run Seeder
+            await DatabaseSeeder.SeedAsync(context);
+
+            // Assert: Expect 3 categories and 5 products
+            var categoriesCount = await context.Categories.CountAsync();
+            var productsCount = await context.Products.CountAsync();
+
+            Assert.Equal(3, categoriesCount);
+            Assert.Equal(15, productsCount);
+
+            // Validate mapping by checking English category
+            var legoCategory = await context.Categories
+                .Include(c => c.Products)
+                .SingleAsync(c => c.Name == "Lego Sets");
+
+            Assert.Equal(5, legoCategory.Products.Count);
+        }
+
         private static async Task CreateLegacySchemaAsync(AppDbContext context)
         {
             var sqlCommands = new[]
             {
                 "CREATE TABLE IF NOT EXISTS Users (Id INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT NOT NULL, PasswordHash TEXT NOT NULL, Role INTEGER NOT NULL);",
                 "CREATE TABLE IF NOT EXISTS Categories (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NULL);",
-                "CREATE TABLE IF NOT EXISTS Products (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NULL);",
+                "CREATE TABLE IF NOT EXISTS Products (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NULL, CategoryId INTEGER NOT NULL DEFAULT 0, RetailPrice REAL NOT NULL DEFAULT 0, ImportPrice REAL NOT NULL DEFAULT 0, StockQuantity INTEGER NOT NULL DEFAULT 0);",
                 "CREATE TABLE IF NOT EXISTS Customers (Id INTEGER PRIMARY KEY AUTOINCREMENT, FullName TEXT NULL);",
                 "CREATE TABLE IF NOT EXISTS Orders (Id INTEGER PRIMARY KEY AUTOINCREMENT, TotalAmount REAL NOT NULL DEFAULT 0);",
                 "CREATE TABLE IF NOT EXISTS OrderDetails (Id INTEGER PRIMARY KEY AUTOINCREMENT, Quantity INTEGER NOT NULL DEFAULT 0);",
