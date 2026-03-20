@@ -4,6 +4,7 @@ using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
+using HotChocolate.Types;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
@@ -124,15 +125,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return true;
         }
 
-        public async Task<ImportProductsPayload> ImportProducts(string base64File, [Service] IProductRepository repo)
+        public async Task<ImportProductsPayload> ImportProducts(IFile file, [Service] IProductRepository repo)
         {
             var payload = new ImportProductsPayload();
             var products = new List<Product>();
             try
             {
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                byte[] fileBytes = Convert.FromBase64String(base64File);
-                using var stream = new MemoryStream(fileBytes);
+                using var stream = file.OpenReadStream();
 
                 using var reader = ExcelReaderFactory.CreateReader(stream);
                 var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()

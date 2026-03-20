@@ -36,6 +36,7 @@
   <ItemGroup>
     <Folder Include="Helpers\" />
     <Folder Include="Core\" />
+    <Folder Include="TestFiles\" />
     <Folder Include="Services\" />
     <Folder Include="ViewModels\" />
   </ItemGroup>
