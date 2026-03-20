@@ -1,3 +1,4 @@
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +44,26 @@ namespace BIF.ToyStore.Infrastructure.Data
             modelBuilder.Entity<AppConfig>()
                 .Property(c => c.Id)
                 .ValueGeneratedNever();
+
+            // Order: Soft-delete global query filter
+            modelBuilder.Entity<Order>()
+                .HasQueryFilter(o => !o.IsDeleted);
+
+            // Order: Store OrderStatus enum as integer
+            modelBuilder.Entity<Order>()
+                .Property(o => o.Status)
+                .HasConversion<int>();
+
+            // OrderDetail: composite relationship
+            modelBuilder.Entity<OrderDetail>()
+                .HasOne(d => d.Order)
+                .WithMany(o => o.OrderDetails)
+                .HasForeignKey(d => d.OrderId);
+
+            modelBuilder.Entity<OrderDetail>()
+                .HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId);
         }
     }
 }
