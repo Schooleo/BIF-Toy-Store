@@ -1,4 +1,4 @@
-﻿using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Enums;
 
 namespace BIF.ToyStore.Core.Models
 {
@@ -15,6 +15,8 @@ namespace BIF.ToyStore.Core.Models
 
         public int? CustomerId { get; set; }
         public Customer? Customer { get; set; }
+
+        public bool IsDeleted { get; set; }
 
         public ICollection<OrderDetail> OrderDetails { get; set; } = [];
     }
