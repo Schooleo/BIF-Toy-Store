@@ -8,17 +8,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
 		<PackageReference Include="HotChocolate.AspNetCore" Version="15.1.12" />
-		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.4" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.4" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.4">
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.5" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="ExcelDataReader" Version="3.7.0" />
-		<PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
-		<PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
+		<PackageReference Include="ExcelDataReader" Version="3.8.0" />
+		<PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
 		<PackageReference Include="HotChocolate.Data.EntityFramework" Version="15.1.12" />
 	</ItemGroup>
 
