@@ -60,6 +60,7 @@ namespace BIF.ToyStore.WinUI
                         services.AddMemoryCache();
                         services.AddScoped<IAuthService, AuthService>();
                         services.AddScoped<IConfigService, ConfigService>();
+                        services.AddScoped<IOrderService, OrderService>();
                         services.AddSingleton<ICredentialVaultService, CredentialVaultService>();
                         services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
                         services.AddSingleton<IAppInfoService, AppInfoService>();

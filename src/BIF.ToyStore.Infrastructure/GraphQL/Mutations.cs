@@ -88,6 +88,40 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
             return AppConfigPayload.FromConfig(updatedConfig);
         }
+        public async Task<OrderPayload> CreateOrder(
+            CreateOrderInput input,
+            [Service] IOrderService orderService)
+        {
+            var items = input.Items
+                .Select(i => (i.ProductId, i.Quantity, i.UnitPrice))
+                .ToList();
+
+            var order = await orderService.CreateOrderAsync(
+                input.SaleId,
+                input.CustomerId,
+                items);
+
+            return OrderPayload.FromOrder(order);
+        }
+
+        public async Task<OrderPayload> UpdateOrder(
+            UpdateOrderInput input,
+            [Service] IOrderService orderService)
+        {
+            var order = await orderService.UpdateOrderAsync(
+                input.Id,
+                input.Status,
+                input.CustomerId);
+
+            return OrderPayload.FromOrder(order);
+        }
+
+        public async Task<bool> DeleteOrder(
+            int id,
+            [Service] IOrderService orderService)
+        {
+            return await orderService.DeleteOrderAsync(id);
+        }
 
         public async Task<Product> CreateProduct(CreateProductInput input, [Service] IProductRepository repo)
         {
@@ -172,3 +206,4 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         }
     }
 }
+
