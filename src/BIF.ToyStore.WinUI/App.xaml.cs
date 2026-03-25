@@ -70,6 +70,8 @@ namespace BIF.ToyStore.WinUI
                         services.AddGraphQLServer()
                                 .AddQueryType<Queries>()
                                 .AddMutationType<Mutations>()
+                                .AddTypeExtension<CategoryExtension>()
+                                .AddTypeExtension<ProductExtension>()
                                 .AddType<UploadType>()
                                 .AddFiltering()
                                 .AddSorting();
