@@ -196,6 +196,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         }
     }
 
+    public class UserPayload
+    {
+        public int Id { get; init; }
+        public string Username { get; init; } = string.Empty;
+        public string PasswordHash { get; init; } = string.Empty;
+        public UserRole Role { get; init; }
+    }
+
     public class SaleKpiRankingPayload
     {
         public int SaleId { get; init; }

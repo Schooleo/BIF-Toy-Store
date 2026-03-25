@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
+using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace BIF.ToyStore.Infrastructure.Data
@@ -20,19 +21,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await dbContext.Database.EnsureCreatedAsync();
             await EnsureAppConfigSchemaAsync(dbContext);
 
-            bool adminExists = await dbContext.Users.AnyAsync(u => u.Role == UserRole.Admin);
-            if (!adminExists)
-            {
-                var defaultAdmin = new User
-                {
-                    Username = "admin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-                    Role = UserRole.Admin
-                };
-
-                dbContext.Users.Add(defaultAdmin);
-                await dbContext.SaveChangesAsync();
-            }
+            await EnsureDefaultAdminAsync(dbContext);
 
             bool configExists = await dbContext.AppConfigs.AnyAsync(c => c.Id == 1);
             if (!configExists)
@@ -62,6 +51,58 @@ namespace BIF.ToyStore.Infrastructure.Data
             }
 
             await SeedCategoriesAndProductsAsync(dbContext);
+        }
+
+        private static async Task EnsureDefaultAdminAsync(AppDbContext dbContext)
+        {
+            var admin = await dbContext.Users.FirstOrDefaultAsync(u => u.Role == UserRole.Admin);
+            if (admin is null)
+            {
+                dbContext.Users.Add(new User
+                {
+                    Username = "admin",
+                    PasswordHash = PasswordCipher.Encrypt("admin123"),
+                    Role = UserRole.Admin
+                });
+
+                await dbContext.SaveChangesAsync();
+                return;
+            }
+
+            bool isExpectedCredential = false;
+            if (PasswordCipher.TryDecrypt(admin.PasswordHash, out var decryptedPassword))
+            {
+                isExpectedCredential = string.Equals(decryptedPassword, "admin123", StringComparison.Ordinal);
+            }
+            else if (PasswordCipher.IsBcryptHash(admin.PasswordHash))
+            {
+                try
+                {
+                    isExpectedCredential = BCrypt.Net.BCrypt.Verify("admin123", admin.PasswordHash);
+                }
+                catch
+                {
+                    isExpectedCredential = false;
+                }
+            }
+            else
+            {
+                isExpectedCredential = string.Equals(admin.PasswordHash, "admin123", StringComparison.Ordinal);
+            }
+
+            // Keep demo/admin credentials stable so login always works in dev/test.
+            if (!isExpectedCredential)
+            {
+                admin.Username = "admin";
+                admin.PasswordHash = PasswordCipher.Encrypt("admin123");
+                admin.Role = UserRole.Admin;
+                await dbContext.SaveChangesAsync();
+            }
+            else if (!admin.PasswordHash.StartsWith("aes:v1:", StringComparison.Ordinal))
+            {
+                admin.PasswordHash = PasswordCipher.Encrypt("admin123");
+                await dbContext.SaveChangesAsync();
+            }
         }
 
         private static async Task SeedCategoriesAndProductsAsync(AppDbContext dbContext)

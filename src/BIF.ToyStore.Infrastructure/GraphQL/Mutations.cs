@@ -44,7 +44,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var user = new User
             {
                 Username = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                PasswordHash = Services.PasswordCipher.Encrypt(password),
                 Role = role
             };
 
