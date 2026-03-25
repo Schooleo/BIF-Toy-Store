@@ -32,6 +32,11 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
+        private void UserManagementButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToUsers();
+        }
+
         private void SelectItemsPerPage(int value)
         {
             foreach (var item in ItemsPerPageComboBox.Items.OfType<ComboBoxItem>())

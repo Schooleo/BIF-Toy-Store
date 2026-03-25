@@ -95,6 +95,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 if (user != null)
                 {
                     _localSettingsService.SetString("LastUsername", user.Username);
+                    _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, user.Role.ToString());
                     _credentialVaultService.SaveCredentials(CredentialResourceName, Username, Password);
 
                     var lastRoute = _localSettingsService.GetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");

@@ -69,6 +69,13 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             return dbContext.Categories.Include(c => c.Products).AsNoTracking();
         }
+
+        [UseFiltering]
+        [UseSorting]
+        public IQueryable<User> Users([Service] AppDbContext dbContext)
+        {
+            return dbContext.Users.AsNoTracking();
+        }
     } 
 }
 

@@ -28,6 +28,7 @@
                 <ComboBoxItem Content="50" />
                 <ComboBoxItem Content="100" />
             </ComboBox>
+            <Button Content="User Management" Click="UserManagementButton_Click" />
         </StackPanel>
     </Grid>
 </Page>
