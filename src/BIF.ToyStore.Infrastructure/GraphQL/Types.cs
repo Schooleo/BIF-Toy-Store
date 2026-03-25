@@ -178,4 +178,42 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public int ImportedCount { get; set; }
         public List<string> Errors { get; set; } = new();
     }
+
+    public class UserListItemPayload
+    {
+        public int Id { get; init; }
+        public string Username { get; init; } = string.Empty;
+        public UserRole Role { get; init; }
+
+        public static UserListItemPayload FromUser(User user)
+        {
+            return new UserListItemPayload
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role
+            };
+        }
+    }
+
+    public class SaleKpiRankingPayload
+    {
+        public int SaleId { get; init; }
+        public string SaleName { get; init; } = string.Empty;
+        public int TotalOrders { get; init; }
+        public decimal TotalRevenue { get; init; }
+        public int Rank { get; init; }
+
+        public static SaleKpiRankingPayload FromModel(SaleKpiRanking model)
+        {
+            return new SaleKpiRankingPayload
+            {
+                SaleId = model.SaleId,
+                SaleName = model.SaleName,
+                TotalOrders = model.TotalOrders,
+                TotalRevenue = model.TotalRevenue,
+                Rank = model.Rank
+            };
+        }
+    }
 }

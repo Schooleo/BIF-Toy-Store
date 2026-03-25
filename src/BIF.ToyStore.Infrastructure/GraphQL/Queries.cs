@@ -76,6 +76,25 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             return dbContext.Users.AsNoTracking();
         }
+
+        public async Task<List<UserListItemPayload>> GetUserList([Service] AppDbContext dbContext)
+        {
+            var users = await dbContext.Users
+                .AsNoTracking()
+                .OrderBy(u => u.Username)
+                .ToListAsync();
+
+            return users.Select(UserListItemPayload.FromUser).ToList();
+        }
+
+        public async Task<List<SaleKpiRankingPayload>> GetSaleKpiRanking(
+            DateTime? fromDate,
+            DateTime? toDate,
+            [Service] IOrderService orderService)
+        {
+            var ranking = await orderService.GetSaleKpiRankingAsync(fromDate, toDate);
+            return ranking.Select(SaleKpiRankingPayload.FromModel).ToList();
+        }
     } 
 }
 

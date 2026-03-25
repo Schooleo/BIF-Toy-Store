@@ -52,22 +52,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 ErrorMessage = string.Empty;
 
-                const string query = @"query {
-                    users {
-                        id
-                        username
-                        passwordHash
-                        role
-                    }
-                }";
-
-                var users = await _graphQLClient.ExecuteAsync<List<UserDto>>(query, dataKey: "users")
-                    ?? new List<UserDto>();
-
-                _allUsers.Clear();
-                foreach (var item in users)
+                bool loadedFromNewApi = await TryLoadFromNewApisAsync();
+                if (!loadedFromNewApi)
                 {
-                    _allUsers.Add(new UserItemViewModel(item));
+                    await LoadFromLegacyUsersApiAsync();
+                    ErrorMessage = "Running with legacy GraphQL schema. KPI ranking API is unavailable.";
                 }
 
                 ApplySortAndFilter();
@@ -81,6 +70,100 @@ namespace BIF.ToyStore.ViewModels.Pages
                 Admins = 0;
                 ActiveSessions = 0;
             }
+        }
+
+        private async Task<bool> TryLoadFromNewApisAsync()
+        {
+            const string query = @"query {
+                getUserList {
+                    id
+                    username
+                    role
+                }
+
+                users {
+                    id
+                    passwordHash
+                }
+
+                getSaleKpiRanking {
+                    saleId
+                    totalOrders
+                    totalRevenue
+                    rank
+                }
+            }";
+
+            try
+            {
+                var response = await _graphQLClient.ExecuteAsync<UserManagementQueryData>(query)
+                    ?? new UserManagementQueryData();
+
+                var passwordByUserId = response.Users
+                    .GroupBy(u => u.Id)
+                    .ToDictionary(g => g.Key, g => g.First().PasswordHash);
+
+                var rankingBySaleId = response.GetSaleKpiRanking
+                    .GroupBy(r => r.SaleId)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                _allUsers.Clear();
+                foreach (var item in response.GetUserList)
+                {
+                    passwordByUserId.TryGetValue(item.Id, out var passwordHash);
+                    rankingBySaleId.TryGetValue(item.Id, out var ranking);
+
+                    var role = ParseRole(item.Role);
+
+                    int kpi = role == UserRole.Sale
+                        ? ranking?.TotalOrders ?? 0
+                        : 0;
+
+                    _allUsers.Add(new UserItemViewModel(item.Id, item.Username, passwordHash ?? string.Empty, role, kpi));
+                }
+
+                return true;
+            }
+            catch (Exception ex) when (IsMissingSchemaFieldError(ex.Message))
+            {
+                return false;
+            }
+        }
+
+        private async Task LoadFromLegacyUsersApiAsync()
+        {
+            const string legacyQuery = @"query {
+                users {
+                    id
+                    username
+                    passwordHash
+                    role
+                }
+            }";
+
+            var users = await _graphQLClient.ExecuteAsync<List<LegacyUserDto>>(legacyQuery, dataKey: "users")
+                ?? new List<LegacyUserDto>();
+
+            _allUsers.Clear();
+            foreach (var user in users)
+            {
+                _allUsers.Add(new UserItemViewModel(user.Id, user.Username, user.PasswordHash, ParseRole(user.Role), 0));
+            }
+        }
+
+        private static bool IsMissingSchemaFieldError(string message)
+        {
+            return message.Contains("does not exist on the type", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static UserRole ParseRole(string role)
+        {
+            if (Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsedRole))
+            {
+                return parsedRole;
+            }
+
+            return UserRole.Sale;
         }
 
         [RelayCommand]
@@ -97,10 +180,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         private void ApplySortAndFilter()
         {
             IEnumerable<UserItemViewModel> query = _allUsers;
+            string selectedFilter = string.IsNullOrWhiteSpace(SelectedNameFilter)
+                ? "All"
+                : SelectedNameFilter;
 
-            if (!string.Equals(SelectedNameFilter, "All", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(selectedFilter, "All", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(u => u.Username.StartsWith(SelectedNameFilter, StringComparison.OrdinalIgnoreCase));
+                query = query.Where(u => u.Username.StartsWith(selectedFilter, StringComparison.OrdinalIgnoreCase));
             }
 
             var result = query
@@ -129,12 +215,40 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
     }
 
-    public sealed class UserDto
+    public sealed class UserListItemDto
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+
+    public sealed class UserPasswordDto
+    {
+        public int Id { get; set; }
+        public string PasswordHash { get; set; } = string.Empty;
+    }
+
+    public sealed class SaleKpiRankingDto
+    {
+        public int SaleId { get; set; }
+        public int TotalOrders { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public int Rank { get; set; }
+    }
+
+    public sealed class UserManagementQueryData
+    {
+        public List<UserListItemDto> GetUserList { get; set; } = new();
+        public List<UserPasswordDto> Users { get; set; } = new();
+        public List<SaleKpiRankingDto> GetSaleKpiRanking { get; set; } = new();
+    }
+
+    public sealed class LegacyUserDto
     {
         public int Id { get; set; }
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
-        public UserRole Role { get; set; }
+        public string Role { get; set; } = string.Empty;
     }
 
     public partial class UserItemViewModel : ObservableObject
@@ -150,14 +264,14 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private bool _isPasswordVisible;
 
-        public UserItemViewModel(UserDto user)
+        public UserItemViewModel(int id, string username, string passwordHash, UserRole role, int kpi)
         {
-            Id = user.Id;
-            Username = user.Username;
-            PasswordHash = user.PasswordHash;
-            Role = user.Role;
-            Kpi = CalculateKpi(user);
-            Initials = BuildInitials(user.Username);
+            Id = id;
+            Username = username;
+            PasswordHash = passwordHash;
+            Role = role;
+            Kpi = kpi;
+            Initials = BuildInitials(username);
         }
 
         public string PasswordDisplay => IsPasswordVisible ? PasswordHash : "........";
@@ -165,13 +279,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnIsPasswordVisibleChanged(bool value)
         {
             OnPropertyChanged(nameof(PasswordDisplay));
-        }
-
-        private static int CalculateKpi(UserDto user)
-        {
-            int baseScore = user.Role == UserRole.Admin ? 86 : 62;
-            int spread = (user.Username.Length * 9 + user.Id * 5) % 15;
-            return baseScore + spread;
         }
 
         private static string BuildInitials(string username)
