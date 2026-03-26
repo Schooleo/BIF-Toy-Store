@@ -1,4 +1,5 @@
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -25,17 +26,15 @@ namespace BIF.ToyStore.WinUI.Views
 
         private async void OnSaveConfigurationClick(object sender, RoutedEventArgs e)
         {
-            var confirmDialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title = "Confirm Initial Configuration",
-                Content = "Saving will finalize initial setup. You will be redirected to Login. Continue?",
-                PrimaryButtonText = "Confirm",
-                CloseButtonText = "Cancel",
-                DefaultButton = ContentDialogButton.Primary
-            };
+            var dialogResult = await CommonDialog.ShowAsync(
+                XamlRoot,
+                CommonDialogType.Confirmation,
+                title: "Confirm Initial Configuration",
+                message: "Saving will finalize initial setup. You will be redirected to Login. Continue?",
+                primaryButtonText: "Confirm",
+                closeButtonText: "Cancel",
+                defaultButton: ContentDialogButton.Primary);
 
-            var dialogResult = await confirmDialog.ShowAsync();
             if (dialogResult != ContentDialogResult.Primary)
             {
                 return;
@@ -50,17 +49,15 @@ namespace BIF.ToyStore.WinUI.Views
 
             if (result.RequiresRestart)
             {
-                var restartDialog = new ContentDialog
-                {
-                    XamlRoot = XamlRoot,
-                    Title = "Restart Required",
-                    Content = "Server port was changed. The app will now close so it can bind to the new port on next launch.",
-                    PrimaryButtonText = "Exit Now",
-                    CloseButtonText = "Cancel",
-                    DefaultButton = ContentDialogButton.Primary
-                };
+                var restartResult = await CommonDialog.ShowAsync(
+                    XamlRoot,
+                    CommonDialogType.Warning,
+                    title: "Restart Required",
+                    message: "Server port was changed. The app will now close so it can bind to the new port on next launch.",
+                    primaryButtonText: "Exit Now",
+                    closeButtonText: "Cancel",
+                    defaultButton: ContentDialogButton.Primary);
 
-                var restartResult = await restartDialog.ShowAsync();
                 if (restartResult == ContentDialogResult.Primary)
                 {
                     App.Current.Exit();

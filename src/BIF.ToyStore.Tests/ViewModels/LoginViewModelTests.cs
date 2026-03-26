@@ -2,6 +2,8 @@ using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Messages;
+using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.Messaging;
 using Moq;
 
@@ -237,6 +239,27 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 Times.Once);
         }
 
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_PersistsRoleAndSendsMessage()
+        {
+            _viewModel.Username = "saleUser";
+            _viewModel.Password = "salePass";
+
+            var user = new LoginUser { Id = 2, Username = "saleUser", Role = UserRole.Sale };
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(user);
+
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            _localSettingsServiceMock.Verify(
+                x => x.SetString(AppPreferenceKeys.CurrentUserRole, UserRole.Sale.ToString()),
+                Times.Once);
+            Assert.Contains(
+                _messengerMock.Invocations,
+                call => call.Arguments.Any(arg => arg is LoginSucceededMessage));
+        }
+
         // ─── Failed login ─────────────────────────────────────────────────────────
 
         [Fact]
@@ -385,6 +408,41 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _credentialVaultServiceMock.Verify(
                 x => x.ClearCredentials("BIF.ToyStore.POS"),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_ValidStoredCredentials_SetsAutoLoginMessage()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(("saved-user", "saved-pass"));
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new LoginUser { Id = 99, Username = "saved-user", Role = UserRole.Admin });
+
+            await _viewModel.TryAutoLoginAsync();
+
+            Assert.StartsWith("Auto-login successful.", _viewModel.ErrorMessage);
+            _credentialVaultServiceMock.Verify(
+                x => x.SaveCredentials("BIF.ToyStore.POS", "saved-user", "saved-pass"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_GraphQlThrows_DoesNotSurfaceError()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(("saved-user", "saved-pass"));
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ThrowsAsync(new Exception("network down"));
+
+            await _viewModel.TryAutoLoginAsync();
+
+            Assert.Equal(string.Empty, _viewModel.ErrorMessage);
         }
     }
 }

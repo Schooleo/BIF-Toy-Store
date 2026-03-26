@@ -23,5 +23,9 @@ namespace BIF.ToyStore.Core.Interfaces
         Task<Order?> GetOrderByIdAsync(int id);
 
         Task<List<SaleKpiRanking>> GetSaleKpiRankingAsync(DateTime? fromDate, DateTime? toDate);
+
+        Task<List<RevenueTrendPoint>> GetRevenueTrendAsync(int days);
+
+        Task<List<BestSellingProductStat>> GetTopBestSellingProductsAsync(int take);
     }
 }

@@ -224,4 +224,42 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             };
         }
     }
+
+    public class RevenueTrendPointPayload
+    {
+        public string DayLabel { get; init; } = string.Empty;
+        public decimal Revenue { get; init; }
+
+        public static RevenueTrendPointPayload FromModel(RevenueTrendPoint model)
+        {
+            return new RevenueTrendPointPayload
+            {
+                DayLabel = $"Day {model.Date.Day}",
+                Revenue = model.Revenue
+            };
+        }
+    }
+
+    public class BestSellingProductPayload
+    {
+        public int ProductId { get; init; }
+        public string ProductName { get; init; } = string.Empty;
+        public string CategoryName { get; init; } = string.Empty;
+        public decimal RetailPrice { get; init; }
+        public int UnitsSold { get; init; }
+        public int Rank { get; init; }
+
+        public static BestSellingProductPayload FromModel(BestSellingProductStat model)
+        {
+            return new BestSellingProductPayload
+            {
+                ProductId = model.ProductId,
+                ProductName = model.ProductName,
+                CategoryName = model.CategoryName,
+                RetailPrice = model.RetailPrice,
+                UnitsSold = model.UnitsSold,
+                Rank = model.Rank
+            };
+        }
+    }
 }

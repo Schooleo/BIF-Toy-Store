@@ -10,18 +10,18 @@
     mc:Ignorable="d">
 
     <Grid Background="{StaticResource LoginSurfaceBrush}">
-        <Grid x:Name="BackgroundBlurHost" SizeChanged="BackgroundBlurHost_SizeChanged">
-            <Rectangle Fill="{StaticResource LoginOverlayBrush}" />
-        </Grid>
+        <Image Source="ms-appx:///Assets/Branding/StoreInterior.png"
+               Stretch="UniformToFill" />
+        <Rectangle Fill="{StaticResource LoginOverlayBrush}" />
 
         <ScrollViewer VerticalScrollMode="Auto"
-                      VerticalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Hidden"
                       HorizontalScrollMode="Disabled"
                       HorizontalScrollBarVisibility="Disabled"
                       ZoomMode="Disabled"
-                      Padding="24">
-            <Grid MinHeight="700" VerticalAlignment="Center">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440" Spacing="20">
+                      Padding="12">
+            <Grid MinHeight="650" VerticalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="400" MaxWidth="400" Spacing="16">
                     <Border CornerRadius="12"
                             Background="{StaticResource LoginGlassBrush}">
                         <Grid>
@@ -31,159 +31,136 @@
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
-                            Padding="32"
+                            Padding="28"
                             Background="Transparent"
                             CornerRadius="12,12,0,0">
-                        <StackPanel Spacing="18">
-                            <StackPanel HorizontalAlignment="Center" Spacing="6" Margin="0,0,0,6">
-                                <Border Width="64" Height="64" CornerRadius="12" Background="{StaticResource LoginPrimaryBrush}" HorizontalAlignment="Center">
-                                    <Viewbox Margin="14">
-                                        <SymbolIcon Symbol="Home" Foreground="White" />
-                                    </Viewbox>
+                        <StackPanel Spacing="12">
+                            <Grid Height="132" Margin="0,0,0,12">
+                                <Border Width="64" Height="64" 
+                                        CornerRadius="12" 
+                                        Background="#FF0078D4" 
+                                        HorizontalAlignment="Center" 
+                                        VerticalAlignment="Top">
+                                    <Image Source="ms-appx:///Assets/Icons/Robot.svg" Width="32" Height="32" />
                                 </Border>
-                                <TextBlock Text="Toy Workshop"
-                                           FontSize="36"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource LoginTextBrush}"
-                                           HorizontalAlignment="Center" />
-                                <TextBlock Text="Curated Excellence Management System"
-                                           Foreground="{StaticResource LoginTextBrush}"
-                                           Opacity="0.75"
-                                           HorizontalAlignment="Center" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Bottom" Spacing="4">
+                                    <TextBlock Text="Toy Workshop"
+                                               FontSize="24"
+                                               FontWeight="Bold"
+                                               CharacterSpacing="-60"
+                                               Foreground="{StaticResource LoginTextBrush}"
+                                               HorizontalAlignment="Center" />
+                                    <TextBlock Text="Curated Excellence Management System"
+                                               FontSize="14"
+                                               Foreground="{StaticResource LoginTextBrush}"
+                                               Opacity="0.7"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Spacing="20">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="USERNAME"
+                                               FontSize="12"
+                                               FontWeight="Bold"
+                                               CharacterSpacing="120"
+                                               Foreground="{StaticResource LoginTextBrush}"
+                                               Opacity="0.8" />
+                                    <Grid>
+                                        <TextBox Style="{StaticResource AppInputTextBoxStyle}"
+                                                 CornerRadius="8,8,0,0"
+                                                 BorderThickness="0,0,0,2"
+                                                 MinHeight="48"
+                                                 Padding="44,14,16,10"
+                                                 FontSize="16"
+                                                 PlaceholderText="Enter your username"
+                                                 VerticalAlignment="Center"
+                                                 Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Image Source="ms-appx:///Assets/Icons/User.svg"
+                                               Width="16"
+                                               Height="16"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center"
+                                               Margin="14,0,0,0"
+                                               IsHitTestVisible="False" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="PASSWORD"
+                                               FontSize="12"
+                                               FontWeight="Bold"
+                                               CharacterSpacing="120"
+                                               Foreground="{StaticResource LoginTextBrush}"
+                                               Opacity="0.8" />
+                                    <Grid>
+                                        <PasswordBox x:Name="UserPasswordBox"
+                                                     Style="{StaticResource AppInputPasswordBoxStyle}"
+                                                     CornerRadius="8,8,0,0"
+                                                     BorderThickness="0,0,0,2"
+                                                     MinHeight="48"
+                                                     FontSize="16"
+                                                     Padding="44,14,16,10"
+                                                     PasswordRevealMode="Peek"
+                                                     PasswordChanged="UserPasswordBox_PasswordChanged" />
+                                        <Image Source="ms-appx:///Assets/Icons/Lock.svg"
+                                               Width="16"
+                                               Height="16"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center"
+                                               Margin="14,0,0,0"
+                                               IsHitTestVisible="False" />
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
-
-                            <TextBlock Text="ACCOUNT ROLE"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       CharacterSpacing="140"
-                                       Foreground="{StaticResource LoginTextBrush}" />
-                            <ComboBox SelectedIndex="0"
-                                      Style="{StaticResource AppInputComboBoxStyle}"
-                                      CornerRadius="8,8,0,0"
-                                      BorderThickness="0,0,0,2"
-                                      Padding="14,10">
-                                <ComboBox.Resources>
-                                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
-                                        <Setter Property="Foreground" Value="{StaticResource LoginTextBrush}" />
-                                        <Setter Property="Background" Value="{StaticResource LoginCardBrush}" />
-                                    </Style>
-                                </ComboBox.Resources>
-                                <ComboBoxItem Content="Administrator" Foreground="{StaticResource LoginTextBrush}" Background="{StaticResource LoginCardBrush}" />
-                                <ComboBoxItem Content="Salesperson" Foreground="{StaticResource LoginTextBrush}" Background="{StaticResource LoginCardBrush}" />
-                            </ComboBox>
-
-                            <TextBlock Text="USERNAME"
-                                       Margin="0,6,0,0"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       CharacterSpacing="140"
-                                       Foreground="{StaticResource LoginTextBrush}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"
-                                        CornerRadius="8,0,0,0"
-                                        Background="{StaticResource LoginCardBrush}"
-                                        BorderBrush="{StaticResource LoginDividerBrush}"
-                                        BorderThickness="0,0,0,2">
-                                    <Viewbox Margin="14">
-                                        <SymbolIcon Symbol="Contact" Foreground="{StaticResource LoginTextBrush}" />
-                                    </Viewbox>
-                                </Border>
-                                <TextBox Grid.Column="1"
-                                         Style="{StaticResource AppInputTextBoxStyle}"
-                                         CornerRadius="0,8,0,0"
-                                         BorderThickness="0,0,0,2"
-                                         Padding="12,10"
-                                         PlaceholderText="Enter your username"
-                                         Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            </Grid>
-
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Column="0"
-                                           Text="PASSWORD"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           CharacterSpacing="140"
-                                           Foreground="{StaticResource LoginTextBrush}" />
-
-                                <HyperlinkButton Grid.Column="1"
-                                                 Content="Forgot?"
-                                                 Foreground="{StaticResource LoginPrimaryBrush}"
-                                                 Padding="0"
-                                                 MinWidth="0"
-                                                 HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"
-                                        CornerRadius="8,0,0,0"
-                                        Background="{StaticResource LoginCardBrush}"
-                                        BorderBrush="{StaticResource LoginDividerBrush}"
-                                        BorderThickness="0,0,0,2">
-                                    <Viewbox Margin="14">
-                                        <FontIcon Glyph="&#xE72E;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource LoginTextBrush}" />
-                                    </Viewbox>
-                                </Border>
-                                <PasswordBox x:Name="UserPasswordBox"
-                                             Grid.Column="1"
-                                             Style="{StaticResource AppInputPasswordBoxStyle}"
-                                             CornerRadius="0,8,0,0"
-                                             BorderThickness="0,0,0,2"
-                                             Padding="12,10"
-                                             Password="{x:Bind ViewModel.Password, Mode=TwoWay}" />
-                            </Grid>
 
                             <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                                       TextWrapping="Wrap" />
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,4" />
 
                             <Button Command="{x:Bind ViewModel.LoginCommand}"
-                                    Background="{StaticResource LoginPrimaryBrush}"
-                                    Foreground="White"
-                                    Height="48"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
+                                    Height="52"
                                     HorizontalAlignment="Stretch"
                                     MinWidth="0"
                                     CornerRadius="8"
-                                    Margin="0,8,0,0">
+                                    Margin="0,2,0,0">
+                                <Button.Resources>
+                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                </Button.Resources>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                                    <TextBlock Text="Sign In" FontWeight="SemiBold" />
-                                    <FontIcon Glyph="&#xE8FA;" FontFamily="Segoe MDL2 Assets" />
+                                    <TextBlock Text="Sign In" FontWeight="SemiBold" FontSize="16" />
+                                    <Image Source="ms-appx:///Assets/Icons/Enter.svg" Width="14" Height="14" />
                                 </StackPanel>
                             </Button>
 
                             <Border Height="1"
-                                    Margin="0,10,0,2"
+                                    Margin="0,12,0,4"
                                     Background="{StaticResource LoginDividerBrush}"
-                                    Opacity="0.35" />
+                                    Opacity="0.5" />
 
-                            <TextBlock TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource LoginTextBrush}">
+                            <TextBlock TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource LoginTextBrush}" FontSize="14">
                                 <Run Text="Don't have an account? " />
-                                <Run Text="Contact Admin" Foreground="#005FAA" FontWeight="SemiBold" />
+                                <Run Text="Contact Admin" Foreground="{StaticResource LoginPrimaryBrush}" FontWeight="Bold" />
                             </TextBlock>
 
                             <TextBlock Text="{x:Bind ViewModel.AppVersion, Mode=OneWay}"
                                        HorizontalAlignment="Center"
-                                       Opacity="0.6"
-                                       FontSize="11"
-                                       FontWeight="SemiBold" />
+                                       Opacity="0.5"
+                                       FontSize="10"
+                                       FontWeight="Medium" />
                         </StackPanel>
                     </Border>
 
                         <Border Grid.Row="1"
                             Background="{StaticResource LoginCardFooterBrush}"
-                            Padding="24,16"
+                            Padding="22,12"
                             CornerRadius="0,0,12,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -192,26 +169,26 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <FontIcon Glyph="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource LoginTextBrush}" />
+                                <Image Source="ms-appx:///Assets/Icons/Info.svg" Width="12" Height="12" />
                                 <TextBlock Text="DEMO CREDENTIALS"
                                            FontSize="10"
-                                           FontWeight="SemiBold"
-                                           CharacterSpacing="120"
+                                           FontWeight="Bold"
+                                           CharacterSpacing="100"
                                            Foreground="{StaticResource LoginTextBrush}" />
                             </StackPanel>
 
-                            <Grid Grid.Column="1" HorizontalAlignment="Right" ColumnSpacing="18">
+                            <Grid Grid.Column="1" HorizontalAlignment="Right" ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" HorizontalAlignment="Right">
-                                    <TextBlock Text="Admin" FontSize="10" Opacity="0.65" HorizontalAlignment="Right" />
-                                    <TextBlock Text="admin / admin123" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource LoginPrimaryBrush}" />
+                                    <TextBlock Text="Admin" FontSize="10" Opacity="0.8" HorizontalAlignment="Right" />
+                                    <TextBlock Text="admin / admin123" FontSize="11" FontWeight="Bold" Foreground="{StaticResource LoginPrimaryBrush}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                    <TextBlock Text="Sale" FontSize="10" Opacity="0.65" HorizontalAlignment="Right" />
-                                    <TextBlock Text="sale1 / 123456" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource LoginPrimaryBrush}" />
+                                    <TextBlock Text="Sale" FontSize="10" Opacity="0.8" HorizontalAlignment="Right" />
+                                    <TextBlock Text="sale1 / 123456" FontSize="11" FontWeight="Bold" Foreground="{StaticResource LoginPrimaryBrush}" />
                                 </StackPanel>
                             </Grid>
                         </Grid>
@@ -219,17 +196,17 @@
                         </Grid>
                     </Border>
 
-                    <StackPanel HorizontalAlignment="Center" Spacing="4">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-                            <HyperlinkButton Content="Privacy Policy" Foreground="{StaticResource LoginTextBrush}" Opacity="0.85" />
-                            <HyperlinkButton Content="Terms of Service" Foreground="{StaticResource LoginTextBrush}" Opacity="0.85" />
-                            <HyperlinkButton Content="Support" Foreground="{StaticResource LoginTextBrush}" Opacity="0.85" />
+                    <StackPanel HorizontalAlignment="Center" Spacing="2">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="24">
+                            <HyperlinkButton Content="Privacy Policy" Foreground="White" Opacity="0.75" FontSize="12" FontWeight="Medium" />
+                            <HyperlinkButton Content="Terms of Service" Foreground="White" Opacity="0.75" FontSize="12" FontWeight="Medium" />
+                            <HyperlinkButton Content="Support" Foreground="White" Opacity="0.75" FontSize="12" FontWeight="Medium" />
                         </StackPanel>
-                        <TextBlock Text="© 2024 TOY WORKSHOP MANAGEMENT SYSTEM"
-                                   Foreground="{StaticResource LoginTextBrush}"
-                                   Opacity="0.75"
+                        <TextBlock Text="© 2026 TOY WORKSHOP MANAGEMENT SYSTEM"
+                                   Foreground="White"
+                                   Opacity="0.5"
                                    FontSize="10"
-                                   CharacterSpacing="140"
+                                   CharacterSpacing="200"
                                    HorizontalAlignment="Center" />
                     </StackPanel>
                 </StackPanel>
