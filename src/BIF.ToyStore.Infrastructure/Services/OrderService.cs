@@ -206,5 +206,80 @@ namespace BIF.ToyStore.Infrastructure.Services
 
             return ranking;
         }
+
+        public async Task<List<RevenueTrendPoint>> GetRevenueTrendAsync(int days)
+        {
+            int safeDays = Math.Clamp(days, 1, 62);
+            var endDate = DateTime.Today;
+            var startDate = endDate.AddDays(-(safeDays - 1));
+
+            var dailyRevenue = await _dbContext.Orders
+                .AsNoTracking()
+                .Where(o => !o.IsDeleted && o.OrderDate.Date >= startDate && o.OrderDate.Date <= endDate)
+                .GroupBy(o => o.OrderDate.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Revenue = g.Sum(x => x.TotalAmount)
+                })
+                .ToListAsync();
+
+            var revenueByDate = dailyRevenue.ToDictionary(x => x.Date, x => x.Revenue);
+
+            var result = new List<RevenueTrendPoint>(safeDays);
+            for (int i = 0; i < safeDays; i++)
+            {
+                var date = startDate.AddDays(i);
+                revenueByDate.TryGetValue(date, out var revenue);
+
+                result.Add(new RevenueTrendPoint
+                {
+                    Date = date,
+                    Revenue = revenue
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<List<BestSellingProductStat>> GetTopBestSellingProductsAsync(int take)
+        {
+            int safeTake = Math.Clamp(take, 1, 20);
+
+            var rows = await (
+                from detail in _dbContext.OrderDetails.AsNoTracking()
+                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
+                join product in _dbContext.Products.AsNoTracking() on detail.ProductId equals product.Id
+                join category in _dbContext.Categories.AsNoTracking()
+                    on product.CategoryId equals category.Id into categoryGroup
+                from category in categoryGroup.DefaultIfEmpty()
+                where !order.IsDeleted
+                group new { detail, product, category } by new
+                {
+                    product.Id,
+                    product.Name,
+                    product.RetailPrice,
+                    CategoryName = category != null ? category.Name : "Unknown"
+                }
+                into g
+                orderby g.Sum(x => x.detail.Quantity) descending, g.Key.Name
+                select new BestSellingProductStat
+                {
+                    ProductId = g.Key.Id,
+                    ProductName = g.Key.Name,
+                    CategoryName = g.Key.CategoryName,
+                    RetailPrice = g.Key.RetailPrice,
+                    UnitsSold = g.Sum(x => x.detail.Quantity)
+                })
+                .Take(safeTake)
+                .ToListAsync();
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                rows[i].Rank = i + 1;
+            }
+
+            return rows;
+        }
     }
 }

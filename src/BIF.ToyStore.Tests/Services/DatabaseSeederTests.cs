@@ -1,5 +1,6 @@
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Services;
+using BIF.ToyStore.Core.Enums;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +64,32 @@ namespace BIF.ToyStore.Tests.Services
             Assert.NotEqual("admin123", admin.PasswordHash);
             Assert.True(PasswordCipher.TryDecrypt(admin.PasswordHash, out var password));
             Assert.Equal("admin123", password);
+        }
+
+        [Fact]
+        public async Task SeedAsync_NoSaleUser_CreatesDefaultSaleUser()
+        {
+            const string connectionString = "Data Source=SeederDbSale;Mode=Memory;Cache=Shared";
+            await using var keeperConnection = new SqliteConnection(connectionString);
+            await keeperConnection.OpenAsync();
+
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connection)
+                .Options;
+
+            await using var context = new AppDbContext(options);
+            await context.Database.EnsureCreatedAsync();
+
+            await DatabaseSeeder.SeedAsync(context);
+
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            Assert.Equal(UserRole.Sale, saleUser.Role);
+            Assert.NotEqual("123456", saleUser.PasswordHash);
+            Assert.True(PasswordCipher.TryDecrypt(saleUser.PasswordHash, out var password));
+            Assert.Equal("123456", password);
         }
 
         [Fact]

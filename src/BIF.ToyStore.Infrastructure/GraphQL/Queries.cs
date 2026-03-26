@@ -107,6 +107,22 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var ranking = await orderService.GetSaleKpiRankingAsync(fromDate, toDate);
             return ranking.Select(SaleKpiRankingPayload.FromModel).ToList();
         }
+
+        public async Task<List<RevenueTrendPointPayload>> GetRevenueTrend(
+            int days,
+            [Service] IOrderService orderService)
+        {
+            var points = await orderService.GetRevenueTrendAsync(days);
+            return points.Select(RevenueTrendPointPayload.FromModel).ToList();
+        }
+
+        public async Task<List<BestSellingProductPayload>> GetTopBestSellingProducts(
+            int take,
+            [Service] IOrderService orderService)
+        {
+            var products = await orderService.GetTopBestSellingProductsAsync(take);
+            return products.Select(BestSellingProductPayload.FromModel).ToList();
+        }
     } 
 }
 

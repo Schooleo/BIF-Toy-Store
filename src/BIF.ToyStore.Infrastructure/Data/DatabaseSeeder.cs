@@ -22,6 +22,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await EnsureAppConfigSchemaAsync(dbContext);
 
             await EnsureDefaultAdminAsync(dbContext);
+            await EnsureDefaultSaleAsync(dbContext);
 
             bool configExists = await dbContext.AppConfigs.AnyAsync(c => c.Id == 1);
             if (!configExists)
@@ -101,6 +102,58 @@ namespace BIF.ToyStore.Infrastructure.Data
             else if (!admin.PasswordHash.StartsWith("aes:v1:", StringComparison.Ordinal))
             {
                 admin.PasswordHash = PasswordCipher.Encrypt("admin123");
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
+        private static async Task EnsureDefaultSaleAsync(AppDbContext dbContext)
+        {
+            var saleUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == "sale1");
+            if (saleUser is null)
+            {
+                dbContext.Users.Add(new User
+                {
+                    Username = "sale1",
+                    PasswordHash = PasswordCipher.Encrypt("123456"),
+                    Role = UserRole.Sale
+                });
+
+                await dbContext.SaveChangesAsync();
+                return;
+            }
+
+            bool isExpectedCredential = false;
+            if (PasswordCipher.TryDecrypt(saleUser.PasswordHash, out var decryptedPassword))
+            {
+                isExpectedCredential = string.Equals(decryptedPassword, "123456", StringComparison.Ordinal);
+            }
+            else if (PasswordCipher.IsBcryptHash(saleUser.PasswordHash))
+            {
+                try
+                {
+                    isExpectedCredential = BCrypt.Net.BCrypt.Verify("123456", saleUser.PasswordHash);
+                }
+                catch
+                {
+                    isExpectedCredential = false;
+                }
+            }
+            else
+            {
+                isExpectedCredential = string.Equals(saleUser.PasswordHash, "123456", StringComparison.Ordinal);
+            }
+
+            // Keep demo/sale credentials stable so login always works in dev/test.
+            if (!isExpectedCredential || saleUser.Role != UserRole.Sale)
+            {
+                saleUser.Username = "sale1";
+                saleUser.PasswordHash = PasswordCipher.Encrypt("123456");
+                saleUser.Role = UserRole.Sale;
+                await dbContext.SaveChangesAsync();
+            }
+            else if (!saleUser.PasswordHash.StartsWith("aes:v1:", StringComparison.Ordinal))
+            {
+                saleUser.PasswordHash = PasswordCipher.Encrypt("123456");
                 await dbContext.SaveChangesAsync();
             }
         }

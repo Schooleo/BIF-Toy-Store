@@ -7,12 +7,17 @@ using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using System;
+using System.Threading.Tasks;
 
 namespace BIF.ToyStore.WinUI
 {
     public sealed partial class MainWindow : Window, IRecipient<LoginSucceededMessage>
     {
+        private const string CredentialResourceName = "BIF.ToyStore.POS";
+
         private readonly ILocalSettingsService _localSettingsService;
+        private readonly ICredentialVaultService _credentialVaultService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private LoginUser? _currentUser;
 
         public bool IsCurrentUserAdmin
@@ -34,6 +39,8 @@ namespace BIF.ToyStore.WinUI
             InitializeComponent();
 
             _localSettingsService = App.Current.Services.GetRequiredService<ILocalSettingsService>();
+            _credentialVaultService = App.Current.Services.GetRequiredService<ICredentialVaultService>();
+            _scopeFactory = App.Current.Services.GetRequiredService<IServiceScopeFactory>();
             WeakReferenceMessenger.Default.Register(this);
         }
 
@@ -49,7 +56,10 @@ namespace BIF.ToyStore.WinUI
 
         public void NavigateToDashboard()
         {
-            rootFrame.Navigate(typeof(DashboardPage));
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToDashboard();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
         }
 
         public void NavigateToUsers()
@@ -60,8 +70,36 @@ namespace BIF.ToyStore.WinUI
                 return;
             }
 
-            rootFrame.Navigate(typeof(UsersPage));
+            var shell = EnsureShell();
+            shell.SetAdminMode(true);
+            shell.NavigateToUsers();
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Users");
+        }
+
+        public async Task LogoutAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+
+            await authService.LogoutAsync();
+
+            _credentialVaultService.ClearCredentials(CredentialResourceName);
+            _currentUser = null;
+            _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, string.Empty);
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+
+            NavigateToLogin();
+        }
+
+        private AppShellPage EnsureShell()
+        {
+            if (rootFrame.Content is AppShellPage shell)
+            {
+                return shell;
+            }
+
+            rootFrame.Navigate(typeof(AppShellPage));
+            return (AppShellPage)rootFrame.Content;
         }
 
         public void Receive(LoginSucceededMessage message)

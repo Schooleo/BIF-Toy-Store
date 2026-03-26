@@ -60,7 +60,6 @@
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Folder Include="Assets\Icons\" />
 		<Folder Include="Assets\Products\" />
 	</ItemGroup>
 

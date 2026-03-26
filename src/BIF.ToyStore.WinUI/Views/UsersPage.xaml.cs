@@ -34,9 +34,5 @@ namespace BIF.ToyStore.WinUI.Views
             await ViewModel.LoadAsync();
         }
 
-        private void DashboardButton_Click(object sender, RoutedEventArgs e)
-        {
-            App.Current.MainWindowInstance?.NavigateToDashboard();
-        }
     }
 }

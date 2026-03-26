@@ -154,7 +154,13 @@ namespace BIF.ToyStore.WinUI
             // If the visual tree is already ready, show immediately
             if (_window?.Content?.XamlRoot is { } xamlRoot)
             {
-                await CreateErrorDialog(ex, xamlRoot).ShowAsync();
+                await CommonDialog.ShowAsync(
+                    xamlRoot,
+                    CommonDialogType.Error,
+                    title: "Background Server Crashed!",
+                    message: ex.Message + "\n\n" + ex.InnerException?.Message,
+                    primaryButtonText: "OK",
+                    closeButtonText: null);
                 return;
             }
 
@@ -162,19 +168,16 @@ namespace BIF.ToyStore.WinUI
             var tcs = new TaskCompletionSource();
             ((FrameworkElement)_window!.Content).Loaded += async (_, _) =>
             {
-                await CreateErrorDialog(ex, _window.Content.XamlRoot).ShowAsync();
+                await CommonDialog.ShowAsync(
+                    _window.Content.XamlRoot,
+                    CommonDialogType.Error,
+                    title: "Background Server Crashed!",
+                    message: ex.Message + "\n\n" + ex.InnerException?.Message,
+                    primaryButtonText: "OK",
+                    closeButtonText: null);
                 tcs.TrySetResult();
             };
             await tcs.Task;
         }
-
-        private static ContentDialog CreateErrorDialog(Exception ex, XamlRoot xamlRoot) =>
-            new()
-            {
-                Title = "Background Server Crashed!",
-                Content = ex.Message + "\n\n" + ex.InnerException?.Message,
-                CloseButtonText = "OK",
-                XamlRoot = xamlRoot
-            };
     }
 }

@@ -120,13 +120,20 @@
                                        Margin="0,4,0,4" />
 
                             <Button Command="{x:Bind ViewModel.LoginCommand}"
-                                    Background="{StaticResource LoginPrimaryBrush}"
-                                    Foreground="White"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
                                     Height="52"
                                     HorizontalAlignment="Stretch"
                                     MinWidth="0"
                                     CornerRadius="8"
                                     Margin="0,2,0,0">
+                                <Button.Resources>
+                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                </Button.Resources>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
                                     <TextBlock Text="Sign In" FontWeight="SemiBold" FontSize="16" />
                                     <Image Source="ms-appx:///Assets/Icons/Enter.svg" Width="14" Height="14" />
