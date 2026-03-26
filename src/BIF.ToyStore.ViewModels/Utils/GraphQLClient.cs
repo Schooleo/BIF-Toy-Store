@@ -29,18 +29,29 @@ namespace BIF.ToyStore.ViewModels.Utils
             var requestBody = new { query, variables };
 
             var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
-            response.EnsureSuccessStatusCode();
 
             // Use JsonDocument for more flexible parsing
-            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>() 
-                ?? throw new Exception("Empty response from server.");
+            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
+                ?? throw new Exception(
+                    $"Empty response from server (HTTP {(int)response.StatusCode} {response.ReasonPhrase}).");
             var root = jsonDocument.RootElement;
 
             // Check for GraphQL Server Errors
             if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
             {
-                var errorMessage = errors[0].GetProperty("message").GetString();
+                var messages = errors
+                    .EnumerateArray()
+                    .Select(e => e.TryGetProperty("message", out var m) ? m.GetString() : null)
+                    .Where(m => !string.IsNullOrWhiteSpace(m));
+
+                string errorMessage = string.Join(" | ", messages);
                 throw new Exception($"GraphQL Error: {errorMessage}");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"GraphQL request failed with HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).");
             }
 
             if (!root.TryGetProperty("data", out var data))

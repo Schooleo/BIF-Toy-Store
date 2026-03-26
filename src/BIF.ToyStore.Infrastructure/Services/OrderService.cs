@@ -150,5 +150,61 @@ namespace BIF.ToyStore.Infrastructure.Services
                     .ThenInclude(d => d.Product)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
+
+        public async Task<List<SaleKpiRanking>> GetSaleKpiRankingAsync(DateTime? fromDate, DateTime? toDate)
+        {
+            var sales = await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Role == UserRole.Sale)
+                .Select(u => new { u.Id, u.Username })
+                .ToListAsync();
+
+            var orders = _dbContext.Orders.AsNoTracking().AsQueryable();
+
+            if (fromDate.HasValue)
+            {
+                orders = orders.Where(o => o.OrderDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                orders = orders.Where(o => o.OrderDate <= toDate.Value);
+            }
+
+            var salesStats = await orders
+                .GroupBy(o => o.SaleId)
+                .Select(g => new
+                {
+                    SaleId = g.Key,
+                    TotalOrders = g.Count(),
+                    TotalRevenue = g.Sum(x => x.TotalAmount)
+                })
+                .ToListAsync();
+
+            var ranking = sales
+                .Select(sale =>
+                {
+                    var stat = salesStats.FirstOrDefault(x => x.SaleId == sale.Id);
+
+                    return new SaleKpiRanking
+                    {
+                        SaleId = sale.Id,
+                        SaleName = sale.Username,
+                        TotalOrders = stat?.TotalOrders ?? 0,
+                        TotalRevenue = stat?.TotalRevenue ?? 0m
+                    };
+                })
+                .OrderByDescending(x => x.TotalRevenue)
+                .ThenByDescending(x => x.TotalOrders)
+                .ThenBy(x => x.SaleId)
+                .ToList();
+
+            for (int i = 0; i < ranking.Count; i++)
+            {
+                ranking[i].Rank = i + 1;
+            }
+
+            return ranking;
+        }
     }
 }

@@ -33,7 +33,7 @@ namespace BIF.ToyStore.Tests.Services
             {
                 Id = 1,
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass123"),
+                PasswordHash = PasswordCipher.Encrypt("pass123"),
                 Role = UserRole.Admin
             });
             await _dbContext.SaveChangesAsync();
@@ -54,7 +54,7 @@ namespace BIF.ToyStore.Tests.Services
             {
                 Id = 2,
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct"),
+                PasswordHash = PasswordCipher.Encrypt("correct"),
                 Role = UserRole.Admin
             });
             await _dbContext.SaveChangesAsync();
@@ -74,7 +74,7 @@ namespace BIF.ToyStore.Tests.Services
             {
                 Id = 3,
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass123"),
+                PasswordHash = PasswordCipher.Encrypt("pass123"),
                 Role = UserRole.Admin
             });
             await _dbContext.SaveChangesAsync();
@@ -104,7 +104,7 @@ namespace BIF.ToyStore.Tests.Services
             {
                 Id = 4,
                 Username = "seller",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass"),
+                PasswordHash = PasswordCipher.Encrypt("pass"),
                 Role = UserRole.Sale
             });
             await _dbContext.SaveChangesAsync();
@@ -125,7 +125,7 @@ namespace BIF.ToyStore.Tests.Services
             {
                 Id = 5,
                 Username = "Admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("pass"),
+                PasswordHash = PasswordCipher.Encrypt("pass"),
                 Role = UserRole.Admin
             });
             await _dbContext.SaveChangesAsync();
@@ -138,7 +138,7 @@ namespace BIF.ToyStore.Tests.Services
         }
 
         [Fact]
-        public async Task LoginAsync_LegacyPlainTextPassword_MigratesToBcryptAndReturnsUser()
+        public async Task LoginAsync_LegacyPlainTextPassword_MigratesToAesAndReturnsUser()
         {
             // Arrange
             _dbContext.Users.Add(new User
@@ -158,18 +158,19 @@ namespace BIF.ToyStore.Tests.Services
 
             var updatedUser = await _dbContext.Users.SingleAsync(u => u.Username == "legacy");
             Assert.NotEqual("legacy123", updatedUser.PasswordHash);
-            Assert.True(BCrypt.Net.BCrypt.Verify("legacy123", updatedUser.PasswordHash));
+            Assert.True(PasswordCipher.TryDecrypt(updatedUser.PasswordHash, out var decrypted));
+            Assert.Equal("legacy123", decrypted);
         }
 
         [Fact]
-        public async Task LoginAsync_InvalidLegacySaltAndWrongPassword_ReturnsNull()
+        public async Task LoginAsync_InvalidStoredCipherAndWrongPassword_ReturnsNull()
         {
             // Arrange
             _dbContext.Users.Add(new User
             {
                 Id = 7,
                 Username = "broken",
-                PasswordHash = "not-a-bcrypt-hash",
+                PasswordHash = "aes:v1:invalid-base64",
                 Role = UserRole.Admin
             });
             await _dbContext.SaveChangesAsync();

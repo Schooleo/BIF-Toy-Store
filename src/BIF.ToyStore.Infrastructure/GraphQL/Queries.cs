@@ -1,6 +1,7 @@
 ﻿using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Services;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
@@ -68,6 +69,43 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public IQueryable<Category> Categories([Service] AppDbContext dbContext)
         {
             return dbContext.Categories.Include(c => c.Products).AsNoTracking();
+        }
+
+        public async Task<List<UserPayload>> Users([Service] AppDbContext dbContext)
+        {
+            var users = await dbContext.Users
+                .AsNoTracking()
+                .OrderBy(u => u.Username)
+                .ToListAsync();
+
+            return users.Select(u => new UserPayload
+            {
+                Id = u.Id,
+                Username = u.Username,
+                PasswordHash = PasswordCipher.TryDecrypt(u.PasswordHash, out var plainText)
+                    ? plainText
+                    : string.Empty,
+                Role = u.Role
+            }).ToList();
+        }
+
+        public async Task<List<UserListItemPayload>> GetUserList([Service] AppDbContext dbContext)
+        {
+            var users = await dbContext.Users
+                .AsNoTracking()
+                .OrderBy(u => u.Username)
+                .ToListAsync();
+
+            return users.Select(UserListItemPayload.FromUser).ToList();
+        }
+
+        public async Task<List<SaleKpiRankingPayload>> GetSaleKpiRanking(
+            DateTime? fromDate,
+            DateTime? toDate,
+            [Service] IOrderService orderService)
+        {
+            var ranking = await orderService.GetSaleKpiRankingAsync(fromDate, toDate);
+            return ranking.Select(SaleKpiRankingPayload.FromModel).ToList();
         }
     } 
 }

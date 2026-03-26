@@ -1,4 +1,5 @@
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,7 +61,8 @@ namespace BIF.ToyStore.Tests.Services
 
             var admin = await context.Users.SingleAsync(u => u.Username == "admin");
             Assert.NotEqual("admin123", admin.PasswordHash);
-            Assert.True(BCrypt.Net.BCrypt.Verify("admin123", admin.PasswordHash));
+            Assert.True(PasswordCipher.TryDecrypt(admin.PasswordHash, out var password));
+            Assert.Equal("admin123", password);
         }
 
         [Fact]
