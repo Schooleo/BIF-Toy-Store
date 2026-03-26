@@ -12,6 +12,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Text="Dashboard"
@@ -24,10 +25,12 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <TextBlock Text="Products items per page:" VerticalAlignment="Center" />
             <ComboBox x:Name="ItemsPerPageComboBox" Width="120" SelectionChanged="ItemsPerPageComboBox_SelectionChanged">
+                <ComboBoxItem Content="5" />
                 <ComboBoxItem Content="20" />
                 <ComboBoxItem Content="50" />
-                <ComboBoxItem Content="100" />
             </ComboBox>
         </StackPanel>
+
+        <Button Grid.Row="3" Margin="0,24,0,0" Content="Go to Products Management ->" Click="NavigateToProducts_Click" Style="{ThemeResource AccentButtonStyle}"/>
     </Grid>
 </Page>

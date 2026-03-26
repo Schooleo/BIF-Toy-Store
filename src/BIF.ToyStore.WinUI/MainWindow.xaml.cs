@@ -34,6 +34,11 @@ namespace BIF.ToyStore.WinUI
             rootFrame.Navigate(typeof(DashboardPage));
         }
 
+        public void NavigateToProducts()
+        {
+            rootFrame.Navigate(typeof(ProductsPage));
+        }
+
         public void Receive(LoginSucceededMessage message)
         {
             var route = _localSettingsService.GetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");

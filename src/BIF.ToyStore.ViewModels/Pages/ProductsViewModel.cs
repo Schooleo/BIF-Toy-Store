@@ -30,14 +30,26 @@ namespace BIF.ToyStore.ViewModels.Pages
         private Category? _selectedCategory;
 
         [ObservableProperty]
-        private decimal? _minPrice;
+        private double _minPrice = 0;
 
         [ObservableProperty]
-        private decimal? _maxPrice;
+        private double _maxPrice = 1000;
+
+        [ObservableProperty]
+        private SortOption? _selectedSort;
+
+        public ObservableCollection<SortOption> SortOptions { get; } = new()
+        {
+            new SortOption { Name = "Newest", Value = "{ id: DESC }" },
+            new SortOption { Name = "Price: Low to High", Value = "{ retailPrice: ASC }" },
+            new SortOption { Name = "Price: High to Low", Value = "{ retailPrice: DESC }" },
+            new SortOption { Name = "Stock: Low to High", Value = "{ stockQuantity: ASC }" },
+            new SortOption { Name = "Name: A-Z", Value = "{ name: ASC }" }
+        };
 
         // Paging properties
         [ObservableProperty]
-        private int _pageSize = 20;
+        private int _pageSize = 5;
 
         [ObservableProperty]
         private int _totalCount;
@@ -96,23 +108,27 @@ namespace BIF.ToyStore.ViewModels.Pages
                 if (SelectedCategory != null)
                     filters.Add($"{{ categoryId: {{ eq: {SelectedCategory.Id} }} }}");
                 
-                if (MinPrice.HasValue)
-                    filters.Add($"{{ retailPrice: {{ gte: {MinPrice.Value} }} }}");
+                if (MinPrice > 0)
+                    filters.Add($"{{ retailPrice: {{ gte: {MinPrice} }} }}");
                 
-                if (MaxPrice.HasValue)
-                    filters.Add($"{{ retailPrice: {{ lte: {MaxPrice.Value} }} }}");
+                if (MaxPrice < 1000)
+                    filters.Add($"{{ retailPrice: {{ lte: {MaxPrice} }} }}");
 
                 string filterString = filters.Count > 0 ? $"where: {{ and: [ {string.Join(", ", filters)} ] }}," : "";
                 
+                string sortString = SelectedSort?.Value ?? "{ id: DESC }";
+
                 string pagingArgs = $"first: {PageSize}";
                 if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
                     pagingArgs = $"first: {PageSize}, after: \"{AfterCursor}\"";
                 else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
                     pagingArgs = $"last: {PageSize}, before: \"{BeforeCursor}\"";
+                else if (direction == "last")
+                    pagingArgs = $"last: {PageSize}";
 
                 string query = $@"
                     query GetProducts {{
-                        products({pagingArgs}, {filterString} order: {{ id: DESC }}) {{
+                        products({pagingArgs}, {filterString} order: {sortString}) {{
                             totalCount
                             pageInfo {{
                                 hasNextPage
@@ -146,6 +162,12 @@ namespace BIF.ToyStore.ViewModels.Pages
                     BeforeCursor = result.PageInfo?.StartCursor;
                     AfterCursor = result.PageInfo?.EndCursor;
                 }
+
+                // Explicitly notify pagination commands that execution state may have changed
+                FirstPageCommand.NotifyCanExecuteChanged();
+                PreviousPageCommand.NotifyCanExecuteChanged();
+                NextPageCommand.NotifyCanExecuteChanged();
+                LastPageCommand.NotifyCanExecuteChanged();
             }
             finally
             {
@@ -166,8 +188,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             SearchText = string.Empty;
             SelectedCategory = null;
-            MinPrice = null;
-            MaxPrice = null;
+            MinPrice = 0;
+            MaxPrice = 1000;
             BeforeCursor = null;
             AfterCursor = null;
             await LoadProductsAsync();
@@ -178,6 +200,22 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [RelayCommand(CanExecute = nameof(HasPreviousPage))]
         public async Task PreviousPageAsync() => await LoadProductsAsync("prev");
+
+        [RelayCommand(CanExecute = nameof(HasPreviousPage))]
+        public async Task FirstPageAsync()
+        {
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadProductsAsync("first");
+        }
+
+        [RelayCommand(CanExecute = nameof(HasNextPage))]
+        public async Task LastPageAsync()
+        {
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadProductsAsync("last");
+        }
 
         [RelayCommand]
         public async Task CreateProductAsync(CreateProductInput input)
@@ -255,6 +293,12 @@ namespace BIF.ToyStore.ViewModels.Pages
             public bool HasPreviousPage { get; set; }
             public string? StartCursor { get; set; }
             public string? EndCursor { get; set; }
+        }
+
+        public class SortOption
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Value { get; set; } = string.Empty;
         }
     }
 }

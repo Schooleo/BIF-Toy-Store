@@ -15,7 +15,7 @@ namespace BIF.ToyStore.WinUI.Views
             InitializeComponent();
 
             _localSettingsService = App.Current.Services.GetRequiredService<ILocalSettingsService>();
-            int itemsPerPage = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
+            int itemsPerPage = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 5);
             SelectItemsPerPage(itemsPerPage);
         }
 
@@ -44,6 +44,14 @@ namespace BIF.ToyStore.WinUI.Views
             }
 
             ItemsPerPageComboBox.SelectedIndex = 0;
+        }
+
+        private void NavigateToProducts_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (App.Current.MainWindowInstance != null)
+            {
+                App.Current.MainWindowInstance.NavigateToProducts();
+            }
         }
     }
 }
