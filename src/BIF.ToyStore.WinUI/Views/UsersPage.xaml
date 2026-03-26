@@ -43,6 +43,7 @@
                             Content="Add New User"
                             Style="{StaticResource PrimaryActionButtonStyle}"
                             Padding="16,10"
+                            Click="AddNewUserButton_Click"
                             VerticalAlignment="Center">
                         <Button.Resources>
                             <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
@@ -292,5 +293,27 @@
                 </Grid>
             </Grid>
         </ScrollViewer>
+
+        <ContentDialog x:Name="CreateUserDialog"
+                       Title="Create User"
+                       PrimaryButtonText="Create"
+                       CloseButtonText="Cancel"
+                       PrimaryButtonClick="CreateUserDialog_PrimaryButtonClick"
+                       DefaultButton="Primary">
+            <StackPanel Spacing="12">
+                <TextBox x:Name="CreateUsernameTextBox"
+                         Header="Username"
+                         PlaceholderText="Enter username" />
+                <PasswordBox x:Name="CreatePasswordBox"
+                             Header="Password"
+                             PlaceholderText="Enter password" />
+                <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                           TextWrapping="WrapWholeWords">
+                    <TextBlock.Foreground>
+                        <SolidColorBrush Color="{StaticResource FluentPlayErrorColor}" />
+                    </TextBlock.Foreground>
+                </TextBlock>
+            </StackPanel>
+        </ContentDialog>
     </Grid>
 </Page>

@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using Moq;
 
@@ -170,6 +171,65 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void TogglePasswordCommand_NullInput_DoesNotThrow()
         {
             _viewModel.TogglePasswordCommand.Execute(null);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_ValidInput_CallsMutationAndRefreshesList()
+        {
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.Is<string>(q => q.Contains("mutation CreateNewUser")),
+                    It.IsAny<object>(),
+                    "createUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 50,
+                    Username = "new.sale",
+                    Role = UserRole.Sale
+                });
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
+                    It.Is<string>(q => q.Contains("getUserList")),
+                    null,
+                    ""))
+                .ReturnsAsync(new UserManagementQueryData
+                {
+                    GetUserList = new List<UserListItemDto>
+                    {
+                        new() { Id = 50, Username = "new.sale", Role = "Sale" }
+                    },
+                    Users = new List<UserPasswordDto>
+                    {
+                        new() { Id = 50, PasswordHash = "enc-50" }
+                    }
+                });
+
+            bool created = await _viewModel.CreateUserAsync("new.sale", "123456");
+
+            Assert.True(created);
+            Assert.Single(_viewModel.VisibleUsers);
+            Assert.Equal("new.sale", _viewModel.VisibleUsers[0].Username);
+
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "createUser"),
+                Times.Once);
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_MissingCredentials_ReturnsFalseAndSkipsApi()
+        {
+            bool created = await _viewModel.CreateUserAsync("", "");
+
+            Assert.False(created);
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
+
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
+                Times.Never);
         }
     }
 }

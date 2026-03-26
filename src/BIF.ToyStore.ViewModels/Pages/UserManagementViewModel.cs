@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -69,6 +70,55 @@ namespace BIF.ToyStore.ViewModels.Pages
                 TotalStaff = 0;
                 Admins = 0;
                 ActiveSessions = 0;
+            }
+        }
+
+        public async Task<bool> CreateUserAsync(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ErrorMessage = "Please enter both username and password.";
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation CreateNewUser($user: String!, $pass: String!, $role: UserRole!) {
+                createUser(username: $user, password: $pass, role: $role) {
+                    id
+                    username
+                    role
+                }
+            }";
+
+            try
+            {
+                var variables = new
+                {
+                    user = username.Trim(),
+                    pass = password,
+                    role = "SALE"
+                };
+
+                LoginUser? createdUser = await _graphQLClient.ExecuteAsync<LoginUser>(mutation, variables, dataKey: "createUser");
+                if (createdUser is null)
+                {
+                    ErrorMessage = "Unable to create user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to create user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
