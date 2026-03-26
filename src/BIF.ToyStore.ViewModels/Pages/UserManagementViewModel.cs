@@ -163,6 +163,64 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
+        public async Task<bool> UpdateUserAsync(UserItemViewModel? user, string username, string password)
+        {
+            if (user is null)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ErrorMessage = "Please enter both username and password.";
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation UpdateExistingUser($id: Int!, $user: String!, $pass: String!) {
+                updateUser(id: $id, username: $user, password: $pass) {
+                    id
+                    username
+                    role
+                }
+            }";
+
+            try
+            {
+                var variables = new
+                {
+                    id = user.Id,
+                    user = username.Trim(),
+                    pass = password
+                };
+
+                LoginUser? updatedUser = await _graphQLClient.ExecuteAsync<LoginUser>(
+                    mutation,
+                    variables,
+                    dataKey: "updateUser");
+
+                if (updatedUser is null)
+                {
+                    ErrorMessage = "Unable to update user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to update user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
         private async Task<bool> TryLoadFromNewApisAsync()
         {
             const string query = @"query {

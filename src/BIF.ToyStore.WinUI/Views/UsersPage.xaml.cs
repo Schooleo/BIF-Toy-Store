@@ -10,6 +10,8 @@ namespace BIF.ToyStore.WinUI.Views
 {
     public sealed partial class UsersPage : Page
     {
+        private UserItemViewModel? _editingUser;
+
         public UserManagementViewModel ViewModel { get; }
 
         public UsersPage()
@@ -86,6 +88,69 @@ namespace BIF.ToyStore.WinUI.Views
             }
 
             await ViewModel.DeleteUserAsync(user);
+        }
+
+        private async void UpdateUserButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { CommandParameter: UserItemViewModel user })
+            {
+                return;
+            }
+
+            _editingUser = user;
+            UpdateUserDialog.XamlRoot = XamlRoot;
+            ViewModel.ErrorMessage = string.Empty;
+            UpdateUsernameTextBox.Text = user.Username;
+            UpdatePasswordBox.Password = user.PasswordHash;
+
+            IAsyncOperation<ContentDialogResult> operation = UpdateUserDialog.ShowAsync();
+            var completion = new TaskCompletionSource<ContentDialogResult>();
+
+            operation.Completed = (info, status) =>
+            {
+                if (status == AsyncStatus.Error)
+                {
+                    completion.TrySetException(info.ErrorCode);
+                    return;
+                }
+
+                if (status == AsyncStatus.Canceled)
+                {
+                    completion.TrySetCanceled();
+                    return;
+                }
+
+                completion.TrySetResult(info.GetResults());
+            };
+
+            await completion.Task;
+        }
+
+        private async void UpdateUserDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            if (_editingUser is null)
+            {
+                args.Cancel = true;
+                return;
+            }
+
+            string username = UpdateUsernameTextBox.Text.Trim();
+            string password = UpdatePasswordBox.Password;
+
+            var deferral = args.GetDeferral();
+            try
+            {
+                bool updated = await ViewModel.UpdateUserAsync(_editingUser, username, password);
+                args.Cancel = !updated;
+            }
+            finally
+            {
+                deferral.Complete();
+                if (!args.Cancel)
+                {
+                    _editingUser = null;
+                }
+            }
         }
 
         private Task<ContentDialogResult> ShowCreateUserDialogAsync()

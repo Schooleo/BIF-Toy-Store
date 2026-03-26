@@ -270,5 +270,70 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.ExecuteAsync<bool>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
                 Times.Never);
         }
+
+        [Fact]
+        public async Task UpdateUserAsync_ValidInput_CallsMutationAndRefreshesList()
+        {
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.Is<string>(q => q.Contains("mutation UpdateExistingUser")),
+                    It.IsAny<object>(),
+                    "updateUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 9,
+                    Username = "updated.user",
+                    Role = UserRole.Sale
+                });
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
+                    It.Is<string>(q => q.Contains("getUserList")),
+                    null,
+                    ""))
+                .ReturnsAsync(new UserManagementQueryData
+                {
+                    GetUserList = new List<UserListItemDto>
+                    {
+                        new() { Id = 9, Username = "updated.user", Role = "Sale" }
+                    },
+                    Users = new List<UserPasswordDto>
+                    {
+                        new() { Id = 9, PasswordHash = "enc-9" }
+                    }
+                });
+
+            bool updated = await _viewModel.UpdateUserAsync(
+                new UserItemViewModel(9, "old.user", "oldHash", UserRole.Sale, 0),
+                "updated.user",
+                "newpass");
+
+            Assert.True(updated);
+            Assert.Single(_viewModel.VisibleUsers);
+            Assert.Equal("updated.user", _viewModel.VisibleUsers[0].Username);
+
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "updateUser"),
+                Times.Once);
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_InvalidInput_ReturnsFalseAndSkipsApi()
+        {
+            bool updated = await _viewModel.UpdateUserAsync(
+                new UserItemViewModel(9, "old.user", "oldHash", UserRole.Sale, 0),
+                "",
+                "");
+
+            Assert.False(updated);
+            Assert.Equal("Please enter both username and password.", _viewModel.ErrorMessage);
+
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
+                Times.Never);
+        }
     }
 }

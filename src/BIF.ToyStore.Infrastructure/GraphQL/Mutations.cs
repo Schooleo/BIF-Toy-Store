@@ -74,6 +74,34 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return true;
         }
 
+        public async Task<LoginUser> UpdateUser(
+            int id,
+            string username,
+            string password,
+            [Service] AppDbContext dbContext)
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id)
+                ?? throw new InvalidOperationException("User not found.");
+
+            bool duplicatedUsername = await dbContext.Users.AnyAsync(u => u.Username == username && u.Id != id);
+            if (duplicatedUsername)
+            {
+                throw new InvalidOperationException("Username already exists.");
+            }
+
+            user.Username = username;
+            user.PasswordHash = Services.PasswordCipher.Encrypt(password);
+
+            await dbContext.SaveChangesAsync();
+
+            return new LoginUser
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role
+            };
+        }
+
         public async Task<AppConfigPayload> UpdateConfig(
             UpdateConfigInput input,
             [Service] IConfigService configService)
