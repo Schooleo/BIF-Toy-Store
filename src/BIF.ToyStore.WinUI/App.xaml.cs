@@ -75,7 +75,8 @@ namespace BIF.ToyStore.WinUI
                                 .AddTypeExtension<ProductExtension>()
                                 .AddType<UploadType>()
                                 .AddFiltering()
-                                .AddSorting();
+                                .AddSorting()
+                                .ModifyCostOptions(o => o.MaxFieldCost = 5000);
 
                         // Utils
                         services.AddSingleton<IGraphQLClient>(_ => new GraphQLClient($"http://localhost:{serverPort}/"));

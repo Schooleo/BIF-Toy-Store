@@ -49,6 +49,10 @@ namespace BIF.ToyStore.Infrastructure.Data
             modelBuilder.Entity<Category>()
                 .HasQueryFilter(c => !c.IsDeleted);
 
+            // Product: Soft-delete global query filter
+            modelBuilder.Entity<Product>()
+                .HasQueryFilter(p => !p.IsDeleted);
+
             // Order: Soft-delete global query filter
             modelBuilder.Entity<Order>()
                 .HasQueryFilter(o => !o.IsDeleted);

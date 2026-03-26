@@ -7,6 +7,7 @@ using Moq;
 using Xunit;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
@@ -98,8 +99,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.SearchText = "Lego";
 
             _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.Is<string>(query => query.Contains("contains: \"Lego\"")),
-                It.IsAny<object>(),
+                It.IsAny<string>(),
+                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
                 "categories"
             )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
 
@@ -109,8 +110,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Assert
             Assert.Null(_viewModel.AfterCursor);
             _graphQLClientMock.Verify(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.Is<string>(query => query.Contains("contains: \"Lego\"")),
-                It.IsAny<object>(),
+                It.IsAny<string>(),
+                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
                 "categories"
             ), Times.Once);
         }

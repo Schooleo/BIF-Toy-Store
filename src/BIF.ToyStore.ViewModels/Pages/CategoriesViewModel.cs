@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
-    public partial class CategoriesViewModel : BaseViewModel
+    public partial class CategoriesViewModel : PaginatedViewModel
     {
         private readonly IGraphQLClient _graphQLClient;
 
@@ -22,25 +22,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _searchText = string.Empty;
 
-        // Paging
-        [ObservableProperty]
-        private int _pageSize = 20;
-
-        [ObservableProperty]
-        private int _totalCount;
-
-        [ObservableProperty]
-        private string? _beforeCursor;
-
-        [ObservableProperty]
-        private string? _afterCursor;
-
-        [ObservableProperty]
-        private bool _hasNextPage;
-
-        [ObservableProperty]
-        private bool _hasPreviousPage;
-
         public CategoriesViewModel(IGraphQLClient graphQLClient)
         {
             _graphQLClient = graphQLClient;
@@ -50,50 +31,87 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task LoadCategoriesAsync(string? direction = null)
         {
+            await LoadPageAsync(direction);
+        }
+
+        protected override async Task LoadPageAsync(string? direction)
+        {
             IsBusy = true;
             try
             {
-                string filterString = !string.IsNullOrWhiteSpace(SearchText)
-                    ? $"where: {{ name: {{ contains: \"{SearchText}\" }} }},"
-                    : "";
-
-                string pagingArgs = $"first: {PageSize}";
-                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
-                    pagingArgs = $"first: {PageSize}, after: \"{AfterCursor}\"";
-                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
-                    pagingArgs = $"last: {PageSize}, before: \"{BeforeCursor}\"";
-
-                string query = $@"
-                    query GetCategories {{
-                        categories({pagingArgs}, {filterString} order: {{ id: ASC }}) {{
+                const string queryTemplate = @"
+                    query GetCategories(
+                        $first: Int, $last: Int, $after: String, $before: String,
+                        $where: CategoryFilterInput, $order: [CategorySortInput!]
+                    ) {
+                        categories(
+                            first: $first,
+                            last: $last,
+                            after: $after,
+                            before: $before,
+                            where: $where,
+                            order: $order
+                        ) {
                             totalCount
-                            pageInfo {{
+                            pageInfo {
                                 hasNextPage
                                 hasPreviousPage
                                 startCursor
                                 endCursor
-                            }}
-                            nodes {{
+                            }
+                            nodes {
                                 id
                                 name
-                                products {{
+                                products {
                                     id
                                     name
-                                }}
-                            }}
-                        }}
-                    }}";
+                                }
+                            }
+                        }
+                    }";
 
-                var result = await _graphQLClient.ExecuteAsync<CategoryConnection>(query, dataKey: "categories");
+                object? whereClause = !string.IsNullOrWhiteSpace(SearchText)
+                    ? new { name = new { contains = SearchText } }
+                    : null;
+
+                int? firstVar = null;
+                int? lastVar = null;
+                string? afterVar = null;
+                string? beforeVar = null;
+
+                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
+                {
+                    firstVar = PageSize;
+                    afterVar = AfterCursor;
+                }
+                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
+                {
+                    lastVar = PageSize;
+                    beforeVar = BeforeCursor;
+                }
+                else
+                {
+                    firstVar = PageSize;
+                }
+
+                var variables = new
+                {
+                    first = firstVar,
+                    last = lastVar,
+                    after = afterVar,
+                    before = beforeVar,
+                    where = whereClause,
+                    order = new[] { new { id = "ASC" } }
+                };
+
+                var result = await _graphQLClient.ExecuteAsync<CategoryConnection>(queryTemplate, variables, dataKey: "categories");
 
                 if (result != null)
                 {
                     Categories = new ObservableCollection<Category>(result.Nodes ?? new List<Category>());
-                    TotalCount = result.TotalCount;
-                    HasNextPage = result.PageInfo?.HasNextPage ?? false;
-                    HasPreviousPage = result.PageInfo?.HasPreviousPage ?? false;
-                    BeforeCursor = result.PageInfo?.StartCursor;
-                    AfterCursor = result.PageInfo?.EndCursor;
+                    ApplyPageInfo(result.TotalCount, result.PageInfo?.HasNextPage ?? false,
+                        result.PageInfo?.HasPreviousPage ?? false,
+                        result.PageInfo?.StartCursor, result.PageInfo?.EndCursor);
                 }
             }
             finally
@@ -107,7 +125,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             BeforeCursor = null;
             AfterCursor = null;
-            await LoadCategoriesAsync();
+            await LoadPageAsync(null);
         }
 
         [RelayCommand]
@@ -116,14 +134,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             SearchText = string.Empty;
             BeforeCursor = null;
             AfterCursor = null;
-            await LoadCategoriesAsync();
+            await LoadPageAsync(null);
         }
-
-        [RelayCommand(CanExecute = nameof(HasNextPage))]
-        public async Task NextPageAsync() => await LoadCategoriesAsync("next");
-
-        [RelayCommand(CanExecute = nameof(HasPreviousPage))]
-        public async Task PreviousPageAsync() => await LoadCategoriesAsync("prev");
 
         [RelayCommand]
         public async Task CreateCategoryAsync(CreateCategoryInput input)

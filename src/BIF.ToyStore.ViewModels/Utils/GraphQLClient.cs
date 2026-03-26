@@ -29,51 +29,8 @@ namespace BIF.ToyStore.ViewModels.Utils
         public async Task<T?> ExecuteAsync<T>(string query, object? variables = null, string dataKey = "")
         {
             var requestBody = new { query, variables };
-
             var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var responseBody = await response.Content.ReadAsStringAsync();
-                var statusCode = (int)response.StatusCode;
-                
-                var errorMessage = $"HTTP {statusCode} Error: Query execution failed. " +
-                    $"Response: {(responseBody.Length > 500 ? responseBody.Substring(0, 500) + "..." : responseBody)}";
-                
-                throw new HttpRequestException(errorMessage, null, response.StatusCode);
-            }
-
-            // Use JsonDocument for more flexible parsing
-            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>() 
-                ?? throw new Exception("Empty response from server.");
-            var root = jsonDocument.RootElement;
-
-            // Check for GraphQL Server Errors
-            if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
-            {
-                var errorMessage = errors[0].GetProperty("message").GetString();
-                throw new Exception($"GraphQL Error: {errorMessage}");
-            }
-
-            if (!root.TryGetProperty("data", out var data))
-            {
-                throw new Exception("No data returned from GraphQL.");
-            }
-
-            // Drill down into the specific query node (e.g., "login" or "products")
-            if (!string.IsNullOrEmpty(dataKey))
-            {
-                if (data.TryGetProperty(dataKey, out var specificData))
-                {
-                    if (specificData.ValueKind == JsonValueKind.Null) return default;
-
-                    return specificData.Deserialize<T>(_jsonOptions);
-                }
-                throw new Exception($"The key '{dataKey}' was not found in the GraphQL response.");
-            }
-
-            // If no dataKey is provided, deserialize the entire data block
-            return data.Deserialize<T>(_jsonOptions);
+            return await ParseGraphQLResponseAsync<T>(response, dataKey);
         }
 
         public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
@@ -126,49 +83,62 @@ namespace BIF.ToyStore.ViewModels.Utils
             request.Headers.Add("GraphQL-Preflight", "1");
 
             var response = await _httpClient.SendAsync(request);
+            return await ParseGraphQLResponseAsync<T>(response, dataKey);
+        }
 
-            // Enhanced error handling: capture response body on failure
+        /// <summary>
+        /// Parse GraphQL response and handle errors uniformly across ExecuteAsync and UploadFileAsync.
+        /// Collects all GraphQL errors (not just the first one) and provides better diagnostics.
+        /// </summary>
+        private async Task<T?> ParseGraphQLResponseAsync<T>(HttpResponseMessage response, string dataKey)
+        {
             if (!response.IsSuccessStatusCode)
             {
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var statusCode = (int)response.StatusCode;
                 
-                var errorMessage = $"HTTP {statusCode} Error: Upload failed. " +
-                    $"Response: {(responseBody.Length > 500 ? responseBody.Substring(0, 500) + "..." : responseBody)}";
-                
-                throw new HttpRequestException(errorMessage, null, response.StatusCode);
+                var errorDetails = responseBody.Length > 500 ? responseBody[..500] + "..." : responseBody;
+                throw new HttpRequestException(
+                    $"HTTP {statusCode} Error: {errorDetails}",
+                    null,
+                    response.StatusCode);
             }
 
-            // Use JsonDocument for more flexible parsing
             using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
-                ?? throw new Exception("Empty response from server.");
+                ?? throw new InvalidOperationException("Empty response from server.");
+
             var root = jsonDocument.RootElement;
 
-            // Check for GraphQL Server Errors
+            // Collect ALL GraphQL errors, not just the first one
             if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
             {
-                var errorMessage = errors[0].GetProperty("message").GetString();
-                throw new Exception($"GraphQL Error: {errorMessage}");
+                var messages = Enumerable.Range(0, errors.GetArrayLength())
+                    .Select(i => errors[i].TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error")
+                    .Where(m => m is not null);
+                
+                throw new InvalidOperationException($"GraphQL Error(s): {string.Join("; ", messages)}");
             }
 
             if (!root.TryGetProperty("data", out var data))
             {
-                throw new Exception("No data returned from GraphQL.");
+                throw new InvalidOperationException("No 'data' field in GraphQL response.");
             }
 
-            // Drill down into the specific mutation node (e.g., "importProducts")
             if (!string.IsNullOrEmpty(dataKey))
             {
-                if (data.TryGetProperty(dataKey, out var specificData))
+                if (!data.TryGetProperty(dataKey, out var specificData))
                 {
-                    if (specificData.ValueKind == JsonValueKind.Null) return default;
-
-                    return specificData.Deserialize<T>(_jsonOptions);
+                    throw new KeyNotFoundException($"Key '{dataKey}' not found in GraphQL response.");
                 }
-                throw new Exception($"The key '{dataKey}' was not found in the GraphQL response.");
+
+                if (specificData.ValueKind == JsonValueKind.Null)
+                {
+                    return default;
+                }
+
+                return specificData.Deserialize<T>(_jsonOptions);
             }
 
-            // If no dataKey is provided, deserialize the entire data block
             return data.Deserialize<T>(_jsonOptions);
         }
     }

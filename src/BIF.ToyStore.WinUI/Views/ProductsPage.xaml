@@ -6,12 +6,18 @@
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:controls1="using:CommunityToolkit.WinUI.Controls"
     xmlns:custom="using:BIF.ToyStore.WinUI.Controls"
+    xmlns:converters="using:BIF.ToyStore.WinUI.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:BIF.ToyStore.WinUI.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:BIF.ToyStore.Core.Models"
     Background="{ThemeResource FluentPlaySurfaceBrush}"
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:StockFormatConverter x:Key="StockFormatConverter" />
+    </Page.Resources>
 
     <Grid>
         <!--  Main Content (Now full width)  -->
@@ -39,17 +45,17 @@
                         FontWeight="Bold"
                         Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
                         Text="Inventory Management" />
-                    <TextBlock Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" Text="{x:Bind FormatTotalCount(ViewModel.TotalCount), Mode=OneWay}" />
+                    <TextBlock Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" Text="{x:Bind ViewModel.TotalCountLabel, Mode=OneWay}" />
                     <TextBlock
                         Foreground="{ThemeResource SystemFillColorSuccessBrush}"
                         Text="{x:Bind ViewModel.ImportSuccessMessage, Mode=OneWay}"
                         TextWrapping="Wrap"
-                        Visibility="{x:Bind ToVisibility(ViewModel.HasImportSuccessMessage), Mode=OneWay}" />
+                        Visibility="{x:Bind ViewModel.HasImportSuccessMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <TextBlock
                         Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                         Text="{x:Bind ViewModel.ImportErrorMessage, Mode=OneWay}"
                         TextWrapping="Wrap"
-                        Visibility="{x:Bind ToVisibility(ViewModel.HasImportErrorMessage), Mode=OneWay}" />
+                        Visibility="{x:Bind ViewModel.HasImportErrorMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                 </StackPanel>
 
                 <StackPanel
@@ -237,9 +243,7 @@
                                         Width="8"
                                         Height="8"
                                         Fill="{ThemeResource FluentPlayPrimaryBrush}" />
-                                    <TextBlock FontWeight="Medium">
-                                        <Run Text="{x:Bind StockQuantity}" /><Run Text=" Units" />
-                                    </TextBlock>
+                                    <TextBlock FontWeight="Medium" Text="{x:Bind StockQuantity, Converter={StaticResource StockFormatConverter}}" />
                                 </StackPanel>
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>

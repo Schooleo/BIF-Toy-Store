@@ -156,7 +156,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<bool> DeleteProduct(int id, [Service] IProductRepository repo)
         {
-            await repo.DeleteAsync(id);
+            await repo.SoftDeleteAsync(id);
             return true;
         }
 
@@ -246,17 +246,9 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return true;
         }
 
-        public async Task<Category> RestoreCategory(int id, [Service] AppDbContext dbContext)
+        public async Task<Category> RestoreCategory(int id, [Service] ICategoryRepository repo)
         {
-            var category = await dbContext.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
-            if (category is null)
-            {
-                throw new InvalidOperationException("Category not found.");
-            }
-
-            category.IsDeleted = false;
-            await dbContext.SaveChangesAsync();
-            return category;
+            return await repo.RestoreAsync(id);
         }
     }
 }

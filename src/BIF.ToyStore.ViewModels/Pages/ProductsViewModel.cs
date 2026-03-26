@@ -12,7 +12,7 @@ using BIF.ToyStore.Infrastructure.GraphQL;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
-    public partial class ProductsViewModel : BaseViewModel
+    public partial class ProductsViewModel : PaginatedViewModel
     {
         private readonly IGraphQLClient _graphQLClient;
         private readonly ILocalSettingsService _localSettingsService;
@@ -43,31 +43,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public ObservableCollection<SortOption> SortOptions { get; } = new()
         {
-            new SortOption { Name = "Newest", Value = "{ id: DESC }" },
-            new SortOption { Name = "Price: Low to High", Value = "{ retailPrice: ASC }" },
-            new SortOption { Name = "Price: High to Low", Value = "{ retailPrice: DESC }" },
-            new SortOption { Name = "Stock: Low to High", Value = "{ stockQuantity: ASC }" },
-            new SortOption { Name = "Name: A-Z", Value = "{ name: ASC }" }
+            new SortOption { Name = "Newest", Value = "id_desc" },
+            new SortOption { Name = "Price: Low to High", Value = "price_asc" },
+            new SortOption { Name = "Price: High to Low", Value = "price_desc" },
+            new SortOption { Name = "Stock: Low to High", Value = "stock_asc" },
+            new SortOption { Name = "Name: A-Z", Value = "name_asc" }
         };
-
-        // Paging properties
-        [ObservableProperty]
-        private int _pageSize = 5;
-
-        [ObservableProperty]
-        private int _totalCount;
-
-        [ObservableProperty]
-        private string? _beforeCursor;
-
-        [ObservableProperty]
-        private string? _afterCursor;
-
-        [ObservableProperty]
-        private bool _hasNextPage;
-
-        [ObservableProperty]
-        private bool _hasPreviousPage;
 
         [ObservableProperty]
         private string _importSuccessMessage = string.Empty;
@@ -77,6 +58,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
+
+        // Computed property for total count label (notifies when TotalCount changes)
+        public string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
             IGraphQLClient graphQLClient,
@@ -104,7 +88,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             const string query = @"
                 query GetCategories {
-                    categories {
+                    categories(first: 50) {
                         nodes {
                             id
                             name
@@ -122,76 +106,127 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task LoadProductsAsync(string? direction = null)
         {
+            await LoadPageAsync(direction);
+        }
+
+        protected override async Task LoadPageAsync(string? direction)
+        {
             IsBusy = true;
             try
             {
-                var filters = new List<string>();
-                if (!string.IsNullOrWhiteSpace(SearchText))
-                    filters.Add($"{{ name: {{ contains: \"{SearchText}\" }} }}");
-                
-                if (SelectedCategory != null)
-                    filters.Add($"{{ categoryId: {{ eq: {SelectedCategory.Id} }} }}");
-                
-                if (MinPrice > 0)
-                    filters.Add($"{{ retailPrice: {{ gte: {MinPrice} }} }}");
-                
-                if (MaxPrice < 1000)
-                    filters.Add($"{{ retailPrice: {{ lte: {MaxPrice} }} }}");
-
-                string filterString = filters.Count > 0 ? $"where: {{ and: [ {string.Join(", ", filters)} ] }}," : "";
-                
-                string sortString = SelectedSort?.Value ?? "{ id: DESC }";
-
-                string pagingArgs = $"first: {PageSize}";
-                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
-                    pagingArgs = $"first: {PageSize}, after: \"{AfterCursor}\"";
-                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
-                    pagingArgs = $"last: {PageSize}, before: \"{BeforeCursor}\"";
-                else if (direction == "last")
-                    pagingArgs = $"last: {PageSize}";
-
-                string query = $@"
-                    query GetProducts {{
-                        products({pagingArgs}, {filterString} order: {sortString}) {{
+                const string queryTemplate = @"
+                    query GetProducts(
+                        $first: Int, $last: Int, $after: String, $before: String,
+                        $where: ProductFilterInput, $order: [ProductSortInput!]
+                    ) {
+                        products(
+                            first: $first,
+                            last: $last,
+                            after: $after,
+                            before: $before,
+                            where: $where,
+                            order: $order
+                        ) {
                             totalCount
-                            pageInfo {{
+                            pageInfo {
                                 hasNextPage
                                 hasPreviousPage
                                 startCursor
                                 endCursor
-                            }}
-                            nodes {{
+                            }
+                            nodes {
                                 id
                                 name
                                 categoryId
-                                category {{
+                                category {
                                     id
                                     name
-                                }}
+                                }
                                 retailPrice
                                 importPrice
                                 stockQuantity
-                            }}
-                        }}
-                    }}";
+                            }
+                        }
+                    }";
 
-                var result = await _graphQLClient.ExecuteAsync<ProductConnection>(query, dataKey: "products");
+                var whereConditions = new List<object>();
+
+                if (!string.IsNullOrWhiteSpace(SearchText))
+                {
+                    whereConditions.Add(new { name = new { contains = SearchText } });
+                }
+
+                if (SelectedCategory != null)
+                {
+                    whereConditions.Add(new { categoryId = new { eq = SelectedCategory.Id } });
+                }
+
+                if (MinPrice > 0)
+                {
+                    whereConditions.Add(new { retailPrice = new { gte = (decimal)MinPrice } });
+                }
+
+                if (MaxPrice < 1000)
+                {
+                    whereConditions.Add(new { retailPrice = new { lte = (decimal)MaxPrice } });
+                }
+
+                object? whereClause = whereConditions.Count > 0
+                    ? new { and = whereConditions }
+                    : null;
+
+                object orderClause = SelectedSort?.Value switch
+                {
+                    "price_asc" => new[] { new { retailPrice = "ASC" } },
+                    "price_desc" => new[] { new { retailPrice = "DESC" } },
+                    "stock_asc" => new[] { new { stockQuantity = "ASC" } },
+                    "name_asc" => new[] { new { name = "ASC" } },
+                    _ => new[] { new { id = "DESC" } }
+                };
+
+                int? firstVar = null;
+                int? lastVar = null;
+                string? afterVar = null;
+                string? beforeVar = null;
+
+                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
+                {
+                    firstVar = PageSize;
+                    afterVar = AfterCursor;
+                }
+                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
+                {
+                    lastVar = PageSize;
+                    beforeVar = BeforeCursor;
+                }
+                else if (direction == "last")
+                {
+                    lastVar = PageSize;
+                }
+                else
+                {
+                    firstVar = PageSize;
+                }
+
+                var variables = new
+                {
+                    first = firstVar,
+                    last = lastVar,
+                    after = afterVar,
+                    before = beforeVar,
+                    where = whereClause,
+                    order = orderClause
+                };
+
+                var result = await _graphQLClient.ExecuteAsync<ProductConnection>(queryTemplate, variables, dataKey: "products");
 
                 if (result != null)
                 {
                     Products = new ObservableCollection<Product>(result.Nodes ?? new List<Product>());
-                    TotalCount = result.TotalCount;
-                    HasNextPage = result.PageInfo?.HasNextPage ?? false;
-                    HasPreviousPage = result.PageInfo?.HasPreviousPage ?? false;
-                    BeforeCursor = result.PageInfo?.StartCursor;
-                    AfterCursor = result.PageInfo?.EndCursor;
+                    ApplyPageInfo(result.TotalCount, result.PageInfo?.HasNextPage ?? false,
+                        result.PageInfo?.HasPreviousPage ?? false,
+                        result.PageInfo?.StartCursor, result.PageInfo?.EndCursor);
                 }
-
-                // Explicitly notify pagination commands that execution state may have changed
-                FirstPageCommand.NotifyCanExecuteChanged();
-                PreviousPageCommand.NotifyCanExecuteChanged();
-                NextPageCommand.NotifyCanExecuteChanged();
-                LastPageCommand.NotifyCanExecuteChanged();
             }
             finally
             {
@@ -204,7 +239,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             BeforeCursor = null;
             AfterCursor = null;
-            await LoadProductsAsync();
+            await LoadPageAsync(null);
         }
 
         [RelayCommand]
@@ -216,29 +251,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             MaxPrice = 1000;
             BeforeCursor = null;
             AfterCursor = null;
-            await LoadProductsAsync();
-        }
-
-        [RelayCommand(CanExecute = nameof(HasNextPage))]
-        public async Task NextPageAsync() => await LoadProductsAsync("next");
-
-        [RelayCommand(CanExecute = nameof(HasPreviousPage))]
-        public async Task PreviousPageAsync() => await LoadProductsAsync("prev");
-
-        [RelayCommand(CanExecute = nameof(HasPreviousPage))]
-        public async Task FirstPageAsync()
-        {
-            BeforeCursor = null;
-            AfterCursor = null;
-            await LoadProductsAsync("first");
-        }
-
-        [RelayCommand(CanExecute = nameof(HasNextPage))]
-        public async Task LastPageAsync()
-        {
-            BeforeCursor = null;
-            AfterCursor = null;
-            await LoadProductsAsync("last");
+            await LoadPageAsync(null);
         }
 
         [RelayCommand]

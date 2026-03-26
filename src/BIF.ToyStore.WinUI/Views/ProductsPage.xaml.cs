@@ -26,12 +26,10 @@ namespace BIF.ToyStore.WinUI.Views
                 }
 
                 await ViewModel.LoadCategoriesCommand.ExecuteAsync(null);
-                await ViewModel.LoadProductsCommand.ExecuteAsync("next");
+                await ViewModel.LoadProductsCommand.ExecuteAsync(null);
             };
         }
 
-        public Visibility ToVisibility(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
-        
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
             ApplyFilter();
@@ -65,11 +63,6 @@ namespace BIF.ToyStore.WinUI.Views
                 }
             }
         }
-
-        public string FormatTotalCount(int count) => $"Total items in catalog: {count} Units";
-        public string FormatPaging(int count) => $"Showing products of {count}";
-        public string FormatSku(int id) => $"SKU: TOY-{id}";
-        public string FormatStock(int stock) => $"{stock} Units";
 
         private async void AddProduct_Click(object sender, RoutedEventArgs e)
         {
