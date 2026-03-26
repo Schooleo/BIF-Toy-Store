@@ -80,6 +80,7 @@ namespace BIF.ToyStore.WinUI
                         // ViewModels
                         services.AddTransient<InitialSetupViewModel>();
                         services.AddTransient<LoginViewModel>();
+                        services.AddTransient<DashboardViewModel>();
                         services.AddTransient<UserManagementViewModel>();
                     });
 

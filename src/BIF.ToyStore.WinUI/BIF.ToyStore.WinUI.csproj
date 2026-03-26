@@ -20,7 +20,10 @@
 		<None Remove="Views\LoginPage.xaml" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="Assets\Branding\ToyBanner.jpg">
+		<Content Include="Assets\Branding\StoreInterior.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Icons\*.svg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
