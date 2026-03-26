@@ -40,6 +40,16 @@
                         Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
                         Text="Inventory Management" />
                     <TextBlock Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" Text="{x:Bind FormatTotalCount(ViewModel.TotalCount), Mode=OneWay}" />
+                    <TextBlock
+                        Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                        Text="{x:Bind ViewModel.ImportSuccessMessage, Mode=OneWay}"
+                        TextWrapping="Wrap"
+                        Visibility="{x:Bind ToVisibility(ViewModel.HasImportSuccessMessage), Mode=OneWay}" />
+                    <TextBlock
+                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                        Text="{x:Bind ViewModel.ImportErrorMessage, Mode=OneWay}"
+                        TextWrapping="Wrap"
+                        Visibility="{x:Bind ToVisibility(ViewModel.HasImportErrorMessage), Mode=OneWay}" />
                 </StackPanel>
 
                 <StackPanel
@@ -49,11 +59,12 @@
                     <Button
                         Background="White"
                         BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
-                        Command="{x:Bind ViewModel.ImportProductsCommand}"
+                        Command="{x:Bind ViewModel.ImportExcelCommand}"
                         Content="Import Excel"
                         Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
                     <Button
                         Background="{ThemeResource FluentPlayPrimaryBrush}"
+                        Click="AddProduct_Click"
                         Content="ADD NEW PRODUCT"
                         FontWeight="Bold"
                         Foreground="{ThemeResource FluentPlayOnPrimaryBrush}" />
@@ -229,6 +240,23 @@
                                     <TextBlock FontWeight="Medium">
                                         <Run Text="{x:Bind StockQuantity}" /><Run Text=" Units" />
                                     </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </controls:DataGridTemplateColumn.CellTemplate>
+                    </controls:DataGridTemplateColumn>
+
+                    <controls:DataGridTemplateColumn Width="100" Header="ACTIONS">
+                        <controls:DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:Product">
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0,0,16,0">
+                                    <Button Background="Transparent" BorderBrush="Transparent" Padding="4" Tag="{x:Bind}" Click="EditProduct_Click"
+                                            ToolTipService.ToolTip="Edit Product">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                                    </Button>
+                                    <Button Background="Transparent" BorderBrush="Transparent" Padding="4" Tag="{x:Bind}" Click="DeleteProduct_Click"
+                                            ToolTipService.ToolTip="Delete Product">
+                                        <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="Red" />
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>

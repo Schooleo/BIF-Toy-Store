@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="using:BIF.ToyStore.WinUI.Controls"
-    x:DataType="local:PaginationControl"
     mc:Ignorable="d">
 
     <Grid Padding="32,16">
@@ -23,11 +22,6 @@
                     Command="{x:Bind PreviousPageCommand, Mode=OneWay}" 
                     Background="White" BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
         </StackPanel>
-
-        <TextBlock Grid.Column="1" 
-                   HorizontalAlignment="Center" VerticalAlignment="Center" 
-                   FontWeight="Medium" FontSize="12" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}">
-        </TextBlock>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
             <Button Content="Next" 

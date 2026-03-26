@@ -13,19 +13,24 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     {
         private readonly Mock<IGraphQLClient> _graphQLClientMock;
         private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
+        private readonly Mock<IExcelFilePickerService> _excelFilePickerServiceMock;
         private readonly ProductsViewModel _viewModel;
 
         public ProductsViewModelTests()
         {
             _graphQLClientMock = new Mock<IGraphQLClient>();
             _localSettingsServiceMock = new Mock<ILocalSettingsService>();
+            _excelFilePickerServiceMock = new Mock<IExcelFilePickerService>();
 
             // Setup default setting
             _localSettingsServiceMock
                 .Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20))
                 .Returns(20);
 
-            _viewModel = new ProductsViewModel(_graphQLClientMock.Object, _localSettingsServiceMock.Object);
+            _viewModel = new ProductsViewModel(
+                _graphQLClientMock.Object,
+                _localSettingsServiceMock.Object,
+                _excelFilePickerServiceMock.Object);
         }
 
         [Fact]
@@ -111,7 +116,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             // Assert
             Assert.Empty(_viewModel.SearchText);
-            Assert.Null(_viewModel.MinPrice);
+            Assert.Equal(0, _viewModel.MinPrice);
             Assert.Null(_viewModel.SelectedCategory);
             _graphQLClientMock.Verify(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
                 It.IsAny<string>(),

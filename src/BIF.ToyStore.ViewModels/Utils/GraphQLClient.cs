@@ -1,5 +1,7 @@
 using BIF.ToyStore.Core.Interfaces;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -29,7 +31,17 @@ namespace BIF.ToyStore.ViewModels.Utils
             var requestBody = new { query, variables };
 
             var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode;
+                
+                var errorMessage = $"HTTP {statusCode} Error: Query execution failed. " +
+                    $"Response: {(responseBody.Length > 500 ? responseBody.Substring(0, 500) + "..." : responseBody)}";
+                
+                throw new HttpRequestException(errorMessage, null, response.StatusCode);
+            }
 
             // Use JsonDocument for more flexible parsing
             using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>() 
@@ -49,6 +61,102 @@ namespace BIF.ToyStore.ViewModels.Utils
             }
 
             // Drill down into the specific query node (e.g., "login" or "products")
+            if (!string.IsNullOrEmpty(dataKey))
+            {
+                if (data.TryGetProperty(dataKey, out var specificData))
+                {
+                    if (specificData.ValueKind == JsonValueKind.Null) return default;
+
+                    return specificData.Deserialize<T>(_jsonOptions);
+                }
+                throw new Exception($"The key '{dataKey}' was not found in the GraphQL response.");
+            }
+
+            // If no dataKey is provided, deserialize the entire data block
+            return data.Deserialize<T>(_jsonOptions);
+        }
+
+        public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
+        {
+            if (string.IsNullOrWhiteSpace(variableName))
+            {
+                throw new ArgumentException("Variable name is required.", nameof(variableName));
+            }
+
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                throw new FileNotFoundException("The selected file was not found.", filePath);
+            }
+
+            var operations = JsonSerializer.Serialize(new
+            {
+                query,
+                variables = new Dictionary<string, object?>
+                {
+                    [variableName] = null
+                }
+            }, _jsonOptions);
+
+            var map = JsonSerializer.Serialize(new Dictionary<string, string[]>
+            {
+                ["0"] = [$"variables.{variableName}"]
+            });
+
+            using var stream = File.OpenRead(filePath);
+            using var multipart = new MultipartFormDataContent();
+            multipart.Add(new StringContent(operations, Encoding.UTF8, "application/json"), "operations");
+            multipart.Add(new StringContent(map, Encoding.UTF8, "application/json"), "map");
+
+            var fileContent = new StreamContent(stream);
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var contentType = extension == ".xls"
+                ? "application/vnd.ms-excel"
+                : extension == ".xlsx"
+                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    : "application/octet-stream";
+
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            multipart.Add(fileContent, "0", Path.GetFileName(filePath));
+
+            // Server requires GraphQL preflight header for multipart uploads
+            var request = new HttpRequestMessage(HttpMethod.Post, "graphql")
+            {
+                Content = multipart
+            };
+            request.Headers.Add("GraphQL-Preflight", "1");
+
+            var response = await _httpClient.SendAsync(request);
+
+            // Enhanced error handling: capture response body on failure
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode;
+                
+                var errorMessage = $"HTTP {statusCode} Error: Upload failed. " +
+                    $"Response: {(responseBody.Length > 500 ? responseBody.Substring(0, 500) + "..." : responseBody)}";
+                
+                throw new HttpRequestException(errorMessage, null, response.StatusCode);
+            }
+
+            // Use JsonDocument for more flexible parsing
+            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
+                ?? throw new Exception("Empty response from server.");
+            var root = jsonDocument.RootElement;
+
+            // Check for GraphQL Server Errors
+            if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
+            {
+                var errorMessage = errors[0].GetProperty("message").GetString();
+                throw new Exception($"GraphQL Error: {errorMessage}");
+            }
+
+            if (!root.TryGetProperty("data", out var data))
+            {
+                throw new Exception("No data returned from GraphQL.");
+            }
+
+            // Drill down into the specific mutation node (e.g., "importProducts")
             if (!string.IsNullOrEmpty(dataKey))
             {
                 if (data.TryGetProperty(dataKey, out var specificData))

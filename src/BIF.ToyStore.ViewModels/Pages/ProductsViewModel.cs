@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 using BIF.ToyStore.Infrastructure.GraphQL;
 
 namespace BIF.ToyStore.ViewModels.Pages
@@ -15,6 +16,8 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         private readonly IGraphQLClient _graphQLClient;
         private readonly ILocalSettingsService _localSettingsService;
+        private readonly IExcelFilePickerService _excelFilePickerService;
+        private nint _windowHandle;
 
         [ObservableProperty]
         private ObservableCollection<Product> _products = [];
@@ -66,14 +69,35 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private bool _hasPreviousPage;
 
-        public ProductsViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService)
+        [ObservableProperty]
+        private string _importSuccessMessage = string.Empty;
+
+        [ObservableProperty]
+        private string _importErrorMessage = string.Empty;
+
+        public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
+        public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
+
+        public ProductsViewModel(
+            IGraphQLClient graphQLClient,
+            ILocalSettingsService localSettingsService,
+            IExcelFilePickerService excelFilePickerService)
         {
             _graphQLClient = graphQLClient;
             _localSettingsService = localSettingsService;
+            _excelFilePickerService = excelFilePickerService;
             Title = "Product Management";
             
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
         }
+
+        public void SetWindowHandle(nint windowHandle)
+        {
+            _windowHandle = windowHandle;
+        }
+
+        partial void OnImportSuccessMessageChanged(string value) => OnPropertyChanged(nameof(HasImportSuccessMessage));
+        partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
 
         [RelayCommand]
         public async Task LoadCategoriesAsync()
@@ -255,11 +279,27 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
 
         [RelayCommand]
-        public async Task ImportProductsAsync(object file)
+        public async Task ImportExcelAsync()
         {
-            IsBusy = true;
+            ImportSuccessMessage = string.Empty;
+            ImportErrorMessage = string.Empty;
+
+            if (_windowHandle == 0)
+            {
+                ImportErrorMessage = "Cannot open file picker because the window is not ready.";
+                return;
+            }
+
             try
             {
+                var selectedFilePath = await _excelFilePickerService.PickExcelFilePathAsync(_windowHandle);
+                if (string.IsNullOrWhiteSpace(selectedFilePath))
+                {
+                    return;
+                }
+
+                IsBusy = true;
+
                 const string query = @"
                     mutation Import($file: Upload!) {
                         importProducts(file: $file) {
@@ -267,11 +307,35 @@ namespace BIF.ToyStore.ViewModels.Pages
                             errors
                         }
                     }";
-                var result = await _graphQLClient.ExecuteAsync<ImportProductsPayload>(query, new { file }, dataKey: "importProducts");
-                if (result != null)
+
+                var result = await _graphQLClient.UploadFileAsync<ImportProductsPayload>(
+                    query,
+                    "file",
+                    selectedFilePath,
+                    dataKey: "importProducts");
+
+                if (result is null)
                 {
-                    await LoadProductsAsync();
+                    ImportErrorMessage = "Import failed: server did not return a result.";
+                    return;
                 }
+
+                if (result.Errors.Count > 0)
+                {
+                    var firstError = result.Errors[0];
+                    ImportErrorMessage =
+                        $"Imported {result.ImportedCount} products with {result.Errors.Count} error(s). First error: {firstError}";
+                }
+                else
+                {
+                    ImportSuccessMessage = $"Imported {result.ImportedCount} product(s) successfully.";
+                }
+
+                await LoadProductsAsync();
+            }
+            catch (Exception ex)
+            {
+                ImportErrorMessage = $"Import failed: {ex.Message}";
             }
             finally
             {
