@@ -231,5 +231,44 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
                 Times.Never);
         }
+
+        [Fact]
+        public async Task DeleteUserAsync_ValidUser_CallsMutationAndRefreshesList()
+        {
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<bool>(
+                    It.Is<string>(q => q.Contains("mutation DeleteExistingUser")),
+                    It.IsAny<object>(),
+                    "deleteUser"))
+                .ReturnsAsync(true);
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
+                    It.Is<string>(q => q.Contains("getUserList")),
+                    null,
+                    ""))
+                .ReturnsAsync(new UserManagementQueryData());
+
+            bool deleted = await _viewModel.DeleteUserAsync(new UserItemViewModel(9, "remove.me", "hash", UserRole.Sale, 0));
+
+            Assert.True(deleted);
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<bool>(It.IsAny<string>(), It.IsAny<object>(), "deleteUser"),
+                Times.Once);
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteUserAsync_NullUser_ReturnsFalseAndSkipsApi()
+        {
+            bool deleted = await _viewModel.DeleteUserAsync(null);
+
+            Assert.False(deleted);
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<bool>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
+                Times.Never);
+        }
     }
 }

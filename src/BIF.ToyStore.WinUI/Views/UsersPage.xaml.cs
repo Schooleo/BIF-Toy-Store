@@ -1,4 +1,5 @@
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -61,6 +62,30 @@ namespace BIF.ToyStore.WinUI.Views
             {
                 deferral.Complete();
             }
+        }
+
+        private async void DeleteUserButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { CommandParameter: UserItemViewModel user })
+            {
+                return;
+            }
+
+            var result = await CommonDialog.ShowAsync(
+                XamlRoot,
+                CommonDialogType.Warning,
+                "Confirm Delete User",
+                $"Are you sure you want to delete user '{user.Username}'?",
+                primaryButtonText: "Delete",
+                closeButtonText: "Cancel",
+                defaultButton: ContentDialogButton.Close);
+
+            if (result != ContentDialogResult.Primary)
+            {
+                return;
+            }
+
+            await ViewModel.DeleteUserAsync(user);
         }
 
         private Task<ContentDialogResult> ShowCreateUserDialogAsync()

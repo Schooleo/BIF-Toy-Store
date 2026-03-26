@@ -59,6 +59,21 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             };
         }
 
+        public async Task<bool> DeleteUser(
+            int id,
+            [Service] AppDbContext dbContext)
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user is null)
+            {
+                return false;
+            }
+
+            dbContext.Users.Remove(user);
+            await dbContext.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<AppConfigPayload> UpdateConfig(
             UpdateConfigInput input,
             [Service] IConfigService configService)

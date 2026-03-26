@@ -122,6 +122,47 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
+        public async Task<bool> DeleteUserAsync(UserItemViewModel? user)
+        {
+            if (user is null)
+            {
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation DeleteExistingUser($id: Int!) {
+                deleteUser(id: $id)
+            }";
+
+            try
+            {
+                bool deleted = await _graphQLClient.ExecuteAsync<bool>(
+                    mutation,
+                    new { id = user.Id },
+                    dataKey: "deleteUser");
+
+                if (!deleted)
+                {
+                    ErrorMessage = "Unable to delete user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to delete user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
         private async Task<bool> TryLoadFromNewApisAsync()
         {
             const string query = @"query {
