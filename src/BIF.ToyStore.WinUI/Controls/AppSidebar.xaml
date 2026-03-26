@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="BIF.ToyStore.WinUI.Controls.AppSidebar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Border Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+            BorderBrush="#1AC0C7D4"
+            BorderThickness="0,0,1,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Padding="24,32,24,24">
+                <Border Background="{StaticResource FluentPlayPrimaryBrush}"
+                        CornerRadius="8"
+                        Width="32"
+                        Height="32">
+                    <Image Source="ms-appx:///Assets/Icons/Robot.svg" Width="18" Height="18" />
+                </Border>
+                <StackPanel Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Text="Toy Workshop"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                    <TextBlock Text="CURATED EXCELLENCE"
+                               FontSize="10"
+                               CharacterSpacing="40"
+                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                               Opacity="0.75" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Spacing="4" Padding="12,8,12,8">
+                <Border x:Name="DashboardActiveWrap" Background="White" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="DashboardActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="DashboardButton_Click"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Padding="16,10">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="DashboardIcon"
+                                          Width="18"
+                                          Height="18"
+                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                          Data="M10 6V0H18V6H10ZM0 10V0H8V10H0ZM10 18V8H18V18H10ZM0 18V12H8V18H0ZM2 8H6V2H2V8ZM12 16H16V10H12V16ZM12 4H16V2H12V4ZM2 16H6V14H2V16Z" />
+                                <TextBlock x:Name="DashboardText"
+                                           Text="Dashboard"
+                                           FontSize="14"
+                                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="PosActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="PosActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="PlaceholderButton_Click" Tag="POS"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="PosIcon"
+                                          Width="20"
+                                          Height="20"
+                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                          Data="M5 6C4.45 6 3.97917 5.80417 3.5875 5.4125C3.19583 5.02083 3 4.55 3 4V2C3 1.45 3.19583 0.979167 3.5875 0.5875C3.97917 0.195833 4.45 0 5 0H15C15.55 0 16.0208 0.195833 16.4125 0.5875C16.8042 0.979167 17 1.45 17 2V4C17 4.55 16.8042 5.02083 16.4125 5.4125C16.0208 5.80417 15.55 6 15 6H5ZM5 4H15V2H5V4ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V17H20V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H2ZM0 16L3.475 8.175C3.64167 7.80833 3.89167 7.52083 4.225 7.3125C4.55833 7.10417 4.91667 7 5.3 7H14.7C15.0833 7 15.4417 7.10417 15.775 7.3125C16.1083 7.52083 16.3583 7.80833 16.525 8.175L20 16H0ZM6.5 14H7.5C7.63333 14 7.75 13.95 7.85 13.85C7.95 13.75 8 13.6333 8 13.5C8 13.3667 7.95 13.25 7.85 13.15C7.75 13.05 7.63333 13 7.5 13H6.5C6.36667 13 6.25 13.05 6.15 13.15C6.05 13.25 6 13.3667 6 13.5C6 13.6333 6.05 13.75 6.15 13.85C6.25 13.95 6.36667 14 6.5 14ZM6.5 12H7.5C7.63333 12 7.75 11.95 7.85 11.85C7.95 11.75 8 11.6333 8 11.5C8 11.3667 7.95 11.25 7.85 11.15C7.75 11.05 7.63333 11 7.5 11H6.5C6.36667 11 6.25 11.05 6.15 11.15C6.05 11.25 6 11.3667 6 11.5C6 11.6333 6.05 11.75 6.15 11.85C6.25 11.95 6.36667 12 6.5 12ZM6.5 10H7.5C7.63333 10 7.75 9.95 7.85 9.85C7.95 9.75 8 9.63333 8 9.5C8 9.36667 7.95 9.25 7.85 9.15C7.75 9.05 7.63333 9 7.5 9H6.5C6.36667 9 6.25 9.05 6.15 9.15C6.05 9.25 6 9.36667 6 9.5C6 9.63333 6.05 9.75 6.15 9.85C6.25 9.95 6.36667 10 6.5 10ZM9.5 14H10.5C10.6333 14 10.75 13.95 10.85 13.85C10.95 13.75 11 13.6333 11 13.5C11 13.3667 10.95 13.25 10.85 13.15C10.75 13.05 10.6333 13 10.5 13H9.5C9.36667 13 9.25 13.05 9.15 13.15C9.05 13.25 9 13.3667 9 13.5C9 13.6333 9.05 13.75 9.15 13.85C9.25 13.95 9.36667 14 9.5 14ZM9.5 12H10.5C10.6333 12 10.75 11.95 10.85 11.85C10.95 11.75 11 11.6333 11 11.5C11 11.3667 10.95 11.25 10.85 11.15C10.75 11.05 10.6333 11 10.5 11H9.5C9.36667 11 9.25 11.05 9.15 11.15C9.05 11.25 9 11.3667 9 11.5C9 11.6333 9.05 11.75 9.15 11.85C9.25 11.95 9.36667 12 9.5 12ZM9.5 10H10.5C10.6333 10 10.75 9.95 10.85 9.85C10.95 9.75 11 9.63333 11 9.5C11 9.36667 10.95 9.25 10.85 9.15C10.75 9.05 10.6333 9 10.5 9H9.5C9.36667 9 9.25 9.05 9.15 9.15C9.05 9.25 9 9.36667 9 9.5C9 9.63333 9.05 9.75 9.15 9.85C9.25 9.95 9.36667 10 9.5 10ZM12.5 14H13.5C13.6333 14 13.75 13.95 13.85 13.85C13.95 13.75 14 13.6333 14 13.5C14 13.3667 13.95 13.25 13.85 13.15C13.75 13.05 13.6333 13 13.5 13H12.5C12.3667 13 12.25 13.05 12.15 13.15C12.05 13.25 12 13.3667 12 13.5C12 13.6333 12.05 13.75 12.15 13.85C12.25 13.95 12.3667 14 12.5 14ZM12.5 12H13.5C13.6333 12 13.75 11.95 13.85 11.85C13.95 11.75 14 11.6333 14 11.5C14 11.3667 13.95 11.25 13.85 11.15C13.75 11.05 13.6333 11 13.5 11H12.5C12.3667 11 12.25 11.05 12.15 11.15C12.05 11.25 12 11.3667 12 11.5C12 11.6333 12.05 11.75 12.15 11.85C12.25 11.95 12.3667 12 12.5 12ZM12.5 10H13.5C13.6333 10 13.75 9.95 13.85 9.85C13.95 9.75 14 9.63333 14 9.5C14 9.36667 13.95 9.25 13.85 9.15C13.75 9.05 13.6333 9 13.5 9H12.5C12.3667 9 12.25 9.05 12.15 9.15C12.05 9.25 12 9.36667 12 9.5C12 9.63333 12.05 9.75 12.15 9.85C12.25 9.95 12.3667 10 12.5 10Z" />
+                                <TextBlock x:Name="PosText" Text="POS" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="ProductsActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="ProductsActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                            <Button Click="ProductsButton_Click" Tag="Products"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="ProductsIcon" Width="20" Height="20" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" Data="M3 20C2.45 20 1.97917 19.8042 1.5875 19.4125C1.19583 19.0208 1 18.55 1 18V6.725C0.7 6.54167 0.458333 6.30417 0.275 6.0125C0.0916667 5.72083 0 5.38333 0 5V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V5C20 5.38333 19.9083 5.72083 19.725 6.0125C19.5417 6.30417 19.3 6.54167 19 6.725V18C19 18.55 18.8042 19.0208 18.4125 19.4125C18.0208 19.8042 17.55 20 17 20H3ZM3 7V18H17V7H3ZM2 5H18V2H2V5ZM7 12H13V10H7V12Z" />
+                                <TextBlock x:Name="ProductsText" Text="Products" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="OrdersActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="OrdersActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="PlaceholderButton_Click" Tag="Orders"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="OrdersIcon" Width="20" Height="20" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" Data="M6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18C4 17.45 4.19583 16.9792 4.5875 16.5875C4.97917 16.1958 5.45 16 6 16C6.55 16 7.02083 16.1958 7.4125 16.5875C7.80417 16.9792 8 17.45 8 18C8 18.55 7.80417 19.0208 7.4125 19.4125C7.02083 19.8042 6.55 20 6 20ZM16 20C15.45 20 14.9792 19.8042 14.5875 19.4125C14.1958 19.0208 14 18.55 14 18C14 17.45 14.1958 16.9792 14.5875 16.5875C14.9792 16.1958 15.45 16 16 16C16.55 16 17.0208 16.1958 17.4125 16.5875C17.8042 16.9792 18 17.45 18 18C18 18.55 17.8042 19.0208 17.4125 19.4125C17.0208 19.8042 16.55 20 16 20ZM5.15 4L7.55 9H14.55L17.3 4H5.15ZM4.2 2H18.95C19.3333 2 19.625 2.17083 19.825 2.5125C20.025 2.85417 20.0333 3.2 19.85 3.55L16.3 9.95C16.1167 10.2833 15.8708 10.5417 15.5625 10.725C15.2542 10.9083 14.9167 11 14.55 11H7.1L6 13H18V15H6C5.25 15 4.68333 14.6708 4.3 14.0125C3.91667 13.3542 3.9 12.7 4.25 12.05L5.6 9.6L2 2H0V0H3.25L4.2 2ZM7.55 9H14.55H7.55Z" />
+                                <TextBlock x:Name="OrdersText" Text="Orders" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="UsersActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="UsersActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="UsersButton_Click"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="UsersIcon"
+                                          Width="18"
+                                          Height="18"
+                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                          Data="M8 8C6.9 8 5.95833 7.60833 5.175 6.825C4.39167 6.04167 4 5.1 4 4C4 2.9 4.39167 1.95833 5.175 1.175C5.95833 0.391667 6.9 0 8 0C9.1 0 10.0417 0.391667 10.825 1.175C11.6083 1.95833 12 2.9 12 4C12 5.1 11.6083 6.04167 10.825 6.825C10.0417 7.60833 9.1 8 8 8ZM0 16V13.2C0 12.6333 0.145833 12.1125 0.4375 11.6375C0.729167 11.1625 1.11667 10.8 1.6 10.55C2.63333 10.0333 3.68333 9.64583 4.75 9.3875C5.81667 9.12917 6.9 9 8 9C9.1 9 10.1833 9.12917 11.25 9.3875C12.3167 9.64583 13.3667 10.0333 14.4 10.55C14.8833 10.8 15.2708 11.1625 15.5625 11.6375C15.8542 12.1125 16 12.6333 16 13.2V16H0ZM2 14H14V13.2C14 13.0167 13.9542 12.85 13.8625 12.7C13.7708 12.55 13.65 12.4333 13.5 12.35C12.6 11.9 11.6917 11.5625 10.775 11.3375C9.85833 11.1125 8.93333 11 8 11C7.06667 11 6.14167 11.1125 5.225 11.3375C4.30833 11.5625 3.4 11.9 2.5 12.35C2.35 12.4333 2.22917 12.55 2.1375 12.7C2.04583 12.85 2 13.0167 2 13.2V14ZM8 6C8.55 6 9.02083 5.80417 9.4125 5.4125C9.80417 5.02083 10 4.55 10 4C10 3.45 9.80417 2.97917 9.4125 2.5875C9.02083 2.19583 8.55 2 8 2C7.45 2 6.97917 2.19583 6.5875 2.5875C6.19583 2.97917 6 3.45 6 4C6 4.55 6.19583 5.02083 6.5875 5.4125C6.97917 5.80417 7.45 6 8 6Z" />
+                                <TextBlock x:Name="UsersText"
+                                           Text="Users"
+                                           FontSize="14"
+                                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="ReportsActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="ReportsActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="PlaceholderButton_Click" Tag="Reports"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="ReportsIcon" Width="18" Height="18" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" Data="M12 16V9H16V16H12ZM6 16V0H10V16H6ZM0 16V5H4V16H0Z" />
+                                <TextBlock x:Name="ReportsText" Text="Reports" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="SettingsActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="SettingsActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="PlaceholderButton_Click" Tag="Settings"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="SettingsIcon" Width="21" Height="20" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" Data="M7.3 20L6.9 16.8C6.68333 16.7167 6.47917 16.6167 6.2875 16.5C6.09583 16.3833 5.90833 16.2583 5.725 16.125L2.75 17.375L0 12.625L2.575 10.675C2.55833 10.5583 2.55 10.4458 2.55 10.3375C2.55 10.2292 2.55 10.1167 2.55 10C2.55 9.88333 2.55 9.77083 2.55 9.6625C2.55 9.55417 2.55833 9.44167 2.575 9.325L0 7.375L2.75 2.625L5.725 3.875C5.90833 3.74167 6.1 3.61667 6.3 3.5C6.5 3.38333 6.7 3.28333 6.9 3.2L7.3 0H12.8L13.2 3.2C13.4167 3.28333 13.6208 3.38333 13.8125 3.5C14.0042 3.61667 14.1917 3.74167 14.375 3.875L17.35 2.625L20.1 7.375L17.525 9.325C17.5417 9.44167 17.55 9.55417 17.55 9.6625C17.55 9.77083 17.55 9.88333 17.55 10C17.55 10.1167 17.55 10.2292 17.55 10.3375C17.55 10.4458 17.5333 10.5583 17.5 10.675L20.075 12.625L17.325 17.375L14.375 16.125C14.1917 16.2583 14 16.3833 13.8 16.5C13.6 16.6167 13.4 16.7167 13.2 16.8L12.8 20H7.3ZM9.05 18H11.025L11.375 15.35C11.8917 15.2167 12.3708 15.0208 12.8125 14.7625C13.2542 14.5042 13.6583 14.1917 14.025 13.825L16.5 14.85L17.475 13.15L15.325 11.525C15.4083 11.2917 15.4667 11.0458 15.5 10.7875C15.5333 10.5292 15.55 10.2667 15.55 10C15.55 9.73333 15.5333 9.47083 15.5 9.2125C15.4667 8.95417 15.4083 8.70833 15.325 8.475L17.475 6.85L16.5 5.15L14.025 6.2C13.6583 5.81667 13.2542 5.49583 12.8125 5.2375C12.3708 4.97917 11.8917 4.78333 11.375 4.65L11.05 2H9.075L8.725 4.65C8.20833 4.78333 7.72917 4.97917 7.2875 5.2375C6.84583 5.49583 6.44167 5.80833 6.075 6.175L3.6 5.15L2.625 6.85L4.775 8.45C4.69167 8.7 4.63333 8.95 4.6 9.2C4.56667 9.45 4.55 9.71667 4.55 10C4.55 10.2667 4.56667 10.525 4.6 10.775C4.63333 11.025 4.69167 11.275 4.775 11.525L2.625 13.15L3.6 14.85L6.075 13.8C6.44167 14.1833 6.84583 14.5042 7.2875 14.7625C7.72917 15.0208 8.20833 15.2167 8.725 15.35L9.05 18ZM10.1 13.5C11.0667 13.5 11.8917 13.1583 12.575 12.475C13.2583 11.7917 13.6 10.9667 13.6 10C13.6 9.03333 13.2583 8.20833 12.575 7.525C11.8917 6.84167 11.0667 6.5 10.1 6.5C9.11667 6.5 8.2875 6.84167 7.6125 7.525C6.9375 8.20833 6.6 9.03333 6.6 10C6.6 10.9667 6.9375 11.7917 7.6125 12.475C8.2875 13.1583 9.11667 13.5 10.1 13.5Z" />
+                                <TextBlock x:Name="SettingsText" Text="Settings" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Spacing="4" Padding="12,14,12,24">
+                <Border x:Name="ProfileActiveWrap" Background="Transparent" Padding="0" CornerRadius="6">
+                    <Grid>
+                        <Rectangle x:Name="ProfileActiveIndicator"
+                                   HorizontalAlignment="Left"
+                                   Width="4"
+                                   RadiusX="2"
+                                   RadiusY="2"
+                                   Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                   Visibility="Collapsed" />
+                        <Button Click="PlaceholderButton_Click" Tag="Profile"
+                                Background="Transparent" BorderThickness="0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                Padding="16,10" CornerRadius="6">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <PathIcon x:Name="ProfileIcon" Width="20" Height="20" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" Data="M3.85 15.1C4.7 14.45 5.65 13.9375 6.7 13.5625C7.75 13.1875 8.85 13 10 13C11.15 13 12.25 13.1875 13.3 13.5625C14.35 13.9375 15.3 14.45 16.15 15.1C16.7333 14.4167 17.1875 13.6417 17.5125 12.775C17.8375 11.9083 18 10.9833 18 10C18 7.78333 17.2208 5.89583 15.6625 4.3375C14.1042 2.77917 12.2167 2 10 2C7.78333 2 5.89583 2.77917 4.3375 4.3375C2.77917 5.89583 2 7.78333 2 10C2 10.9833 2.1625 11.9083 2.4875 12.775C2.8125 13.6417 3.26667 14.4167 3.85 15.1ZM10 11C9.01667 11 8.1875 10.6625 7.5125 9.9875C6.8375 9.3125 6.5 8.48333 6.5 7.5C6.5 6.51667 6.8375 5.6875 7.5125 5.0125C8.1875 4.3375 9.01667 4 10 4C10.9833 4 11.8125 4.3375 12.4875 5.0125C13.1625 5.6875 13.5 6.51667 13.5 7.5C13.5 8.48333 13.1625 9.3125 12.4875 9.9875C11.8125 10.6625 10.9833 11 10 11ZM10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.88333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20ZM10 18C10.8833 18 11.7167 17.8708 12.5 17.6125C13.2833 17.3542 14 16.9833 14.65 16.5C14 16.0167 13.2833 15.6458 12.5 15.3875C11.7167 15.1292 10.8833 15 10 15C9.11667 15 8.28333 15.1292 7.5 15.3875C6.71667 15.6458 6 16.0167 5.35 16.5C6 16.9833 6.71667 17.3542 7.5 17.6125C8.28333 17.8708 9.11667 18 10 18ZM10 9C10.4333 9 10.7917 8.85833 11.075 8.575C11.3583 8.29167 11.5 7.93333 11.5 7.5C11.5 7.06667 11.3583 6.70833 11.075 6.425C10.7917 6.14167 10.4333 6 10 6C9.56667 6 9.20833 6.14167 8.925 6.425C8.64167 6.70833 8.5 7.06667 8.5 7.5C8.5 7.93333 8.64167 8.29167 8.925 8.575C9.20833 8.85833 9.56667 9 10 9Z" />
+                                <TextBlock x:Name="ProfileText" Text="Profile" FontSize="14" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Button Click="LogoutButton_Click" Tag="Logout"
+                        Background="Transparent" BorderThickness="0"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="16,10" CornerRadius="6">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <PathIcon x:Name="LogoutIcon" Width="18" Height="18" Foreground="{StaticResource FluentPlayErrorColor}" Data="M2 18C1.45 18 0.979167 17.8042 0.5875 17.4125C0.195833 17.0208 0 16.55 0 16V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H9V2H2V16H9V18H2ZM13 14L11.625 12.55L14.175 10H6V8H14.175L11.625 5.45L13 4L18 9L13 14Z" />
+                        <TextBlock x:Name="LogoutText" Text="Logout" FontSize="14" Foreground="{StaticResource FluentPlayErrorColor}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

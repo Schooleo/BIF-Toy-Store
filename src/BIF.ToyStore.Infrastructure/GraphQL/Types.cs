@@ -188,4 +188,88 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
     {
         public int Id { get; set; }
     }
+
+    public class UserListItemPayload
+    {
+        public int Id { get; init; }
+        public string Username { get; init; } = string.Empty;
+        public UserRole Role { get; init; }
+
+        public static UserListItemPayload FromUser(User user)
+        {
+            return new UserListItemPayload
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role
+            };
+        }
+    }
+
+    public class UserPayload
+    {
+        public int Id { get; init; }
+        public string Username { get; init; } = string.Empty;
+        public string PasswordHash { get; init; } = string.Empty;
+        public UserRole Role { get; init; }
+    }
+
+    public class SaleKpiRankingPayload
+    {
+        public int SaleId { get; init; }
+        public string SaleName { get; init; } = string.Empty;
+        public int TotalOrders { get; init; }
+        public decimal TotalRevenue { get; init; }
+        public int Rank { get; init; }
+
+        public static SaleKpiRankingPayload FromModel(SaleKpiRanking model)
+        {
+            return new SaleKpiRankingPayload
+            {
+                SaleId = model.SaleId,
+                SaleName = model.SaleName,
+                TotalOrders = model.TotalOrders,
+                TotalRevenue = model.TotalRevenue,
+                Rank = model.Rank
+            };
+        }
+    }
+
+    public class RevenueTrendPointPayload
+    {
+        public string DayLabel { get; init; } = string.Empty;
+        public decimal Revenue { get; init; }
+
+        public static RevenueTrendPointPayload FromModel(RevenueTrendPoint model)
+        {
+            return new RevenueTrendPointPayload
+            {
+                DayLabel = $"Day {model.Date.Day}",
+                Revenue = model.Revenue
+            };
+        }
+    }
+
+    public class BestSellingProductPayload
+    {
+        public int ProductId { get; init; }
+        public string ProductName { get; init; } = string.Empty;
+        public string CategoryName { get; init; } = string.Empty;
+        public decimal RetailPrice { get; init; }
+        public int UnitsSold { get; init; }
+        public int Rank { get; init; }
+
+        public static BestSellingProductPayload FromModel(BestSellingProductStat model)
+        {
+            return new BestSellingProductPayload
+            {
+                ProductId = model.ProductId,
+                ProductName = model.ProductName,
+                CategoryName = model.CategoryName,
+                RetailPrice = model.RetailPrice,
+                UnitsSold = model.UnitsSold,
+                Rank = model.Rank
+            };
+        }
+    }
 }

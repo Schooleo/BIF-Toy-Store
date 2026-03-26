@@ -3,6 +3,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Color x:Key="FluentPlayPrimaryColor">#FF005FAA</Color>
+    <Color x:Key="FluentPlayPrimaryHoverColor">#FF004883</Color>
+    <Color x:Key="FluentPlayPrimaryPressedColor">#FF003968</Color>
     <Color x:Key="FluentPlayOnPrimaryColor">#FFFFFFFF</Color>
     <Color x:Key="FluentPlayPrimaryContainerColor">#FF0078D4</Color>
     <Color x:Key="FluentPlayOnPrimaryContainerColor">#FFFFFFFF</Color>
@@ -54,7 +56,16 @@
     <Color x:Key="FluentPlayOverlayColor">#1A005FAA</Color>
     <Color x:Key="FluentPlayGlassColor">#D9FFFFFF</Color>
 
+    <Color x:Key="ShellSidebarBackgroundColor">#FF1B212C</Color>
+    <Color x:Key="ShellSidebarItemForegroundColor">#FFE6EDF7</Color>
+    <Color x:Key="ShellSidebarItemMutedForegroundColor">#B3E6EDF7</Color>
+    <Color x:Key="ShellSidebarItemHoverBackgroundColor">#145DA7FF</Color>
+    <Color x:Key="ShellSidebarItemSelectedBackgroundColor">#1F5DA7FF</Color>
+    <Color x:Key="ShellSidebarSelectionIndicatorColor">#FFE07A6A</Color>
+
     <SolidColorBrush x:Key="FluentPlayPrimaryBrush" Color="{StaticResource FluentPlayPrimaryColor}" />
+    <SolidColorBrush x:Key="FluentPlayPrimaryHoverBrush" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+    <SolidColorBrush x:Key="FluentPlayPrimaryPressedBrush" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
     <SolidColorBrush x:Key="FluentPlayOnPrimaryBrush" Color="{StaticResource FluentPlayOnPrimaryColor}" />
     <SolidColorBrush x:Key="FluentPlaySurfaceBrush" Color="{StaticResource FluentPlaySurfaceColor}" />
     <SolidColorBrush x:Key="FluentPlaySurfaceContainerLowBrush" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
@@ -62,6 +73,10 @@
     <SolidColorBrush x:Key="FluentPlayOnSurfaceBrush" Color="{StaticResource FluentPlayOnSurfaceColor}" />
     <SolidColorBrush x:Key="FluentPlayOnSurfaceVariantBrush" Color="{StaticResource FluentPlayOnSurfaceVariantColor}" />
     <SolidColorBrush x:Key="FluentPlayOutlineVariantBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+
+    <SolidColorBrush x:Key="ShellSidebarBackgroundBrush" Color="{StaticResource ShellSidebarBackgroundColor}" />
+    <SolidColorBrush x:Key="ShellSidebarTextBrush" Color="{StaticResource ShellSidebarItemForegroundColor}" />
+    <SolidColorBrush x:Key="ShellSidebarMutedTextBrush" Color="{StaticResource ShellSidebarItemMutedForegroundColor}" />
 
     <SolidColorBrush x:Key="LoginPrimaryBrush" Color="{StaticResource FluentPlayPrimaryColor}" />
     <SolidColorBrush x:Key="LoginSurfaceBrush" Color="{StaticResource FluentPlaySurfaceColor}" />
@@ -98,6 +113,14 @@
     <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
     <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush">#66C0C7D4</SolidColorBrush>
 
+    <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource FluentPlayPrimaryColor}" />
+    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+    <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+    <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+    <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+
+
     <Style x:Key="AppInputTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="Foreground" Value="{StaticResource LoginTextBrush}" />
         <Setter Property="PlaceholderForeground" Value="#A6404752" />
@@ -120,6 +143,13 @@
 
     <Style x:Key="AppCaptionTextStyle" TargetType="TextBlock" BasedOn="{StaticResource DefaultTextBlockStyle}">
         <Setter Property="Foreground" Value="{StaticResource LoginTextBrush}" />
+    </Style>
+
+    <Style x:Key="PrimaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource FluentPlayPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FluentPlayOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FluentPlayPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
     </Style>
 
     <Style TargetType="TextBox" BasedOn="{StaticResource AppInputTextBoxStyle}" />

@@ -60,7 +60,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
 
         // Computed property for total count label (notifies when TotalCount changes)
-        public string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
+        public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
             IGraphQLClient graphQLClient,

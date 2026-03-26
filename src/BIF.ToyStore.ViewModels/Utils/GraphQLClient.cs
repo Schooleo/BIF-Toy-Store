@@ -96,7 +96,7 @@ namespace BIF.ToyStore.ViewModels.Utils
             {
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var statusCode = (int)response.StatusCode;
-                
+
                 var errorDetails = responseBody.Length > 500 ? responseBody[..500] + "..." : responseBody;
                 throw new HttpRequestException(
                     $"HTTP {statusCode} Error: {errorDetails}",
@@ -106,7 +106,6 @@ namespace BIF.ToyStore.ViewModels.Utils
 
             using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
                 ?? throw new InvalidOperationException("Empty response from server.");
-
             var root = jsonDocument.RootElement;
 
             // Collect ALL GraphQL errors, not just the first one
@@ -115,7 +114,7 @@ namespace BIF.ToyStore.ViewModels.Utils
                 var messages = Enumerable.Range(0, errors.GetArrayLength())
                     .Select(i => errors[i].TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error")
                     .Where(m => m is not null);
-                
+
                 throw new InvalidOperationException($"GraphQL Error(s): {string.Join("; ", messages)}");
             }
 

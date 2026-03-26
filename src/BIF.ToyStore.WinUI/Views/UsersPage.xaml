@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BIF.ToyStore.WinUI.Views.UsersPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="using:BIF.ToyStore.ViewModels.Pages"
+    x:Name="RootPage"
+    RequestedTheme="Light"
+    mc:Ignorable="d">
+
+    <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      VerticalScrollMode="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalScrollMode="Disabled">
+            <Grid Padding="32" RowSpacing="24" MaxWidth="1280" HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Staff Directory"
+                                   FontSize="30"
+                                   FontWeight="ExtraBold"
+                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                        <TextBlock Text="Manage workshop access and administrative roles."
+                                   FontSize="16"
+                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Content="Add New User"
+                            Style="{StaticResource PrimaryActionButtonStyle}"
+                            Padding="16,10"
+                            VerticalAlignment="Center">
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="White"
+                            CornerRadius="12"
+                            Padding="24"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="TOTAL STAFF" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.TotalStaff, Mode=OneWay}" FontSize="36" FontWeight="ExtraBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                            <TextBlock Text="Sorted by KPI desc" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Background="White"
+                            CornerRadius="12"
+                            Padding="24"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="ADMINS" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.Admins, Mode=OneWay}" FontSize="36" FontWeight="ExtraBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                            <TextBlock Text="Full system access" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            Background="White"
+                            CornerRadius="12"
+                            Padding="24"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="ACTIVE SESSIONS" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.ActiveSessions, Mode=OneWay}" FontSize="36" FontWeight="ExtraBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                            <TextBlock Text="KPI &gt;= 80" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Row="2"
+                        Background="White"
+                        CornerRadius="12"
+                        BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                        BorderThickness="1"
+                        Padding="24">
+                    <Grid RowSpacing="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="Filter by name (A-Z)"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                   FontWeight="SemiBold" />
+
+                        <ComboBox Grid.Column="1"
+                                  Width="150"
+                                  HorizontalAlignment="Right"
+                                  ItemsSource="{x:Bind ViewModel.NameFilters, Mode=OneWay}"
+                                  SelectedItem="{x:Bind ViewModel.SelectedNameFilter, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Background="White"
+                            CornerRadius="12"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Padding="20,12" Background="{StaticResource FluentPlaySurfaceContainerLowBrush}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3.4*" />
+                                    <ColumnDefinition Width="1.5*" />
+                                    <ColumnDefinition Width="2.2*" />
+                                    <ColumnDefinition Width="1.3*" />
+                                    <ColumnDefinition Width="1.2*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="USERNAME" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                <TextBlock Grid.Column="1" Text="ROLE" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                <TextBlock Grid.Column="2" Text="PASSWORD" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                <TextBlock Grid.Column="3" Text="KPI" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                <TextBlock Grid.Column="4" Text="ACTIONS" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+
+                            <Grid Grid.Row="1" Padding="16,8,16,0" RowSpacing="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3.4*" />
+                                    <ColumnDefinition Width="1.5*" />
+                                    <ColumnDefinition Width="2.2*" />
+                                    <ColumnDefinition Width="1.3*" />
+                                    <ColumnDefinition Width="1.2*" />
+                                </Grid.ColumnDefinitions>
+
+                                <ListView Grid.Row="0"
+                                          Grid.ColumnSpan="5"
+                                          ItemsSource="{x:Bind ViewModel.VisibleUsers, Mode=OneWay}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          SelectionMode="None"
+                                          IsItemClickEnabled="False"
+                                          HorizontalContentAlignment="Stretch">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="pages:UserItemViewModel">
+                                            <Grid Padding="8,10" BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}" BorderThickness="0,0,0,1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3.4*" />
+                                                <ColumnDefinition Width="1.5*" />
+                                                <ColumnDefinition Width="2.2*" />
+                                                <ColumnDefinition Width="1.3*" />
+                                                <ColumnDefinition Width="1.2*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Grid.Column="0" VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource FluentPlayPrimaryFixedColor}">
+                                                    <TextBlock Text="{x:Bind Initials, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource FluentPlayOnPrimaryFixedVariantColor}" FontWeight="Bold" />
+                                                </Border>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{x:Bind Username, Mode=OneWay}"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Left"
+                                                           TextAlignment="Left"
+                                                           Margin="10,0,0,0" />
+                                            </Grid>
+
+                                            <Border Grid.Column="1" Background="{StaticResource FluentPlayPrimaryFixedColor}" CornerRadius="999" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,4,0,0">
+                                                <TextBlock Text="{x:Bind RoleLabel, Mode=OneWay}" Foreground="{StaticResource FluentPlayPrimaryBrush}" FontSize="10" FontWeight="Bold" CharacterSpacing="90" />
+                                            </Border>
+
+                                            <Grid Grid.Column="2" VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <ScrollViewer Grid.Column="0"
+                                                              HorizontalScrollMode="Enabled"
+                                                              HorizontalScrollBarVisibility="Auto"
+                                                              VerticalScrollMode="Disabled"
+                                                              VerticalScrollBarVisibility="Hidden"
+                                                              ZoomMode="Disabled"
+                                                              Margin="0,0,8,0">
+                                                    <TextBlock Text="{x:Bind PasswordDisplay, Mode=OneWay}"
+                                                               FontSize="14"
+                                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                               TextWrapping="NoWrap" />
+                                                </ScrollViewer>
+                                                <Button Command="{Binding ViewModel.TogglePasswordCommand, ElementName=RootPage}"
+                                                        Grid.Column="1"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="0"
+                                                        ToolTipService.ToolTip="Show/Hide password">
+                                                    <SymbolIcon Symbol="View" />
+                                                </Button>
+                                            </Grid>
+
+                                            <TextBlock Grid.Column="3" Text="{x:Bind Kpi, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" VerticalAlignment="Center" Margin="16,0,0,0" />
+
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                                <Button Background="Transparent" BorderThickness="0" Padding="0" Foreground="{StaticResource FluentPlayPrimaryBrush}"><SymbolIcon Symbol="Edit" /></Button>
+                                                <Button Background="Transparent" BorderThickness="0" Padding="0" Foreground="{StaticResource FluentPlayPrimaryBrush}"><SymbolIcon Symbol="Delete" /></Button>
+                                            </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+                </Border>
+
+                <Grid Grid.Row="3" ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{StaticResource FluentPlayPrimaryFixedColor}"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="SECURITY AUDIT" FontWeight="Bold" Foreground="{StaticResource FluentPlayOnPrimaryFixedVariantColor}" CharacterSpacing="100" />
+                            <TextBlock Text="All administrative actions are logged in the system vault. Password visibility toggles are restricted to managers only." TextWrapping="Wrap" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Background="White"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="CRITICAL UPDATE" FontWeight="Bold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" CharacterSpacing="100" />
+                            <TextBlock Text="2 staff members have not updated their credentials in over 90 days. Forced reset may be required." TextWrapping="Wrap" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Page>

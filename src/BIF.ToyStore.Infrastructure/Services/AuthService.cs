@@ -2,7 +2,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
-using BCrypt.Net;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
@@ -18,22 +17,42 @@ namespace BIF.ToyStore.Infrastructure.Services
                 return null;
             }
 
-            try
+            if (PasswordCipher.TryDecrypt(user.PasswordHash, out var decryptedPassword))
             {
-                return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash) ? user : null;
+                return string.Equals(password, decryptedPassword, StringComparison.Ordinal) ? user : null;
             }
-            catch (SaltParseException)
+
+            if (PasswordCipher.IsBcryptHash(user.PasswordHash))
             {
-                // Backward compatibility for legacy records that still store plain text.
-                if (!string.Equals(user.PasswordHash, password, StringComparison.Ordinal))
+                bool isValidLegacyHash;
+                try
+                {
+                    isValidLegacyHash = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+                }
+                catch
+                {
+                    isValidLegacyHash = false;
+                }
+
+                if (!isValidLegacyHash)
                 {
                     return null;
                 }
 
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                user.PasswordHash = PasswordCipher.Encrypt(password);
                 await _dbContext.SaveChangesAsync();
                 return user;
             }
+
+            // Backward compatibility for records that still store plain text.
+            if (!string.Equals(user.PasswordHash, password, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            user.PasswordHash = PasswordCipher.Encrypt(password);
+            await _dbContext.SaveChangesAsync();
+            return user;
         }
 
         public Task LogoutAsync()
