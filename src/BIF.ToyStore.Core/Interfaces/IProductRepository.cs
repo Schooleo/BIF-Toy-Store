@@ -6,5 +6,6 @@ namespace BIF.ToyStore.Core.Interfaces
     public interface IProductRepository : IRepository<Product>
     {
         Task<int> BulkInsertAsync(IEnumerable<Product> products);
+        Task SoftDeleteAsync(int id);
     }
 }

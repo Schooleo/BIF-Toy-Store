@@ -99,6 +99,61 @@ namespace BIF.ToyStore.WinUI.Services
             }
         }
 
+        public void SetBool(string key, bool value)
+        {
+            if (TryGetWindowsSettings(out var settings))
+            {
+                settings.Values[key] = value;
+                return;
+            }
+
+            lock (_syncRoot)
+            {
+                _fallbackValues[key] = value.ToString();
+                SaveFallbackValues();
+            }
+        }
+
+        public bool GetBool(string key, bool defaultValue)
+        {
+            if (TryGetWindowsSettings(out var settings))
+            {
+                var raw = settings.Values[key];
+                if (raw is bool value)
+                {
+                    return value;
+                }
+
+                if (raw is string text && bool.TryParse(text, out var parsedText))
+                {
+                    return parsedText;
+                }
+
+                if (raw is int intValue)
+                {
+                    return intValue != 0;
+                }
+
+                if (raw is long longValue)
+                {
+                    return longValue != 0;
+                }
+
+                return defaultValue;
+            }
+
+            lock (_syncRoot)
+            {
+                if (_fallbackValues.TryGetValue(key, out var raw)
+                    && bool.TryParse(raw, out var parsed))
+                {
+                    return parsed;
+                }
+
+                return defaultValue;
+            }
+        }
+
         private static bool TryGetWindowsSettings(out ApplicationDataContainer settings)
         {
             try

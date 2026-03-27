@@ -6,5 +6,7 @@ namespace BIF.ToyStore.Core.Interfaces
         string GetString(string key, string defaultValue = "");
         void SetInt(string key, int value);
         int GetInt(string key, int defaultValue);
+        void SetBool(string key, bool value);
+        bool GetBool(string key, bool defaultValue);
     }
 }

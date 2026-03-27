@@ -4,18 +4,20 @@ using System;
 
 namespace BIF.ToyStore.WinUI.Converters
 {
-    public sealed class BoolToVisibilityConverter : IValueConverter
+    public class BoolToVisibilityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, string language)
+        public object Convert(object? value, Type targetType, object? parameter, string language)
         {
-            bool flag = value is bool b && b;
-            bool invert = parameter is string s && string.Equals(s, "Invert", StringComparison.OrdinalIgnoreCase);
-            return (flag ^ invert) ? Visibility.Visible : Visibility.Collapsed;
+            if (value is bool boolValue)
+            {
+                return boolValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Collapsed;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        public object ConvertBack(object? value, Type targetType, object? parameter, string language)
         {
-            return value is Visibility v && v == Visibility.Visible;
+            return value is Visibility visibility && visibility == Visibility.Visible;
         }
     }
 }

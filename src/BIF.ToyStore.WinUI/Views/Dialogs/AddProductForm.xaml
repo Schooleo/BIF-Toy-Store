@@ -1,0 +1,163 @@
+<ContentDialog
+    x:Class="BIF.ToyStore.WinUI.Views.Dialogs.AddProductForm"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:BIF.ToyStore.Core.Models"
+    xmlns:converters="using:BIF.ToyStore.WinUI.Converters"
+    mc:Ignorable="d"
+    Title="{x:Bind ViewModel.Title, Mode=OneWay}"
+    PrimaryButtonText="SAVE TO INVENTORY"
+    CloseButtonText="CANCEL"
+    DefaultButton="Primary"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
+    RequestedTheme="Light"
+    FullSizeDesired="False">
+    
+    <ContentDialog.Resources>
+        <converters:DecimalToDoubleConverter x:Key="DecimalToDoubleConverter" />
+        <Style x:Key="ErrorTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+            <Setter Property="Background" Value="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
+            <Setter Property="Foreground" Value="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource FluentPlayOutlineVariantBrush}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+        </Style>
+
+        <SolidColorBrush x:Key="ContentDialogBackground" Color="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
+        <SolidColorBrush x:Key="ContentDialogForeground" Color="{StaticResource FluentPlayOnSurfaceVariantColor}" />
+        <SolidColorBrush x:Key="ContentDialogTitleForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+        <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+
+        <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
+        <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource FluentPlayOnSurfaceVariantColor}" />
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+
+        <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+        <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+
+    </ContentDialog.Resources>
+
+    <Grid MaxWidth="700" Margin="0,8,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Top Section -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" /> 
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Image Placeholder -->
+            <Border Grid.Column="0" Width="140" Height="140" 
+                    Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}" 
+                    BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}" 
+                    BorderThickness="1" CornerRadius="12">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                    <FontIcon Glyph="&#xE71A;" FontSize="28" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                    <TextBlock Text="UPLOAD" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Product Name & Category -->
+            <StackPanel Grid.Column="1" Margin="24,0,0,0" Spacing="16" VerticalAlignment="Center">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="PRODUCT NAME" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                    <TextBox x:Name="NameTextBox" 
+                             Style="{StaticResource AppInputTextBoxStyle}"
+                             Height="40"
+                             Padding="12,0,48,0"
+                             VerticalContentAlignment="Center"
+                             Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             PlaceholderText="e.g. Master Builder Block Set" HorizontalAlignment="Stretch"/>
+                    <TextBlock x:Name="NameError" Text="Product name is required." Visibility="Collapsed" Style="{StaticResource ErrorTextBlockStyle}" />
+                </StackPanel>
+                
+                <StackPanel Spacing="4">
+                    <TextBlock Text="CATEGORY" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                    <ComboBox x:Name="CategoryComboBox" 
+                              Style="{StaticResource AppInputComboBoxStyle}"
+                              Height="40"
+                              MaxDropDownHeight="180"
+                              ItemsSource="{x:Bind ViewModel.Categories}" 
+                              SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}" 
+                              DisplayMemberPath="Name" 
+                              PlaceholderText="Select a category" 
+                              HorizontalAlignment="Stretch" />
+                    <TextBlock x:Name="CategoryError" Text="Please select a category." Visibility="Collapsed" Style="{StaticResource ErrorTextBlockStyle}" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Bottom Section -->
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Import Price -->
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="IMPORT PRICE" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                <NumberBox x:Name="ImportPriceBox" 
+                           Background="{ThemeResource LoginCardBrush}"
+                           BorderBrush="{ThemeResource LoginDividerBrush}"
+                           Foreground="{ThemeResource LoginTextBrush}"
+                           Height="40"
+                           Value="{x:Bind ViewModel.ImportPrice, Converter={StaticResource DecimalToDoubleConverter}, Mode=TwoWay}" 
+                           Minimum="0" SpinButtonPlacementMode="Hidden" PlaceholderText="$" />
+                <TextBlock x:Name="ImportPriceError" Text="Must be > 0" Visibility="Collapsed" Style="{StaticResource ErrorTextBlockStyle}" />
+            </StackPanel>
+
+            <!-- Retail Price -->
+            <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="RETAIL PRICE" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                <NumberBox x:Name="RetailPriceBox" 
+                           Background="{ThemeResource LoginCardBrush}"
+                           BorderBrush="{ThemeResource LoginDividerBrush}"
+                           Foreground="{ThemeResource LoginTextBrush}"
+                           Height="40"
+                           Value="{x:Bind ViewModel.RetailPrice, Converter={StaticResource DecimalToDoubleConverter}, Mode=TwoWay}" 
+                           Minimum="0" SpinButtonPlacementMode="Hidden" PlaceholderText="$" />
+                <TextBlock x:Name="RetailPriceError" Text="Must be > 0" Visibility="Collapsed" Style="{StaticResource ErrorTextBlockStyle}" />
+            </StackPanel>
+
+            <!-- Initial Stock -->
+            <StackPanel Grid.Column="2" Spacing="4">
+                <TextBlock Text="INITIAL STOCK" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                <NumberBox x:Name="StockBox" 
+                           Background="{ThemeResource LoginCardBrush}"
+                           BorderBrush="{ThemeResource LoginDividerBrush}"
+                           Foreground="{ThemeResource LoginTextBrush}"
+                           Height="40"
+                           Value="{x:Bind ViewModel.StockQuantity, Mode=TwoWay}" 
+                           Minimum="0" SpinButtonPlacementMode="Hidden" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ContentDialog>

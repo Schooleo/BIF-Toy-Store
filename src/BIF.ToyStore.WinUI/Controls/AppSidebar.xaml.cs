@@ -7,12 +7,25 @@ namespace BIF.ToyStore.WinUI.Controls
 {
     public sealed partial class AppSidebar : UserControl
     {
+        public static readonly DependencyProperty IsAdminProperty =
+            DependencyProperty.Register(
+                nameof(IsAdmin),
+                typeof(bool),
+                typeof(AppSidebar),
+                new PropertyMetadata(true, OnIsAdminChanged));
+
         public static readonly DependencyProperty ActiveTabProperty =
             DependencyProperty.Register(
                 nameof(ActiveTab),
                 typeof(string),
                 typeof(AppSidebar),
                 new PropertyMetadata("Dashboard", OnActiveTabChanged));
+
+        public bool IsAdmin
+        {
+            get => (bool)GetValue(IsAdminProperty);
+            set => SetValue(IsAdminProperty, value);
+        }
 
         public string ActiveTab
         {
@@ -23,7 +36,17 @@ namespace BIF.ToyStore.WinUI.Controls
         public AppSidebar()
         {
             InitializeComponent();
+            UpdateRoleVisibility();
             UpdateActiveState();
+        }
+
+        private static void OnIsAdminChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is AppSidebar sidebar)
+            {
+                sidebar.UpdateRoleVisibility();
+                sidebar.UpdateActiveState();
+            }
         }
 
         private static void OnActiveTabChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -58,6 +81,23 @@ namespace BIF.ToyStore.WinUI.Controls
             SetTabState(ProfileActiveWrap, ProfileActiveIndicator, ProfileText, ProfileIcon, isProfile, activeBrush, inactiveBrush);
         }
 
+        private void UpdateRoleVisibility()
+        {
+            var privilegedVisibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+
+            UsersActiveWrap.Visibility = privilegedVisibility;
+            ReportsActiveWrap.Visibility = privilegedVisibility;
+            SettingsActiveWrap.Visibility = privilegedVisibility;
+
+            if (!IsAdmin
+                && (string.Equals(ActiveTab, "Users", System.StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ActiveTab, "Reports", System.StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ActiveTab, "Settings", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                ActiveTab = "Dashboard";
+            }
+        }
+
         private static void SetTabState(
             Border wrap,
             Rectangle indicator,
@@ -90,6 +130,16 @@ namespace BIF.ToyStore.WinUI.Controls
         private void UsersButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToUsers();
+        }
+
+        private void ProductsButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToProducts();
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToSettings();
         }
 
         private void PlaceholderButton_Click(object sender, RoutedEventArgs e)

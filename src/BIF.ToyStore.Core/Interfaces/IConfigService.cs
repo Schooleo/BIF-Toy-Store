@@ -9,5 +9,6 @@ namespace BIF.ToyStore.Core.Interfaces
         Task<bool> IsInitialSetupCompletedAsync();
         Task<AppConfig> CompleteInitialSetupAsync(InitialSetupConfiguration setupConfiguration);
         Task<AppConfig> UpdateConfigAsync(string displayName, decimal taxRate, int localServerPort, string databasePath);
+        Task<AppConfig> UpdateStoreSettingsAsync(decimal taxRate, string currencySymbol, string receiptHeader, string receiptFooter);
     }
 }

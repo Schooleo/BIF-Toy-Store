@@ -96,6 +96,29 @@ namespace BIF.ToyStore.Infrastructure.Services
             return CloneConfig(cachedCopy);
         }
 
+        public async Task<AppConfig> UpdateStoreSettingsAsync(decimal taxRate, string currencySymbol, string receiptHeader, string receiptFooter)
+        {
+            var config = await _dbContext.AppConfigs.SingleOrDefaultAsync(c => c.Id == 1)
+                ?? new AppConfig { Id = 1 };
+
+            config.Id = 1;
+            config.TaxRate = taxRate;
+            config.CurrencySymbol = string.IsNullOrWhiteSpace(currencySymbol) ? "VND" : currencySymbol.Trim();
+            config.ReceiptHeader = receiptHeader ?? string.Empty;
+            config.ReceiptFooter = receiptFooter ?? string.Empty;
+
+            if (_dbContext.Entry(config).State == EntityState.Detached)
+            {
+                _dbContext.AppConfigs.Add(config);
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var cachedCopy = CloneConfig(config);
+            _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
+            return CloneConfig(cachedCopy);
+        }
+
         private static AppConfig CloneConfig(AppConfig source)
         {
             return new AppConfig
@@ -104,6 +127,7 @@ namespace BIF.ToyStore.Infrastructure.Services
                 DisplayName = source.DisplayName,
                 ReceiptHeader = source.ReceiptHeader,
                 ReceiptFooter = source.ReceiptFooter,
+                CurrencySymbol = source.CurrencySymbol,
                 ThemePreference = source.ThemePreference,
                 EnableLoyaltyPoints = source.EnableLoyaltyPoints,
                 TaxRate = source.TaxRate,

@@ -6,6 +6,7 @@
         public string DisplayName { get; set; } = "BIF Toy Store";
         public string ReceiptHeader { get; set; } = "Welcome to BIF Toy Store";
         public string ReceiptFooter { get; set; } = "Thank you for your purchase!";
+        public string CurrencySymbol { get; set; } = "VND";
         public string ThemePreference { get; set; } = "System";
         public bool EnableLoyaltyPoints { get; set; } = true;
         public decimal TaxRate { get; set; } = 0.10m;

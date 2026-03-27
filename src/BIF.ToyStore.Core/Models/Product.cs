@@ -1,4 +1,4 @@
-﻿namespace BIF.ToyStore.Core.Models
+namespace BIF.ToyStore.Core.Models
 {
     public class Product
     {
@@ -16,5 +16,7 @@
 
         // For listing "Low Stock" products
         public int StockQuantity { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
     }
 }

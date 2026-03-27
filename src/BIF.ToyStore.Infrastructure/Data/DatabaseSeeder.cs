@@ -20,6 +20,9 @@ namespace BIF.ToyStore.Infrastructure.Data
 
             await dbContext.Database.EnsureCreatedAsync();
             await EnsureAppConfigSchemaAsync(dbContext);
+            await EnsureCategorySchemaAsync(dbContext);
+            await EnsureProductSchemaAsync(dbContext);
+            await EnsureOrderSchemaAsync(dbContext);
 
             await EnsureDefaultAdminAsync(dbContext);
             await EnsureDefaultSaleAsync(dbContext);
@@ -33,6 +36,7 @@ namespace BIF.ToyStore.Infrastructure.Data
                     DisplayName = "BIF Toy Store",
                     ReceiptHeader = "Welcome to BIF Toy Store",
                     ReceiptFooter = "Thank you for your purchase!",
+                    CurrencySymbol = "VND",
                     ThemePreference = "System",
                     EnableLoyaltyPoints = true,
                     TaxRate = 0.10m,
@@ -48,6 +52,10 @@ namespace BIF.ToyStore.Infrastructure.Data
             {
                 var config = await dbContext.AppConfigs.SingleAsync(c => c.Id == 1);
                 config.Id = 1;
+                if (string.IsNullOrWhiteSpace(config.CurrencySymbol))
+                {
+                    config.CurrencySymbol = "VND";
+                }
                 await dbContext.SaveChangesAsync();
             }
 
@@ -160,7 +168,16 @@ namespace BIF.ToyStore.Infrastructure.Data
 
         private static async Task SeedCategoriesAndProductsAsync(AppDbContext dbContext)
         {
-            bool categoryExists = await dbContext.Categories.AnyAsync();
+            // Ensure the 'Other' category always exists and cannot be deleted
+            bool otherExists = await dbContext.Categories.IgnoreQueryFilters().AnyAsync(c => c.Id == AppConstants.OtherCategoryId);
+            if (!otherExists)
+            {
+                var otherCategory = new Category { Id = AppConstants.OtherCategoryId, Name = "Other", IsDeleted = false };
+                dbContext.Categories.Add(otherCategory);
+                await dbContext.SaveChangesAsync();
+            }
+
+            bool categoryExists = await dbContext.Categories.AnyAsync(c => c.Id != AppConstants.OtherCategoryId);
             if (categoryExists)
             {
                 return; 
@@ -256,9 +273,100 @@ namespace BIF.ToyStore.Infrastructure.Data
                 await EnsureColumnAsync(connection, tableName, existingColumns, "TaxRate", "REAL NOT NULL DEFAULT 0.10");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ReceiptHeader", "TEXT NOT NULL DEFAULT ''");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ReceiptFooter", "TEXT NOT NULL DEFAULT ''");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "CurrencySymbol", "TEXT NOT NULL DEFAULT 'VND'");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ThemePreference", "TEXT NOT NULL DEFAULT 'System'");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "EnableLoyaltyPoints", "INTEGER NOT NULL DEFAULT 1");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsInitialSetupCompleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureCategorySchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "Categories";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureProductSchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "Products";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureOrderSchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "Orders";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
             }
             finally
             {

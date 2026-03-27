@@ -63,5 +63,42 @@ namespace BIF.ToyStore.Tests.Services
                 && cfg.ThemePreference == "Dark"
                 && cfg.TaxRate == 0.05m)), Times.Once);
         }
+
+        [Fact]
+        public async Task Mutations_UpdateStoreSettings_MapsInputAndReturnsPayload()
+        {
+            var configServiceMock = new Mock<IConfigService>();
+            configServiceMock
+                .Setup(x => x.UpdateStoreSettingsAsync(0.08m, "USD", "Hdr", "Ftr"))
+                .ReturnsAsync(new AppConfig
+                {
+                    Id = 1,
+                    DisplayName = "Configured Store",
+                    ReceiptHeader = "Hdr",
+                    ReceiptFooter = "Ftr",
+                    CurrencySymbol = "USD",
+                    ThemePreference = "Dark",
+                    EnableLoyaltyPoints = true,
+                    TaxRate = 0.08m,
+                    LocalServerPort = 5000,
+                    DatabasePath = "ToyStore.db",
+                    IsInitialSetupCompleted = true
+                });
+
+            var mutation = new Mutations();
+
+            var result = await mutation.UpdateStoreSettings(new UpdateStoreSettingsInput
+            {
+                TaxRate = 0.08m,
+                CurrencySymbol = "USD",
+                ReceiptHeader = "Hdr",
+                ReceiptFooter = "Ftr"
+            }, configServiceMock.Object);
+
+            Assert.Equal(0.08m, result.TaxRate);
+            Assert.Equal("USD", result.CurrencySymbol);
+            Assert.Equal("Hdr", result.ReceiptHeader);
+            Assert.Equal("Ftr", result.ReceiptFooter);
+        }
     }
 }
