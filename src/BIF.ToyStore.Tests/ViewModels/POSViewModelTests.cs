@@ -70,11 +70,13 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             
             // Check computed badge logic for low stock
             var barbie = _viewModel.FilteredProducts.First(p => p.Name == "Barbie");
-            Assert.True(barbie.HasBadge); // Stock is 3 (<= 5)
-            Assert.Equal("LOW STOCK", barbie.BadgeLabel);
+            Assert.True(barbie.IsLowStock); // Stock is 3 (<= 5)
+            Assert.False(barbie.IsOutOfStock);
+            Assert.Equal("LOW STOCK", barbie.LowStockBadgeLabel);
 
             var batman = _viewModel.FilteredProducts.First(p => p.Name == "Batman");
-            Assert.False(batman.HasBadge); // Stock is 50
+            Assert.False(batman.IsLowStock); // Stock is 50
+            Assert.False(batman.IsOutOfStock);
         }
 
         [Fact]

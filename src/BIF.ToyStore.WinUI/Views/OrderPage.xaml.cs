@@ -124,10 +124,10 @@ namespace BIF.ToyStore.WinUI.Views
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Current.MainWindowInstance!);
             WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
 
-            var file = await savePicker.PickSaveFileAsync().AsTask();
+            var file = await savePicker.PickSaveFileAsync();
             if (file != null)
             {
-                await Windows.Storage.FileIO.WriteTextAsync(file, sb.ToString()).AsTask();
+                await Windows.Storage.FileIO.WriteTextAsync(file, sb.ToString());
 
                 await CommonDialog.ShowAsync(
                     XamlRoot,

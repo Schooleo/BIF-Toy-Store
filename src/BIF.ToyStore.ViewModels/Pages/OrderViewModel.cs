@@ -49,7 +49,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private bool _hasPreviousPage;
 
-        public string PaginationLabel => $"Showing {(_totalCount == 0 ? 0 : (_currentPage - 1) * DefaultPageSize + 1)} to {Math.Min(_currentPage * DefaultPageSize, _totalCount)} of {_totalCount} ORDERS";
+        public string PaginationLabel => $"Showing {(TotalCount == 0 ? 0 : (_currentPage - 1) * DefaultPageSize + 1)} to {Math.Min(_currentPage * DefaultPageSize, TotalCount)} of {TotalCount} ORDERS";
         public int CurrentPage => _currentPage;
 
         // ── Details sidebar ───────────────────────────────────────────────────
