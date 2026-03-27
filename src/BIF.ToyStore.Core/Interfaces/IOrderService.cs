@@ -18,7 +18,8 @@ namespace BIF.ToyStore.Core.Interfaces
             int page,
             int pageSize,
             DateTime? fromDate,
-            DateTime? toDate);
+            DateTime? toDate,
+            int? employeeId = null);
 
         Task<Order?> GetOrderByIdAsync(int id);
 

@@ -113,7 +113,8 @@ namespace BIF.ToyStore.Infrastructure.Services
             int page,
             int pageSize,
             DateTime? fromDate,
-            DateTime? toDate)
+            DateTime? toDate,
+            int? employeeId = null)
         {
             var query = _dbContext.Orders
                 .Include(o => o.Sale)
@@ -128,6 +129,11 @@ namespace BIF.ToyStore.Infrastructure.Services
             if (toDate.HasValue)
             {
                 query = query.Where(o => o.OrderDate <= toDate.Value);
+            }
+
+            if (employeeId.HasValue)
+            {
+                query = query.Where(o => o.SaleId == employeeId.Value);
             }
 
             var totalCount = await query.CountAsync();
