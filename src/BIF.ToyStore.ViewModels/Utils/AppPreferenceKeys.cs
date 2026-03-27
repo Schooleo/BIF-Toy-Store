@@ -6,5 +6,9 @@ namespace BIF.ToyStore.ViewModels.Utils
         public const string ProductsItemsPerPage = "ProductsItemsPerPage";
         public const string LocalServerPort = "LocalServerPort";
         public const string CurrentUserRole = "CurrentUserRole";
+        public const string CommunicationPort = "CommunicationPort";
+        public const string AutoReconnect = "AutoReconnect";
+        public const string StartOnLastOpened = "StartOnLastOpened";
+        public const string LastBackupUtc = "LastBackupUtc";
     }
 }

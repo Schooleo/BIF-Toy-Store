@@ -88,6 +88,7 @@ namespace BIF.ToyStore.WinUI
                         services.AddTransient<CategoriesViewModel>();
                         services.AddTransient<DashboardViewModel>();
                         services.AddTransient<UserManagementViewModel>();
+                        services.AddTransient<SettingsViewModel>();
                     });
 
                     // Map the GraphQL Endpoint

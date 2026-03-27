@@ -35,6 +35,7 @@ namespace BIF.ToyStore.Infrastructure.Data
                     DisplayName = "BIF Toy Store",
                     ReceiptHeader = "Welcome to BIF Toy Store",
                     ReceiptFooter = "Thank you for your purchase!",
+                    CurrencySymbol = "VND",
                     ThemePreference = "System",
                     EnableLoyaltyPoints = true,
                     TaxRate = 0.10m,
@@ -50,6 +51,10 @@ namespace BIF.ToyStore.Infrastructure.Data
             {
                 var config = await dbContext.AppConfigs.SingleAsync(c => c.Id == 1);
                 config.Id = 1;
+                if (string.IsNullOrWhiteSpace(config.CurrencySymbol))
+                {
+                    config.CurrencySymbol = "VND";
+                }
                 await dbContext.SaveChangesAsync();
             }
 
@@ -267,6 +272,7 @@ namespace BIF.ToyStore.Infrastructure.Data
                 await EnsureColumnAsync(connection, tableName, existingColumns, "TaxRate", "REAL NOT NULL DEFAULT 0.10");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ReceiptHeader", "TEXT NOT NULL DEFAULT ''");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ReceiptFooter", "TEXT NOT NULL DEFAULT ''");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "CurrencySymbol", "TEXT NOT NULL DEFAULT 'VND'");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "ThemePreference", "TEXT NOT NULL DEFAULT 'System'");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "EnableLoyaltyPoints", "INTEGER NOT NULL DEFAULT 1");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsInitialSetupCompleted", "INTEGER NOT NULL DEFAULT 0");

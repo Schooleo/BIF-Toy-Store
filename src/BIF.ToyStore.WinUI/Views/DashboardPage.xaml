@@ -16,7 +16,7 @@
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollMode="Auto"
                       HorizontalScrollMode="Disabled">
-            <Grid Padding="32" RowSpacing="24" MaxWidth="1280" HorizontalAlignment="Stretch">
+            <Grid Padding="32" RowSpacing="24" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
