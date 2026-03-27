@@ -110,9 +110,31 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Products");
         }
 
+        public void NavigateToSettings()
+        {
+            if (!IsCurrentUserAdmin)
+            {
+                NavigateToDashboard();
+                return;
+            }
+
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToSettings();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Settings");
+        }
+
         public void Receive(LoginSucceededMessage message)
         {
             _currentUser = message.Value;
+
+            var startOnLastOpened = _localSettingsService.GetBool(AppPreferenceKeys.StartOnLastOpened, false);
+            if (!startOnLastOpened)
+            {
+                NavigateToDashboard();
+                _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+                return;
+            }
 
             var route = _localSettingsService.GetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
             if (route == "Users" && IsCurrentUserAdmin)
@@ -131,6 +153,20 @@ namespace BIF.ToyStore.WinUI
             if (route == "Products")
             {
                 NavigateToProducts();
+                return;
+            }
+
+            if (route == "Settings")
+            {
+                if (IsCurrentUserAdmin)
+                {
+                    NavigateToSettings();
+                }
+                else
+                {
+                    NavigateToDashboard();
+                    _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+                }
                 return;
             }
 

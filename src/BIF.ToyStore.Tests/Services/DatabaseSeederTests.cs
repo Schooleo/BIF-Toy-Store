@@ -31,6 +31,7 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Contains("TaxRate", columns);
             Assert.Contains("ReceiptHeader", columns);
             Assert.Contains("ReceiptFooter", columns);
+            Assert.Contains("CurrencySymbol", columns);
             Assert.Contains("ThemePreference", columns);
             Assert.Contains("EnableLoyaltyPoints", columns);
             Assert.Contains("IsInitialSetupCompleted", columns);
@@ -39,6 +40,7 @@ namespace BIF.ToyStore.Tests.Services
             Assert.False(config.IsInitialSetupCompleted);
             Assert.Equal("Legacy", config.DisplayName);
             Assert.Equal(0.10m, config.TaxRate);
+            Assert.Equal("VND", config.CurrencySymbol);
         }
 
         [Fact]

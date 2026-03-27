@@ -59,11 +59,14 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private int _lowStockAlertCount;
 
+        [ObservableProperty]
+        private string _currencySymbol = "$";
+
         public string TotalProductsDisplay => TotalProducts.ToString(CultureInfo.InvariantCulture);
 
         public string OrdersTodayDisplay => OrdersToday.ToString(CultureInfo.InvariantCulture);
 
-        public string TodayRevenueDisplay => TodayRevenue.ToString("C", CultureInfo.GetCultureInfo("en-US"));
+        public string TodayRevenueDisplay => FormatCurrency(TodayRevenue);
 
         public string TotalProductsSubtext => $"{TotalProducts} items in catalog";
 
@@ -74,6 +77,18 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string RevenueAxisMaxDisplay => RevenueAxisMax.ToString(CultureInfo.InvariantCulture);
 
         public string RevenueAxisMidDisplay => (RevenueAxisMax / 2).ToString(CultureInfo.InvariantCulture);
+
+        public bool HasLowStockProducts => LowStockProducts.Count > 0;
+
+        public bool IsLowStockProductsEmpty => !HasLowStockProducts;
+
+        public bool HasRecentOrders => RecentOrders.Count > 0;
+
+        public bool IsRecentOrdersEmpty => !HasRecentOrders;
+
+        public bool HasBestSellingProducts => BestSellingProducts.Count > 0;
+
+        public bool IsBestSellingProductsEmpty => !HasBestSellingProducts;
 
         public string InventoryAlertSummary =>
             $"{LowStockAlertCount} high-demand items are reaching critical stock levels. Orders needed for weekend restock.";
@@ -100,6 +115,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 LowStockProducts.Clear();
                 RecentOrders.Clear();
                 BestSellingProducts.Clear();
+                NotifyCollectionStateChanged();
                 RevenueTrendPoints.Clear();
                 TotalProducts = 0;
                 OrdersToday = 0;
@@ -139,6 +155,26 @@ namespace BIF.ToyStore.ViewModels.Pages
             OnPropertyChanged(nameof(TodayRevenueSubtext));
         }
 
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            OnPropertyChanged(nameof(TodayRevenueDisplay));
+
+            foreach (var product in LowStockProducts)
+            {
+                product.CurrencySymbol = value;
+            }
+
+            foreach (var order in RecentOrders)
+            {
+                order.CurrencySymbol = value;
+            }
+
+            foreach (var product in BestSellingProducts)
+            {
+                product.CurrencySymbol = value;
+            }
+        }
+
         partial void OnRevenueAxisMaxChanged(int value)
         {
             OnPropertyChanged(nameof(RevenueAxisMaxDisplay));
@@ -165,7 +201,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }
                 }
-                getOrders(page: 1, pageSize: $recentOrdersPageSize) {
+                getOrders: orders(page: 1, pageSize: $recentOrdersPageSize) {
                     items {
                         id
                         orderDate
@@ -177,7 +213,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }
                 }
-                getTopBestSellingProducts(take: $bestSellerTake) {
+                getTopBestSellingProducts: topBestSellingProducts(take: $bestSellerTake) {
                     productId
                     productName
                     categoryName
@@ -185,9 +221,12 @@ namespace BIF.ToyStore.ViewModels.Pages
                     unitsSold
                     rank
                 }
-                getRevenueTrend(days: $revenueDays) {
+                getRevenueTrend: revenueTrend(days: $revenueDays) {
                     dayLabel
                     revenue
+                }
+                appConfig {
+                    currencySymbol
                 }
             }";
 
@@ -202,6 +241,10 @@ namespace BIF.ToyStore.ViewModels.Pages
             var payload = await _graphQLClient.ExecuteAsync<DashboardMainQueryData>(query, variables)
                 ?? new DashboardMainQueryData();
 
+            CurrencySymbol = string.IsNullOrWhiteSpace(payload.AppConfig?.CurrencySymbol)
+                ? "$"
+                : payload.AppConfig.CurrencySymbol;
+
             LowStockProducts.Clear();
             foreach (var product in payload.Products.Nodes
                 .OrderBy(x => x.StockQuantity)
@@ -214,11 +257,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                     CategoryName = product.Category?.Name ?? "Unknown",
                     StockQuantity = product.StockQuantity,
                     RetailPrice = product.RetailPrice,
+                    CurrencySymbol = CurrencySymbol,
                     IsCritical = product.StockQuantity <= CriticalStockThreshold
                 });
             }
 
             LowStockAlertCount = LowStockProducts.Count(x => x.StockQuantity <= WarningStockThreshold);
+            OnPropertyChanged(nameof(HasLowStockProducts));
+            OnPropertyChanged(nameof(IsLowStockProductsEmpty));
 
             TotalProducts = payload.Products.TotalCount;
 
@@ -236,9 +282,13 @@ namespace BIF.ToyStore.ViewModels.Pages
                         : order.CustomerName,
                     ItemCount = itemCount,
                     TotalAmount = order.TotalAmount,
+                    CurrencySymbol = CurrencySymbol,
                     OrderedAt = order.OrderDate
                 });
             }
+
+            OnPropertyChanged(nameof(HasRecentOrders));
+            OnPropertyChanged(nameof(IsRecentOrdersEmpty));
 
             BestSellingProducts.Clear();
             foreach (var item in payload.GetTopBestSellingProducts.Take(BestSellerTake))
@@ -249,10 +299,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                     ProductName = item.ProductName,
                     CategoryName = item.CategoryName,
                     RetailPrice = item.RetailPrice,
+                    CurrencySymbol = CurrencySymbol,
                     UnitsSold = item.UnitsSold,
                     Rank = item.Rank
                 });
             }
+
+            OnPropertyChanged(nameof(HasBestSellingProducts));
+            OnPropertyChanged(nameof(IsBestSellingProductsEmpty));
 
             RevenueTrendPoints.Clear();
             foreach (var point in payload.GetRevenueTrend)
@@ -273,7 +327,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             var todayEnd = todayStart.AddDays(1).AddTicks(-1);
 
             const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime) {
-                getOrders(page: 1, pageSize: 200, fromDate: $fromDate, toDate: $toDate) {
+                getOrders: orders(page: 1, pageSize: 200, fromDate: $fromDate, toDate: $toDate) {
                     items {
                         totalAmount
                     }
@@ -348,6 +402,23 @@ namespace BIF.ToyStore.ViewModels.Pages
             RevenueTrendPathData = lineBuilder.ToString();
             RevenueTrendAreaData = areaBuilder.ToString();
         }
+
+        private string FormatCurrency(decimal amount)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = CurrencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(CurrencySymbol, spacing, number);
+        }
+
+        private void NotifyCollectionStateChanged()
+        {
+            OnPropertyChanged(nameof(HasLowStockProducts));
+            OnPropertyChanged(nameof(IsLowStockProductsEmpty));
+            OnPropertyChanged(nameof(HasRecentOrders));
+            OnPropertyChanged(nameof(IsRecentOrdersEmpty));
+            OnPropertyChanged(nameof(HasBestSellingProducts));
+            OnPropertyChanged(nameof(IsBestSellingProductsEmpty));
+        }
     }
 
     public sealed class LowStockProductViewModel
@@ -357,9 +428,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string CategoryName { get; set; } = string.Empty;
         public int StockQuantity { get; set; }
         public decimal RetailPrice { get; set; }
+        public string CurrencySymbol { get; set; } = "$";
         public bool IsCritical { get; set; }
 
-        public string PriceDisplay => RetailPrice.ToString("C", CultureInfo.GetCultureInfo("en-US"));
+        public string PriceDisplay => FormatCurrency(RetailPrice, CurrencySymbol);
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class RecentOrderViewModel
@@ -369,11 +448,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string CustomerName { get; set; } = string.Empty;
         public int ItemCount { get; set; }
         public decimal TotalAmount { get; set; }
+        public string CurrencySymbol { get; set; } = "$";
         public DateTime OrderedAt { get; set; }
 
         public string OrderIdDisplay => $"#{Id}";
 
-        public string TotalAmountDisplay => TotalAmount.ToString("C", CultureInfo.GetCultureInfo("en-US"));
+        public string TotalAmountDisplay => FormatCurrency(TotalAmount, CurrencySymbol);
 
         public string ItemCountDisplay => ItemCount == 1
             ? "1 product"
@@ -402,6 +482,13 @@ namespace BIF.ToyStore.ViewModels.Pages
                 return OrderedAt.ToString("MMM dd");
             }
         }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class BestSellingProductViewModel
@@ -410,12 +497,20 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string ProductName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public decimal RetailPrice { get; set; }
+        public string CurrencySymbol { get; set; } = "$";
         public int UnitsSold { get; set; }
         public int Rank { get; set; }
 
         public string RankDisplay => Rank.ToString(CultureInfo.InvariantCulture);
-        public string PriceDisplay => RetailPrice.ToString("C", CultureInfo.GetCultureInfo("en-US"));
+        public string PriceDisplay => FormatCurrency(RetailPrice, CurrencySymbol);
         public string SoldDisplay => $"{UnitsSold} Sold";
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class RevenueTrendPointViewModel
@@ -430,6 +525,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         public DashboardOrderList GetOrders { get; set; } = new();
         public List<DashboardBestSellingProductNode> GetTopBestSellingProducts { get; set; } = new();
         public List<DashboardRevenuePointNode> GetRevenueTrend { get; set; } = new();
+        public DashboardAppConfigNode? AppConfig { get; set; }
+    }
+
+    public sealed class DashboardAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "$";
     }
 
     public sealed class DashboardTodayQueryData

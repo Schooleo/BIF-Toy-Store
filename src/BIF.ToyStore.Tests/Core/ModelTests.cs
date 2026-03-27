@@ -336,6 +336,7 @@ namespace BIF.ToyStore.Tests.Core
             Assert.Equal("BIF Toy Store", config.DisplayName);
             Assert.Equal("Welcome to BIF Toy Store", config.ReceiptHeader);
             Assert.Equal("Thank you for your purchase!", config.ReceiptFooter);
+            Assert.Equal("VND", config.CurrencySymbol);
             Assert.Equal("System", config.ThemePreference);
             Assert.True(config.EnableLoyaltyPoints);
             Assert.Equal(0.10m, config.TaxRate);

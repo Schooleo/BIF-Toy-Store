@@ -116,6 +116,19 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return AppConfigPayload.FromConfig(updatedConfig);
         }
 
+        public async Task<AppConfigPayload> UpdateStoreSettings(
+            UpdateStoreSettingsInput input,
+            [Service] IConfigService configService)
+        {
+            var updatedConfig = await configService.UpdateStoreSettingsAsync(
+                input.TaxRate,
+                input.CurrencySymbol,
+                input.ReceiptHeader,
+                input.ReceiptFooter);
+
+            return AppConfigPayload.FromConfig(updatedConfig);
+        }
+
         public async Task<AppConfigPayload> CompleteInitialSetup(
             InitialSetupInput input,
             [Service] IConfigService configService)

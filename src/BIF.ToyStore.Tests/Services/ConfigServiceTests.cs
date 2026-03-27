@@ -86,6 +86,19 @@ namespace BIF.ToyStore.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateStoreSettingsAsync_UpdatesTaxCurrencyAndReceipts()
+        {
+            await _configService.GetConfigAsync();
+
+            var updated = await _configService.UpdateStoreSettingsAsync(0.07m, "USD", "Header", "Footer");
+
+            Assert.Equal(0.07m, updated.TaxRate);
+            Assert.Equal("USD", updated.CurrencySymbol);
+            Assert.Equal("Header", updated.ReceiptHeader);
+            Assert.Equal("Footer", updated.ReceiptFooter);
+        }
+
+        [Fact]
         public async Task IsInitialSetupCompletedAsync_DefaultConfig_ReturnsFalse()
         {
             var result = await _configService.IsInitialSetupCompletedAsync();

@@ -17,9 +17,10 @@ namespace BIF.ToyStore.WinUI.Views
         public void SetAdminMode(bool isAdmin)
         {
             _isAdmin = isAdmin;
+            ShellSidebar.IsAdmin = _isAdmin;
             ShellHeader.UserRole = _isAdmin ? "ADMIN" : "SALE";
 
-            if (!_isAdmin && ShellSidebar.ActiveTab == "Users")
+            if (!_isAdmin && (ShellSidebar.ActiveTab == "Users" || ShellSidebar.ActiveTab == "Reports" || ShellSidebar.ActiveTab == "Settings"))
             {
                 NavigateToDashboard();
             }
@@ -47,6 +48,18 @@ namespace BIF.ToyStore.WinUI.Views
         {
             ShellSidebar.ActiveTab = "Products";
             NavigateContent(typeof(ProductsPage));
+        }
+
+        public void NavigateToSettings()
+        {
+            if (!_isAdmin)
+            {
+                NavigateToDashboard();
+                return;
+            }
+
+            ShellSidebar.ActiveTab = "Settings";
+            NavigateContent(typeof(SettingsPage));
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)

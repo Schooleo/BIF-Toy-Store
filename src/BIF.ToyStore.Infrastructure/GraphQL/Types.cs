@@ -27,12 +27,21 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public string DatabasePath { get; set; } = string.Empty;
     }
 
+    public class UpdateStoreSettingsInput
+    {
+        public decimal TaxRate { get; set; }
+        public string CurrencySymbol { get; set; } = "VND";
+        public string ReceiptHeader { get; set; } = string.Empty;
+        public string ReceiptFooter { get; set; } = string.Empty;
+    }
+
     public class AppConfigPayload
     {
         public int Id { get; init; }
         public string DisplayName { get; init; } = string.Empty;
         public string ReceiptHeader { get; init; } = string.Empty;
         public string ReceiptFooter { get; init; } = string.Empty;
+        public string CurrencySymbol { get; init; } = "VND";
         public string ThemePreference { get; init; } = "System";
         public bool EnableLoyaltyPoints { get; init; }
         public decimal TaxRate { get; init; }
@@ -48,6 +57,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 DisplayName = config.DisplayName,
                 ReceiptHeader = config.ReceiptHeader,
                 ReceiptFooter = config.ReceiptFooter,
+                CurrencySymbol = config.CurrencySymbol,
                 ThemePreference = config.ThemePreference,
                 EnableLoyaltyPoints = config.EnableLoyaltyPoints,
                 TaxRate = config.TaxRate,

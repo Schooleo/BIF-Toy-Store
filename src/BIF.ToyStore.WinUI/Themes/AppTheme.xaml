@@ -120,6 +120,24 @@
     <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
     <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
 
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="{StaticResource FluentPlaySurfaceContainerColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="{StaticResource FluentPlayPrimaryColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="{StaticResource FluentPlayPrimaryColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+    <SolidColorBrush x:Key="CheckBoxForeground" Color="{StaticResource FluentPlayOnSurfaceVariantColor}" />
+    <SolidColorBrush x:Key="CheckBoxForegroundPointerOver" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+
 
     <Style x:Key="AppInputTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="Foreground" Value="{StaticResource LoginTextBrush}" />
@@ -155,4 +173,7 @@
     <Style TargetType="TextBox" BasedOn="{StaticResource AppInputTextBoxStyle}" />
     <Style TargetType="PasswordBox" BasedOn="{StaticResource AppInputPasswordBoxStyle}" />
     <Style TargetType="ComboBox" BasedOn="{StaticResource AppInputComboBoxStyle}" />
+    <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+        <Setter Property="Foreground" Value="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+    </Style>
 </ResourceDictionary>
