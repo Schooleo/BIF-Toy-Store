@@ -35,10 +35,11 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             int pageSize,
             DateTime? fromDate,
             DateTime? toDate,
+            int? employeeId,
             [Service] IOrderService orderService)
         {
             var (items, totalCount) = await orderService.GetOrdersAsync(
-                page, pageSize, fromDate, toDate);
+                page, pageSize, fromDate, toDate, employeeId);
 
             return new OrderListPayload
             {
