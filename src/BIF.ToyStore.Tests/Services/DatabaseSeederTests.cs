@@ -210,11 +210,11 @@ namespace BIF.ToyStore.Tests.Services
             // Run Seeder
             await DatabaseSeeder.SeedAsync(context);
 
-            // Assert: Expect 3 categories and 5 products
+            // Assert: 3 default categories + protected "Other" category, and 15 products
             var categoriesCount = await context.Categories.CountAsync();
             var productsCount = await context.Products.CountAsync();
 
-            Assert.Equal(3, categoriesCount);
+            Assert.Equal(4, categoriesCount);
             Assert.Equal(15, productsCount);
 
             // Validate mapping by checking English category
