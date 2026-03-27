@@ -28,7 +28,7 @@ namespace BIF.ToyStore.ViewModels.Utils
         {
             var requestBody = new { query, variables };
 
-            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
+            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody, _jsonOptions);
 
             // Use JsonDocument for more flexible parsing
             using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
