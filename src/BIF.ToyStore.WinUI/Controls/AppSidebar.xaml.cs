@@ -137,6 +137,11 @@ namespace BIF.ToyStore.WinUI.Controls
             App.Current.MainWindowInstance?.NavigateToProducts();
         }
 
+        private void OrdersButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToOrders();
+        }
+
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToSettings();

@@ -50,6 +50,12 @@ namespace BIF.ToyStore.WinUI.Views
             NavigateContent(typeof(POSPage));
         }
 
+        public void NavigateToOrders()
+        {
+            ShellSidebar.ActiveTab = "Orders";
+            NavigateContent(typeof(OrderPage));
+        }
+
         public void NavigateToProducts()
         {
             ShellSidebar.ActiveTab = "Products";
