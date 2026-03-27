@@ -64,15 +64,19 @@ namespace BIF.ToyStore.WinUI
                         services.AddSingleton<ICredentialVaultService, CredentialVaultService>();
                         services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
                         services.AddSingleton<IAppInfoService, AppInfoService>();
+                        services.AddSingleton<IExcelFilePickerService, ExcelFilePickerService>();
                         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
                         // GraphQL
                         services.AddGraphQLServer()
                                 .AddQueryType<Queries>()
                                 .AddMutationType<Mutations>()
+                                .AddTypeExtension<CategoryExtension>()
+                                .AddTypeExtension<ProductExtension>()
                                 .AddType<UploadType>()
                                 .AddFiltering()
-                                .AddSorting();
+                                .AddSorting()
+                                .ModifyCostOptions(o => o.MaxFieldCost = 5000);
 
                         // Utils
                         services.AddSingleton<IGraphQLClient>(_ => new GraphQLClient($"http://localhost:{serverPort}/"));
@@ -80,6 +84,8 @@ namespace BIF.ToyStore.WinUI
                         // ViewModels
                         services.AddTransient<InitialSetupViewModel>();
                         services.AddTransient<LoginViewModel>();
+                        services.AddTransient<ProductsViewModel>();
+                        services.AddTransient<CategoriesViewModel>();
                         services.AddTransient<DashboardViewModel>();
                         services.AddTransient<UserManagementViewModel>();
                     });

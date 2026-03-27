@@ -1,10 +1,11 @@
-﻿using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
 using HotChocolate.Types;
+using BIF.ToyStore.Core.Settings;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
@@ -198,7 +199,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<bool> DeleteProduct(int id, [Service] IProductRepository repo)
         {
-            await repo.DeleteAsync(id);
+            await repo.SoftDeleteAsync(id);
             return true;
         }
 
@@ -247,6 +248,50 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             }
             return payload;
         }
+
+        public async Task<Category> CreateCategory(CreateCategoryInput input, [Service] ICategoryRepository repo)
+        {
+            var category = new Category
+            {
+                Name = input.Name
+            };
+            return await repo.AddAsync(category);
+        }
+
+        public async Task<Category> UpdateCategory(UpdateCategoryInput input, [Service] ICategoryRepository repo)
+        {
+            var category = await repo.GetByIdAsync(input.Id);
+            if (category is null)
+            {
+                throw new InvalidOperationException("Category not found.");
+            }
+            
+            category.Name = input.Name;
+            await repo.UpdateAsync(category);
+            return category;
+        }
+
+        public async Task<bool> DeleteCategory(int id, [Service] ICategoryRepository repo)
+        {
+            if (id == AppConstants.OtherCategoryId)
+            {
+                throw new InvalidOperationException("Cannot delete the default 'Other' category.");
+            }
+
+            var category = await repo.GetByIdAsync(id);
+            if (category is null)
+            {
+                throw new InvalidOperationException("Category not found.");
+            }
+            
+            category.IsDeleted = true;
+            await repo.UpdateAsync(category);
+            return true;
+        }
+
+        public async Task<Category> RestoreCategory(int id, [Service] ICategoryRepository repo)
+        {
+            return await repo.RestoreAsync(id);
+        }
     }
 }
-

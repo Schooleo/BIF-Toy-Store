@@ -87,6 +87,11 @@ namespace BIF.ToyStore.WinUI.Controls
             App.Current.MainWindowInstance?.NavigateToUsers();
         }
 
+        private void ProductsButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToProducts();
+        }
+
         private void PlaceholderButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is string tab && !string.IsNullOrWhiteSpace(tab))

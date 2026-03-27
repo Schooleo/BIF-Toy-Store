@@ -102,6 +102,14 @@ namespace BIF.ToyStore.WinUI
             return (AppShellPage)rootFrame.Content;
         }
 
+        public void NavigateToProducts()
+        {
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToProducts();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Products");
+        }
+
         public void Receive(LoginSucceededMessage message)
         {
             _currentUser = message.Value;
@@ -117,6 +125,12 @@ namespace BIF.ToyStore.WinUI
             {
                 NavigateToDashboard();
                 _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+                return;
+            }
+
+            if (route == "Products")
+            {
+                NavigateToProducts();
                 return;
             }
 

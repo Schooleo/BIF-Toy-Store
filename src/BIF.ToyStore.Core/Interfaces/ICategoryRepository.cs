@@ -4,5 +4,6 @@ namespace BIF.ToyStore.Core.Interfaces
 {
     public interface ICategoryRepository : IRepository<Category>
     {
+        Task<Category> RestoreAsync(int id);
     }
 }

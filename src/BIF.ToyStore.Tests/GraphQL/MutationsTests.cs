@@ -79,7 +79,7 @@ namespace BIF.ToyStore.Tests.GraphQL
         }
 
         [Fact]
-        public async Task deleteProduct_validId_callsRepositoryDeleteAsync()
+        public async Task deleteProduct_validId_callsRepositorySoftDeleteAsync()
         {
             var mockRepo = new Mock<IProductRepository>();
             var mutation = new Mutations();
@@ -87,7 +87,7 @@ namespace BIF.ToyStore.Tests.GraphQL
             var result = await mutation.DeleteProduct(1, mockRepo.Object);
 
             Assert.True(result);
-            mockRepo.Verify(x => x.DeleteAsync(1), Times.Once);
+            mockRepo.Verify(x => x.SoftDeleteAsync(1), Times.Once);
         }
 
         [Fact]

@@ -179,6 +179,16 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public List<string> Errors { get; set; } = new();
     }
 
+    public class CreateCategoryInput
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class UpdateCategoryInput : CreateCategoryInput
+    {
+        public int Id { get; set; }
+    }
+
     public class UserListItemPayload
     {
         public int Id { get; init; }

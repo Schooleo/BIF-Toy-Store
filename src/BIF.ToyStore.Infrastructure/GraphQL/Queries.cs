@@ -1,4 +1,4 @@
-﻿using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Services;
@@ -6,6 +6,8 @@ using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using BIF.ToyStore.Core.Settings;
+using HotChocolate;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
@@ -123,6 +125,47 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var products = await orderService.GetTopBestSellingProductsAsync(take);
             return products.Select(BestSellingProductPayload.FromModel).ToList();
         }
-    } 
+    }
+
+    [ExtendObjectType(typeof(Category))]
+    public class CategoryExtension
+    {
+        [BindMember(nameof(Category.Products))]
+        public IQueryable<Product> GetProducts([Parent] Category category, [Service] AppDbContext dbContext)
+        {
+            if (category.Id != AppConstants.OtherCategoryId)
+            {
+                return dbContext.Products.Where(p => p.CategoryId == category.Id);
+            }
+
+            return dbContext.Products.Where(p => 
+                p.CategoryId == AppConstants.OtherCategoryId || 
+                dbContext.Categories.IgnoreQueryFilters().Any(c => c.Id == p.CategoryId && c.IsDeleted));
+        }
+    }
+
+    [ExtendObjectType(typeof(Product))]
+    public class ProductExtension
+    {
+        [BindMember(nameof(Product.Category))]
+        public async Task<Category?> GetCategory([Parent] Product product, [Service] AppDbContext dbContext)
+        {
+            if (product.Category != null)
+            {
+                return product.Category;
+            }
+
+            var originalCategory = await dbContext.Categories
+                                            .IgnoreQueryFilters()
+                                            .FirstOrDefaultAsync(c => c.Id == product.CategoryId);
+
+            if (originalCategory != null && originalCategory.IsDeleted)
+            {
+                return await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == AppConstants.OtherCategoryId);
+            }
+
+            return null;
+        }
+    }
 }
 

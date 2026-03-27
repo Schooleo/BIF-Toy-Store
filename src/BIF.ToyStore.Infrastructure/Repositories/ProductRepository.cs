@@ -11,5 +11,17 @@ namespace BIF.ToyStore.Infrastructure.Repositories
             await _dbSet.AddRangeAsync(products);
             return await _dbContext.SaveChangesAsync();
         }
+
+        public async Task SoftDeleteAsync(int id)
+        {
+            var product = await _dbSet.FindAsync(id);
+            if (product is null)
+            {
+                return;
+            }
+
+            product.IsDeleted = true;
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

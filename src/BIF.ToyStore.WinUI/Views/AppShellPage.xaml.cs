@@ -43,6 +43,12 @@ namespace BIF.ToyStore.WinUI.Views
             NavigateContent(typeof(UsersPage));
         }
 
+        public void NavigateToProducts()
+        {
+            ShellSidebar.ActiveTab = "Products";
+            NavigateContent(typeof(ProductsPage));
+        }
+
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             Loaded -= OnLoaded;
