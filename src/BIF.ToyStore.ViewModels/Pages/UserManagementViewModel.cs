@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -69,6 +70,154 @@ namespace BIF.ToyStore.ViewModels.Pages
                 TotalStaff = 0;
                 Admins = 0;
                 ActiveSessions = 0;
+            }
+        }
+
+        public async Task<bool> CreateUserAsync(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ErrorMessage = "Please enter both username and password.";
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation CreateNewUser($user: String!, $pass: String!, $role: UserRole!) {
+                createUser(username: $user, password: $pass, role: $role) {
+                    id
+                    username
+                    role
+                }
+            }";
+
+            try
+            {
+                var variables = new
+                {
+                    user = username.Trim(),
+                    pass = password,
+                    role = "SALE"
+                };
+
+                LoginUser? createdUser = await _graphQLClient.ExecuteAsync<LoginUser>(mutation, variables, dataKey: "createUser");
+                if (createdUser is null)
+                {
+                    ErrorMessage = "Unable to create user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to create user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        public async Task<bool> DeleteUserAsync(UserItemViewModel? user)
+        {
+            if (user is null)
+            {
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation DeleteExistingUser($id: Int!) {
+                deleteUser(id: $id)
+            }";
+
+            try
+            {
+                bool deleted = await _graphQLClient.ExecuteAsync<bool>(
+                    mutation,
+                    new { id = user.Id },
+                    dataKey: "deleteUser");
+
+                if (!deleted)
+                {
+                    ErrorMessage = "Unable to delete user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to delete user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        public async Task<bool> UpdateUserAsync(UserItemViewModel? user, string username, string password)
+        {
+            if (user is null)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ErrorMessage = "Please enter both username and password.";
+                return false;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            const string mutation = @"mutation UpdateExistingUser($id: Int!, $user: String!, $pass: String!) {
+                updateUser(id: $id, username: $user, password: $pass) {
+                    id
+                    username
+                    role
+                }
+            }";
+
+            try
+            {
+                var variables = new
+                {
+                    id = user.Id,
+                    user = username.Trim(),
+                    pass = password
+                };
+
+                LoginUser? updatedUser = await _graphQLClient.ExecuteAsync<LoginUser>(
+                    mutation,
+                    variables,
+                    dataKey: "updateUser");
+
+                if (updatedUser is null)
+                {
+                    ErrorMessage = "Unable to update user.";
+                    return false;
+                }
+
+                await LoadAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Unable to update user: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
