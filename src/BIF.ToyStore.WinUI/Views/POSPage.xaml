@@ -164,15 +164,30 @@
                                             Background="{StaticResource FluentPlaySurfaceBrush}"
                                             CornerRadius="12,12,0,0">
                                         <Grid>
-                                            <!-- Badge -->
+                                            <!-- Badge: Low Stock -->
                                             <Border HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Margin="8,8,0,0"
                                                     Background="{StaticResource FluentPlayPrimaryBrush}"
                                                     CornerRadius="4"
                                                     Padding="7,3"
-                                                    Visibility="{x:Bind HasBadge, Mode=OneTime, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="{x:Bind BadgeLabel, Mode=OneTime}"
+                                                    Visibility="{x:Bind IsLowStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind LowStockBadgeLabel, Mode=OneTime}"
+                                                           FontSize="9"
+                                                           FontWeight="Bold"
+                                                           CharacterSpacing="80"
+                                                           Foreground="White" />
+                                            </Border>
+
+                                            <!-- Badge: Out Of Stock -->
+                                            <Border HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Margin="8,8,0,0"
+                                                    Background="#DC3545"
+                                                    CornerRadius="4"
+                                                    Padding="7,3"
+                                                    Visibility="{x:Bind IsOutOfStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind OutOfStockBadgeLabel, Mode=OneTime}"
                                                            FontSize="9"
                                                            FontWeight="Bold"
                                                            CharacterSpacing="80"
@@ -241,7 +256,8 @@
                                                     Background="{StaticResource FluentPlayPrimaryBrush}"
                                                     BorderThickness="0"
                                                     Command="{Binding ViewModel.AddToCartCommand, ElementName=RootPage}"
-                                                    CommandParameter="{Binding}">
+                                                    CommandParameter="{Binding}"
+                                                    IsEnabled="{x:Bind CanAddToCart, Mode=OneWay}">
                                                 <Button.Resources>
                                                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
                                                     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
@@ -249,6 +265,8 @@
                                                     <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
                                                     <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
                                                     <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#E0E0E0" />
+                                                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A0A0A0" />
                                                 </Button.Resources>
                                                 <TextBlock Text="+"
                                                            FontSize="18"
@@ -414,7 +432,8 @@
                                                     BorderThickness="1"
                                                     BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                                                     Command="{Binding ViewModel.IncreaseQuantityCommand, ElementName=RootPage}"
-                                                    CommandParameter="{Binding}">
+                                                    CommandParameter="{Binding}"
+                                                    IsEnabled="{x:Bind CanIncreaseQuantity, Mode=OneWay}">
                                                 <TextBlock Text="+"
                                                            FontSize="16"
                                                            FontWeight="Light"

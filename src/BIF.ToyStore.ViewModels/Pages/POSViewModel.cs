@@ -220,15 +220,18 @@ namespace BIF.ToyStore.ViewModels.Pages
         private void AddToCart(ProductItemViewModel? product)
         {
             if (product is null) return;
+            if (product.CartQuantity >= product.StockQuantity) return;
 
             var existing = CartItems.FirstOrDefault(c => c.Product.Id == product.Id);
             if (existing is not null)
             {
                 existing.Quantity++;
+                product.CartQuantity++;
             }
             else
             {
                 CartItems.Add(new CartItemViewModel(product));
+                product.CartQuantity++;
             }
 
             RecalculateTotals();
@@ -238,7 +241,10 @@ namespace BIF.ToyStore.ViewModels.Pages
         private void IncreaseQuantity(CartItemViewModel? item)
         {
             if (item is null) return;
+            if (item.Quantity >= item.Product.StockQuantity) return;
+
             item.Quantity++;
+            item.Product.CartQuantity++;
             RecalculateTotals();
         }
 
@@ -250,10 +256,12 @@ namespace BIF.ToyStore.ViewModels.Pages
             if (item.Quantity <= 1)
             {
                 CartItems.Remove(item);
+                item.Product.CartQuantity = 0;
             }
             else
             {
                 item.Quantity--;
+                item.Product.CartQuantity--;
             }
 
             RecalculateTotals();
@@ -264,12 +272,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             if (item is null) return;
             CartItems.Remove(item);
+            item.Product.CartQuantity = 0;
             RecalculateTotals();
         }
 
         [RelayCommand]
         private void ClearCart()
         {
+            foreach (var cartItem in CartItems)
+            {
+                cartItem.Product.CartQuantity = 0;
+            }
             CartItems.Clear();
             RecalculateTotals();
             ErrorMessage = string.Empty;
@@ -372,7 +385,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
     // ── Item ViewModels ────────────────────────────────────────────────────────
 
-    public sealed class ProductItemViewModel
+    public partial class ProductItemViewModel : ObservableObject
     {
         public int Id { get; }
         public string Name { get; }
@@ -380,10 +393,19 @@ namespace BIF.ToyStore.ViewModels.Pages
         public int StockQuantity { get; }
         public string CategoryName { get; }
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanAddToCart))]
+        private int _cartQuantity;
+
         public string PriceDisplay => $"${Price:F2}";
-        public string StockDisplay => $"{StockQuantity} in stock";
-        public bool HasBadge => StockQuantity <= 5;
-        public string BadgeLabel => StockQuantity <= 5 ? "LOW STOCK" : string.Empty;
+        public string StockDisplay => StockQuantity == 0 ? "Out of stock" : $"{StockQuantity} in stock";
+        
+        public bool IsOutOfStock => StockQuantity == 0;
+        public bool IsLowStock => StockQuantity > 0 && StockQuantity <= 5;
+        public string LowStockBadgeLabel => "LOW STOCK";
+        public string OutOfStockBadgeLabel => "OUT OF STOCK";
+        
+        public bool CanAddToCart => StockQuantity > 0 && CartQuantity < StockQuantity;
 
         public ProductItemViewModel(Product p)
         {
@@ -392,6 +414,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             Price = p.RetailPrice;
             StockQuantity = p.StockQuantity;
             CategoryName = p.Category?.Name ?? string.Empty;
+            CartQuantity = 0;
         }
     }
 
@@ -400,19 +423,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         public ProductItemViewModel Product { get; }
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(LineTotal))]
+        [NotifyPropertyChangedFor(nameof(CanIncreaseQuantity))]
         private int _quantity;
 
         public decimal LineTotal => Product.Price * Quantity;
+        public bool CanIncreaseQuantity => Quantity < Product.StockQuantity;
 
         public CartItemViewModel(ProductItemViewModel product)
         {
             Product = product;
             Quantity = 1;
-        }
-
-        partial void OnQuantityChanged(int value)
-        {
-            OnPropertyChanged(nameof(LineTotal));
         }
     }
 
