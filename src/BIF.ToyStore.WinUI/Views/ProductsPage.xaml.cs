@@ -1,8 +1,9 @@
-using BIF.ToyStore.ViewModels.Pages;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using System;
 using WinRT.Interop;
 namespace BIF.ToyStore.WinUI.Views
@@ -118,17 +119,16 @@ namespace BIF.ToyStore.WinUI.Views
             var button = sender as Button;
             if (button?.Tag is Product product)
             {
-                var confirmDialog = new ContentDialog
-                {
-                    Title = "Delete Product",
-                    Content = $"Are you sure you want to delete '{product.Name}'? This action cannot be undone.",
-                    PrimaryButtonText = "DELETE",
-                    CloseButtonText = "CANCEL",
-                    DefaultButton = ContentDialogButton.Close,
-                    XamlRoot = this.XamlRoot
-                };
+                var result = await CommonDialog.ShowAsync(
+                    XamlRoot,
+                    CommonDialogType.Confirmation,
+                    title: "Confirm Delete",
+                    message: $"Do you want to delete '{product.Name}'?",
+                    primaryButtonText: "Delete",
+                    closeButtonText: "Cancel",
+                    defaultButton: ContentDialogButton.Primary
+                );
 
-                var result = await confirmDialog.ShowAsync();
                 if (result == ContentDialogResult.Primary)
                 {
                     await ViewModel.DeleteProductAsync(product.Id);

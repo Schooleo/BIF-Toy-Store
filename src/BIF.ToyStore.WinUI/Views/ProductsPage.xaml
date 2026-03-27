@@ -11,6 +11,8 @@
     xmlns:local="using:BIF.ToyStore.WinUI.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:BIF.ToyStore.Core.Models"
+    x:Name="RootPage"
+    RequestedTheme="Light"
     Background="{ThemeResource FluentPlaySurfaceBrush}"
     mc:Ignorable="d">
 
@@ -19,33 +21,40 @@
         <converters:StockFormatConverter x:Key="StockFormatConverter" />
     </Page.Resources>
 
-    <Grid>
-        <!--  Main Content (Now full width)  -->
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <!--  Title Area  -->
-                <RowDefinition Height="Auto" />
-                <!--  Filters  -->
-                <RowDefinition Height="*" />
-                <!--  DataGrid  -->
-                <RowDefinition Height="Auto" />
-                <!--  Pagination  -->
-            </Grid.RowDefinitions>
+    <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
+        <ScrollViewer
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled">
+            <Grid
+                Padding="32"
+                RowSpacing="24"
+                MaxWidth="1280"
+                HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
             <!--  Title Area  -->
-            <Grid Grid.Row="0" Padding="32,24,32,16">
+                <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel>
+                    <StackPanel Spacing="4">
                     <TextBlock
-                        FontSize="24"
-                        FontWeight="Bold"
+                        FontSize="30"
+                        FontWeight="ExtraBold"
                         Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
                         Text="Inventory Management" />
-                    <TextBlock Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" Text="{x:Bind ViewModel.TotalCountLabel, Mode=OneWay}" />
+                        <TextBlock
+                            FontSize="16"
+                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                            Text="{x:Bind ViewModel.TotalCountLabel, Mode=OneWay}" />
                     <TextBlock
                         Foreground="{ThemeResource SystemFillColorSuccessBrush}"
                         Text="{x:Bind ViewModel.ImportSuccessMessage, Mode=OneWay}"
@@ -58,10 +67,11 @@
                         Visibility="{x:Bind ViewModel.HasImportErrorMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                 </StackPanel>
 
-                <StackPanel
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    Spacing="12">
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="12"
+                        VerticalAlignment="Center">
                     <Button
                         Background="White"
                         BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
@@ -78,22 +88,23 @@
             </Grid>
 
             <!--  Filters Area  -->
-            <Grid Grid.Row="1" Padding="32,0,32,16">
+                <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel
-                    Grid.Column="0"
-                    Orientation="Horizontal"
-                    Spacing="24">
+                    <StackPanel
+                        Grid.Column="0"
+                        Orientation="Horizontal"
+                        Spacing="24">
 
                     <StackPanel VerticalAlignment="Top" Spacing="6">
-                        <TextBlock
-                            FontSize="10"
-                            FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                            Text="SEARCH INVENTORY" />
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                CharacterSpacing="120"
+                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                Text="SEARCH INVENTORY" />
                         <TextBox
                             Width="240"
                             HorizontalAlignment="Left"
@@ -103,11 +114,12 @@
                     </StackPanel>
 
                     <StackPanel VerticalAlignment="Top" Spacing="6">
-                        <TextBlock
-                            FontSize="10"
-                            FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                            Text="CATEGORY" />
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                CharacterSpacing="120"
+                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                Text="CATEGORY" />
                         <ComboBox
                             Width="160"
                             DisplayMemberPath="Name"
@@ -119,11 +131,12 @@
                     </StackPanel>
 
                     <StackPanel VerticalAlignment="Top" Spacing="6">
-                        <TextBlock
-                            FontSize="10"
-                            FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                            Text="SORT BY" />
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                CharacterSpacing="120"
+                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                Text="SORT BY" />
                         <ComboBox
                             Width="160"
                             DisplayMemberPath="Name"
@@ -135,11 +148,12 @@
                     </StackPanel>
 
                     <StackPanel VerticalAlignment="Top" Spacing="6">
-                        <TextBlock
-                            FontSize="10"
-                            FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                            Text="PRICE RANGE" />
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                CharacterSpacing="120"
+                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                Text="PRICE RANGE" />
                         <controls1:RangeSelector
                             Width="200"
                             Margin="8,4,8,0"
@@ -153,19 +167,18 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Button
-                    Grid.Column="1"
-                    VerticalAlignment="Bottom"
-                    Background="Transparent"
-                    Command="{x:Bind ViewModel.ClearFilterCommand}"
-                    Content="Reset Filters"
-                    Foreground="{ThemeResource FluentPlayPrimaryBrush}" />
-            </Grid>
+                    <Button
+                        Grid.Column="1"
+                        VerticalAlignment="Bottom"
+                        Background="Transparent"
+                        Command="{x:Bind ViewModel.ClearFilterCommand}"
+                        Content="Reset Filters"
+                        Foreground="{ThemeResource FluentPlayPrimaryBrush}" />
+                </Grid>
 
             <!--  DataGrid  -->
             <controls:DataGrid
                 Grid.Row="2"
-                Margin="32,0,32,0"
                 AutoGenerateColumns="False"
                 Background="White"
                 BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
@@ -271,11 +284,13 @@
             <!--  Pagination  -->
             <custom:PaginationControl
                 Grid.Row="3"
+                Margin="0,8,0,0"
                 FirstPageCommand="{x:Bind ViewModel.FirstPageCommand, Mode=OneWay}"
                 LastPageCommand="{x:Bind ViewModel.LastPageCommand, Mode=OneWay}"
                 NextPageCommand="{x:Bind ViewModel.NextPageCommand, Mode=OneWay}"
                 PreviousPageCommand="{x:Bind ViewModel.PreviousPageCommand, Mode=OneWay}"
                 TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}" />
-        </Grid>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </Page>
