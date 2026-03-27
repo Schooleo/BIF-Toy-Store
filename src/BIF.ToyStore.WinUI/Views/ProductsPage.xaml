@@ -19,6 +19,13 @@
     <Page.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:StockFormatConverter x:Key="StockFormatConverter" />
+        <SolidColorBrush x:Key="ProductsSurfaceCardBrush" Color="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
+        <SolidColorBrush x:Key="ProductsDangerBrush" Color="{StaticResource FluentPlayErrorColor}" />
+        <SolidColorBrush x:Key="SliderTrackValueFill" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="SliderTrackFill" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+        <SolidColorBrush x:Key="SliderThumbBackground" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush" Color="{StaticResource FluentPlayPrimaryFixedColor}" />
+        <SolidColorBrush x:Key="DataGridRowSelectedForegroundBrush" Color="{StaticResource FluentPlayOnSurfaceColor}" />
     </Page.Resources>
 
     <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
@@ -73,7 +80,7 @@
                         Spacing="12"
                         VerticalAlignment="Center">
                     <Button
-                        Background="White"
+                        Background="{ThemeResource ProductsSurfaceCardBrush}"
                         BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                         Command="{x:Bind ViewModel.ImportExcelCommand}"
                         Content="Import Excel"
@@ -180,7 +187,7 @@
             <controls:DataGrid
                 Grid.Row="2"
                 AutoGenerateColumns="False"
-                Background="White"
+                Background="{ThemeResource ProductsSurfaceCardBrush}"
                 BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
                 BorderThickness="1"
                 CanUserSortColumns="True"
@@ -272,7 +279,7 @@
                                     </Button>
                                     <Button Background="Transparent" BorderBrush="Transparent" Padding="4" Tag="{x:Bind}" Click="DeleteProduct_Click"
                                             ToolTipService.ToolTip="Delete Product">
-                                        <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="Red" />
+                                        <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource ProductsDangerBrush}" />
                                     </Button>
                                 </StackPanel>
                             </DataTemplate>

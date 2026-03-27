@@ -34,14 +34,65 @@ namespace BIF.ToyStore.WinUI.Views
                 return;
             }
 
-            await CommonDialog.ShowAsync(
+            var restartResult = await CommonDialog.ShowAsync(
                 XamlRoot,
                 CommonDialogType.Warning,
                 "Restart Required",
-                "The app needs to restart to apply the new server configuration.",
-                primaryButtonText: "OK",
-                closeButtonText: null,
+                "The app needs to restart to apply the new server configuration. Exit now?",
+                primaryButtonText: "Exit Now",
+                closeButtonText: "Later",
                 defaultButton: ContentDialogButton.Primary);
+
+            if (restartResult == ContentDialogResult.Primary)
+            {
+                App.Current.Exit();
+            }
+        }
+
+        private async void RestoreSystemButton_Click(object sender, RoutedEventArgs e)
+        {
+            var confirmResult = await CommonDialog.ShowAsync(
+                XamlRoot,
+                CommonDialogType.Warning,
+                title: "Confirm Restore",
+                message: "This will restore data from your latest backup. The app must restart to apply restored data. Continue?",
+                primaryButtonText: "Continue",
+                closeButtonText: "Cancel",
+                defaultButton: ContentDialogButton.Primary);
+
+            if (confirmResult != ContentDialogResult.Primary)
+            {
+                return;
+            }
+
+            await ViewModel.RestoreSystemCommand.ExecuteAsync(null);
+
+            if (!string.IsNullOrWhiteSpace(ViewModel.ErrorMessage))
+            {
+                await CommonDialog.ShowAsync(
+                    XamlRoot,
+                    CommonDialogType.Error,
+                    title: "Restore Failed",
+                    message: ViewModel.ErrorMessage,
+                    primaryButtonText: "OK",
+                    closeButtonText: null,
+                    defaultButton: ContentDialogButton.Primary);
+                return;
+            }
+
+            var restartResult = await CommonDialog.ShowAsync(
+                XamlRoot,
+                CommonDialogType.Warning,
+                title: "Restart Required",
+                message: "Restore is scheduled successfully. Restart now to apply restored data.",
+                primaryButtonText: "Exit Now",
+                closeButtonText: "Later",
+                defaultButton: ContentDialogButton.Primary);
+
+            if (restartResult == ContentDialogResult.Primary)
+            {
+                App.Current.Exit();
+            }
         }
     }
 }

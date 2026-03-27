@@ -142,9 +142,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 var backupFileName = $"ToyStore_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
                 var destinationPath = Path.Combine(backupDirectory, backupFileName);
 
-                await using var sourceStream = File.OpenRead(sourcePath);
-                await using var destinationStream = File.Create(destinationPath);
-                await sourceStream.CopyToAsync(destinationStream);
+                await CopyWithRetryAsync(sourcePath, destinationPath);
 
                 var nowUtc = DateTime.UtcNow;
                 _localSettingsService.SetString(AppPreferenceKeys.LastBackupUtc, nowUtc.ToString("o", CultureInfo.InvariantCulture));
@@ -189,13 +187,10 @@ namespace BIF.ToyStore.ViewModels.Pages
                 }
 
                 var destinationPath = ResolveDatabasePath(_databasePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? AppContext.BaseDirectory);
+                _localSettingsService.SetString(AppPreferenceKeys.PendingRestoreBackupPath, latestBackup.FullName);
+                _localSettingsService.SetString(AppPreferenceKeys.PendingRestoreTargetPath, destinationPath);
 
-                await using var backupStream = latestBackup.OpenRead();
-                await using var destinationStream = File.Create(destinationPath);
-                await backupStream.CopyToAsync(destinationStream);
-
-                StatusMessage = "Restore completed. Restart the app to apply restored data.";
+                StatusMessage = "Restore scheduled. Restart the app to apply restored data.";
             }
             catch (Exception ex)
             {
@@ -426,6 +421,44 @@ namespace BIF.ToyStore.ViewModels.Pages
                 .FirstOrDefault();
 
             return latestBackup?.LastWriteTimeUtc;
+        }
+
+        private static async Task CopyWithRetryAsync(string sourcePath, string destinationPath)
+        {
+            const int maxAttempts = 5;
+            const int retryDelayMs = 250;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    await using var sourceStream = new FileStream(
+                        sourcePath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+
+                    await using var destinationStream = new FileStream(
+                        destinationPath,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.None);
+
+                    await sourceStream.CopyToAsync(destinationStream);
+                    return;
+                }
+                catch (IOException) when (attempt < maxAttempts)
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+                catch (UnauthorizedAccessException) when (attempt < maxAttempts)
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+            }
+
+            throw new IOException(
+                "The database file is currently in use. Close other tools accessing the database and try backup again.");
         }
 
         private sealed class StoreSettingsView

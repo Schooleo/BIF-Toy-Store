@@ -58,10 +58,10 @@
                                    Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
                     </StackPanel>
 
-                    <Grid ColumnSpacing="60">
+                    <Grid ColumnSpacing="172">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="500" />
-                            <ColumnDefinition Width="500" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <NumberBox Grid.Column="0"
@@ -369,7 +369,7 @@
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
                                     MinHeight="84"
-                                    Command="{x:Bind ViewModel.RestoreSystemCommand}">
+                                    Click="RestoreSystemButton_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
                                     <Image Source="ms-appx:///Assets/Icons/Restore.svg"
                                            Width="20"
