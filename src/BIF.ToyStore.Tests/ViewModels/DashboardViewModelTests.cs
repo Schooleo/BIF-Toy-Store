@@ -18,6 +18,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>()))
                 .ReturnsAsync(new DashboardMainQueryData
                 {
+                    AppConfig = new DashboardAppConfigNode { CurrencySymbol = "VND" },
                     Products = new DashboardProductConnection
                     {
                         TotalCount = 7,
@@ -89,12 +90,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(2, vm.LowStockAlertCount);
             Assert.Equal("Unknown", vm.LowStockProducts.First().CategoryName);
             Assert.Equal(7, vm.TotalProducts);
+            Assert.True(vm.HasLowStockProducts);
+            Assert.False(vm.IsLowStockProductsEmpty);
 
             Assert.Equal(2, vm.RecentOrders.Count);
             Assert.Equal("Walk-in Customer", vm.RecentOrders[0].CustomerName);
             Assert.Equal(3, vm.RecentOrders[0].ItemCount);
+            Assert.True(vm.HasRecentOrders);
+            Assert.False(vm.IsRecentOrdersEmpty);
 
             Assert.Single(vm.BestSellingProducts);
+            Assert.True(vm.HasBestSellingProducts);
+            Assert.False(vm.IsBestSellingProductsEmpty);
             Assert.Equal(2, vm.RevenueTrendPoints.Count);
             Assert.NotEqual("M 0,0", vm.RevenueTrendPathData);
             Assert.NotEqual("M 0,0 Z", vm.RevenueTrendAreaData);
@@ -102,6 +109,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             Assert.Equal(2, vm.OrdersToday);
             Assert.Equal(150m, vm.TodayRevenue);
+            Assert.Equal("VND 150.00", vm.TodayRevenueDisplay);
+            Assert.Equal("VND 11.00", vm.LowStockProducts.First().PriceDisplay);
+            Assert.Equal("VND 100.00", vm.RecentOrders[0].TotalAmountDisplay);
+            Assert.Equal("VND 10.00", vm.BestSellingProducts[0].PriceDisplay);
             Assert.Equal(string.Empty, vm.ErrorMessage);
             Assert.False(vm.IsBusy);
         }
@@ -138,6 +149,12 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Empty(vm.RecentOrders);
             Assert.Empty(vm.BestSellingProducts);
             Assert.Empty(vm.RevenueTrendPoints);
+            Assert.False(vm.HasLowStockProducts);
+            Assert.True(vm.IsLowStockProductsEmpty);
+            Assert.False(vm.HasRecentOrders);
+            Assert.True(vm.IsRecentOrdersEmpty);
+            Assert.False(vm.HasBestSellingProducts);
+            Assert.True(vm.IsBestSellingProductsEmpty);
             Assert.Equal(0, vm.TotalProducts);
             Assert.Equal(0, vm.OrdersToday);
             Assert.Equal(0m, vm.TodayRevenue);
@@ -145,6 +162,60 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal("M 0,0", vm.RevenueTrendPathData);
             Assert.Equal("M 0,0 Z", vm.RevenueTrendAreaData);
             Assert.False(vm.IsBusy);
+        }
+
+        [Fact]
+        public async Task LoadAsync_EmptyLists_SetsEmptyStateFlags()
+        {
+            var graphQlClient = new Mock<IGraphQLClient>();
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardMainQueryData>(
+                    It.Is<string>(q => q.Contains("DashboardMain")),
+                    It.IsAny<object?>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new DashboardMainQueryData
+                {
+                    Products = new DashboardProductConnection
+                    {
+                        TotalCount = 0,
+                        Nodes = []
+                    },
+                    GetOrders = new DashboardOrderList
+                    {
+                        Items = []
+                    },
+                    GetTopBestSellingProducts = [],
+                    GetRevenueTrend = []
+                });
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
+                    It.Is<string>(q => q.Contains("DashboardToday")),
+                    It.IsAny<object?>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new DashboardTodayQueryData
+                {
+                    GetOrders = new DashboardOrderList
+                    {
+                        Items = []
+                    }
+                });
+
+            var vm = new DashboardViewModel(graphQlClient.Object);
+
+            await vm.LoadAsync();
+
+            Assert.Empty(vm.LowStockProducts);
+            Assert.Empty(vm.RecentOrders);
+            Assert.Empty(vm.BestSellingProducts);
+            Assert.False(vm.HasLowStockProducts);
+            Assert.True(vm.IsLowStockProductsEmpty);
+            Assert.False(vm.HasRecentOrders);
+            Assert.True(vm.IsRecentOrdersEmpty);
+            Assert.False(vm.HasBestSellingProducts);
+            Assert.True(vm.IsBestSellingProductsEmpty);
+            Assert.Equal(string.Empty, vm.ErrorMessage);
         }
     }
 }

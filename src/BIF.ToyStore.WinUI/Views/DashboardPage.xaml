@@ -91,10 +91,15 @@
                                        FontSize="36"
                                        FontWeight="ExtraBold"
                                        Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.TotalProductsSubtext, Mode=OneWay}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/Icons/Trend.svg"
+                                    Width="14"
+                                    Height="14" />
+                                <TextBlock Text="{x:Bind ViewModel.TotalProductsSubtext, Mode=OneWay}"
+                                     FontSize="12"
+                                     FontWeight="SemiBold"
+                                     Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -124,10 +129,15 @@
                                        FontSize="36"
                                        FontWeight="ExtraBold"
                                        Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.TodayRevenueSubtext, Mode=OneWay}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/Icons/Trend.svg"
+                                    Width="14"
+                                    Height="14" />
+                                <TextBlock Text="{x:Bind ViewModel.TodayRevenueSubtext, Mode=OneWay}"
+                                     FontSize="12"
+                                     FontWeight="SemiBold"
+                                     Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -157,10 +167,15 @@
                                        FontSize="36"
                                        FontWeight="ExtraBold"
                                        Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.OrdersTodaySubtext, Mode=OneWay}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/Icons/Trend.svg"
+                                       Width="14"
+                                       Height="14" />
+                                <TextBlock Text="{x:Bind ViewModel.OrdersTodaySubtext, Mode=OneWay}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -312,6 +327,8 @@
                             </Grid>
 
                             <ListView Grid.Row="2"
+                                      x:Name="LowStockProductsList"
+                                      x:Load="{x:Bind ViewModel.HasLowStockProducts, Mode=OneWay}"
                                       ItemsSource="{x:Bind ViewModel.LowStockProducts, Mode=OneWay}"
                                       SelectionMode="None"
                                       IsItemClickEnabled="False"
@@ -335,6 +352,21 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
+
+                            <Border Grid.Row="2"
+                                    x:Name="LowStockProductsEmptyState"
+                                    x:Load="{x:Bind ViewModel.IsLowStockProductsEmpty, Mode=OneWay}"
+                                    Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="16"
+                                    MinHeight="120">
+                                <TextBlock Text="No low-stock products right now. Inventory levels look healthy."
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            </Border>
                         </Grid>
                     </Border>
                     </StackPanel>
@@ -357,7 +389,10 @@
                                            FontWeight="Bold"
                                            Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
 
-                                <ItemsControl Grid.Row="1" ItemsSource="{x:Bind ViewModel.BestSellingProducts, Mode=OneWay}">
+                                <ItemsControl Grid.Row="1"
+                                              x:Name="BestSellingProductsList"
+                                              x:Load="{x:Bind ViewModel.HasBestSellingProducts, Mode=OneWay}"
+                                              ItemsSource="{x:Bind ViewModel.BestSellingProducts, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="pages:BestSellingProductViewModel">
                                             <Grid Margin="0,0,0,12">
@@ -389,6 +424,20 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <Border Grid.Row="1"
+                                    x:Name="BestSellingProductsEmptyState"
+                                        x:Load="{x:Bind ViewModel.IsBestSellingProductsEmpty, Mode=OneWay}"
+                                        Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                        BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="16">
+                                    <TextBlock Text="No best-seller data yet. Top-selling products will appear here once sales are recorded."
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                </Border>
                             </Grid>
                         </Border>
 
@@ -439,7 +488,10 @@
                                        Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
                         </StackPanel>
 
-                        <ItemsControl Grid.Row="1" ItemsSource="{x:Bind ViewModel.RecentOrders, Mode=OneWay}">
+                        <ItemsControl Grid.Row="1"
+                                      x:Name="RecentOrdersList"
+                                      x:Load="{x:Bind ViewModel.HasRecentOrders, Mode=OneWay}"
+                                      ItemsSource="{x:Bind ViewModel.RecentOrders, Mode=OneWay}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <StackPanel Orientation="Horizontal" Spacing="16" />
@@ -477,6 +529,20 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <Border Grid.Row="1"
+                            x:Name="RecentOrdersEmptyState"
+                                x:Load="{x:Bind ViewModel.IsRecentOrdersEmpty, Mode=OneWay}"
+                                Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="16">
+                            <TextBlock Text="No recent orders yet. New orders will show up here as soon as they are created."
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                        </Border>
                     </Grid>
                 </Border>
 

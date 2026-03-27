@@ -22,6 +22,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await EnsureAppConfigSchemaAsync(dbContext);
             await EnsureCategorySchemaAsync(dbContext);
             await EnsureProductSchemaAsync(dbContext);
+            await EnsureOrderSchemaAsync(dbContext);
 
             await EnsureDefaultAdminAsync(dbContext);
             await EnsureDefaultSaleAsync(dbContext);
@@ -316,6 +317,36 @@ namespace BIF.ToyStore.Infrastructure.Data
         private static async Task EnsureProductSchemaAsync(AppDbContext dbContext)
         {
             const string tableName = "Products";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureOrderSchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "Orders";
 
             var connection = dbContext.Database.GetDbConnection();
             await connection.OpenAsync();
