@@ -76,6 +76,13 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Users");
         }
 
+        public void NavigateToPos()
+        {
+            var shell = EnsureShell();
+            shell.NavigateToPos();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "POS");
+        }
+
         public async Task LogoutAsync()
         {
             using var scope = _scopeFactory.CreateScope();

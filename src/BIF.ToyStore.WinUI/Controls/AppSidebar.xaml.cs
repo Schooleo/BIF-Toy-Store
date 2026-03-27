@@ -82,6 +82,11 @@ namespace BIF.ToyStore.WinUI.Controls
             App.Current.MainWindowInstance?.NavigateToDashboard();
         }
 
+        private void PosButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToPos();
+        }
+
         private void UsersButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToUsers();

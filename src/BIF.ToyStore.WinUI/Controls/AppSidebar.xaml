@@ -77,7 +77,7 @@
                                    RadiusY="2"
                                    Fill="{StaticResource FluentPlayPrimaryBrush}"
                                    Visibility="Collapsed" />
-                        <Button Click="PlaceholderButton_Click" Tag="POS"
+                        <Button Click="PosButton_Click"
                                 Background="Transparent" BorderThickness="0"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                 Padding="16,10" CornerRadius="6">
