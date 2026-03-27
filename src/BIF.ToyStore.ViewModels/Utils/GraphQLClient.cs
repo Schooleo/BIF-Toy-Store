@@ -27,11 +27,11 @@ namespace BIF.ToyStore.ViewModels.Utils
         }
 
         public async Task<T?> ExecuteAsync<T>(string query, object? variables = null, string dataKey = "")
-        {
-            var requestBody = new { query, variables };
-            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
-            return await ParseGraphQLResponseAsync<T>(response, dataKey);
-        }
+        {
+            var requestBody = new { query, variables };
+            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody, _jsonOptions);
+            return await ParseGraphQLResponseAsync<T>(response, dataKey);
+        }
 
         public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
         {
