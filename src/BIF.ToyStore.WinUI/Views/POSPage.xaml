@@ -20,6 +20,9 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="280" />
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
         <!-- ── LEFT: Product Catalog ─────────────────────────────────────── -->
         <Grid Grid.Column="0">
@@ -139,9 +142,7 @@
                 <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsWrapGrid Orientation="Horizontal"
-                                           MaximumRowsOrColumns="3"
-                                           ItemWidth="188" />
+                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="188" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -273,9 +274,10 @@
                 BorderThickness="1,0,0,0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /> <!-- Header -->
+                    <RowDefinition Height="Auto" /> <!-- Banners -->
+                    <RowDefinition Height="*" />    <!-- Cart items -->
+                    <RowDefinition Height="Auto" /> <!-- Footer -->
                 </Grid.RowDefinitions>
 
                 <!-- Cart header -->
@@ -304,8 +306,31 @@
                     </Button>
                 </Grid>
 
+                <!-- Error / Success feedback -->
+                <StackPanel Grid.Row="1" Spacing="8" Margin="12,0,12,8">
+                    <Border Background="#FFF3CD"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Visibility="{x:Bind ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#856404" />
+                    </Border>
+
+                    <Border Background="#D4EDDA"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Visibility="{x:Bind ViewModel.HasSuccess, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{x:Bind ViewModel.SuccessMessage, Mode=OneWay}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#155724" />
+                    </Border>
+                </StackPanel>
+
                 <!-- Cart items -->
-                <ScrollViewer Grid.Row="1"
+                <ScrollViewer Grid.Row="2"
                               VerticalScrollBarVisibility="Auto"
                               Padding="12,0,12,8">
                     <ListView ItemsSource="{x:Bind ViewModel.CartItems, Mode=OneWay}"
@@ -406,7 +431,7 @@
                 </ScrollViewer>
 
                 <!-- Cart footer: totals + action buttons -->
-                <Border Grid.Row="2"
+                <Border Grid.Row="3"
                         BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                         BorderThickness="0,1,0,0"
                         Padding="20,16,20,20">
@@ -549,5 +574,19 @@
                 </Border>
             </Grid>
         </Border>
+
+        <!-- Full-page loading overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2"
+              Background="#AA000000"
+              Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" Width="48" Height="48" Foreground="White" />
+                <TextBlock Text="Loading…"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>
