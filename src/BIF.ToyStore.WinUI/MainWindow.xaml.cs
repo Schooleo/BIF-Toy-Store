@@ -83,6 +83,14 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "POS");
         }
 
+        public void NavigateToOrders()
+        {
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToOrders();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Orders");
+        }
+
         public async Task LogoutAsync()
         {
             using var scope = _scopeFactory.CreateScope();
@@ -160,6 +168,12 @@ namespace BIF.ToyStore.WinUI
             if (route == "Products")
             {
                 NavigateToProducts();
+                return;
+            }
+
+            if (route == "Orders")
+            {
+                NavigateToOrders();
                 return;
             }
 

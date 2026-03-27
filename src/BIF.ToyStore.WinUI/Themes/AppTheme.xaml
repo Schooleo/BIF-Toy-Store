@@ -68,6 +68,7 @@
     <SolidColorBrush x:Key="FluentPlayPrimaryPressedBrush" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
     <SolidColorBrush x:Key="FluentPlayOnPrimaryBrush" Color="{StaticResource FluentPlayOnPrimaryColor}" />
     <SolidColorBrush x:Key="FluentPlaySurfaceBrush" Color="{StaticResource FluentPlaySurfaceColor}" />
+    <SolidColorBrush x:Key="FluentPlaySurfaceContainerLowestBrush" Color="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
     <SolidColorBrush x:Key="FluentPlaySurfaceContainerLowBrush" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
     <SolidColorBrush x:Key="FluentPlaySurfaceContainerHighBrush" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
     <SolidColorBrush x:Key="FluentPlayOnSurfaceBrush" Color="{StaticResource FluentPlayOnSurfaceColor}" />
