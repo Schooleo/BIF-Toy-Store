@@ -194,7 +194,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
-        public void Receive_LoginSucceededMessage_SetsSaleId()
+        public async Task Receive_LoginSucceededMessage_SetsSaleId()
         {
             // Arrange
             var user = new LoginUser { Id = 42, Username = "StaffUser" };
@@ -204,7 +204,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Receive(message);
             
             // To assert the SaleId is used, we add an item and process payment
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 10m });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 10m, StockQuantity = 100 });
             _viewModel.AddToCartCommand.Execute(productMock);
 
             _graphQLClientMock.Setup(x => x.ExecuteAsync<OrderResult>(
@@ -212,7 +212,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 It.Is<object>(args => SerializeAndCheckSaleId(args, 42)),
                 "createOrder")).ReturnsAsync(new OrderResult());
 
-            _viewModel.ProcessPaymentCommand.Execute(null);
+            await _viewModel.ProcessPaymentCommand.ExecuteAsync(null);
 
             // Assert handled by Moq Verify in the Setup
             _graphQLClientMock.Verify(x => x.ExecuteAsync<OrderResult>(
