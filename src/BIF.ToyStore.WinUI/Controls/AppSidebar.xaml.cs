@@ -122,6 +122,11 @@ namespace BIF.ToyStore.WinUI.Controls
             App.Current.MainWindowInstance?.NavigateToDashboard();
         }
 
+        private void PosButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToPos();
+        }
+
         private void UsersButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToUsers();
@@ -130,6 +135,11 @@ namespace BIF.ToyStore.WinUI.Controls
         private void ProductsButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToProducts();
+        }
+
+        private void OrdersButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToOrders();
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)

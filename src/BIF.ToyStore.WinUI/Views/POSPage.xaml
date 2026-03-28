@@ -1,0 +1,611 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BIF.ToyStore.WinUI.Views.POSPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="using:BIF.ToyStore.ViewModels.Pages"
+    xmlns:converters="using:BIF.ToyStore.WinUI.Converters"
+    x:Name="RootPage"
+    RequestedTheme="Light"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Page.Resources>
+
+    <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="280" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── LEFT: Product Catalog ─────────────────────────────────────── -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Header + filter bar -->
+            <Grid Grid.Row="0" Padding="28,24,28,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="CATALOG"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               CharacterSpacing="120"
+                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                    <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                               FontSize="26"
+                               FontWeight="ExtraBold"
+                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                </StackPanel>
+
+                <!-- Category + Sort buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Background="White"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,7">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Width="14" Height="14"
+                                      Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                      Data="M0 3H16V5H0V3ZM2 7H14V9H2V7ZM5 11H11V13H5V11Z" />
+                            <TextBlock Text="Category"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout>
+                                <StackPanel Spacing="4" MinWidth="160">
+                                    <TextBlock Text="FILTER BY CATEGORY"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               CharacterSpacing="100"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                               Margin="0,0,0,6" />
+                                    <ListView ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                                              SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
+                                              SelectionMode="Single"
+                                              BorderThickness="0"
+                                              Background="Transparent">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="Padding" Value="8,4" />
+                                                <Setter Property="MinHeight" Value="32" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button Background="White"
+                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,7">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Width="14" Height="14"
+                                      Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                      Data="M3 18H7V16H3V18ZM0 2V4H16V2H0ZM1 11H15V9H1V11Z" />
+                            <TextBlock Text="Sort"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout>
+                                <StackPanel Spacing="4" MinWidth="180">
+                                    <TextBlock Text="SORT BY"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               CharacterSpacing="100"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                               Margin="0,0,0,6" />
+                                    <ListView ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneWay}"
+                                              SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}"
+                                              SelectionMode="Single"
+                                              BorderThickness="0"
+                                              Background="Transparent">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="Padding" Value="8,4" />
+                                                <Setter Property="MinHeight" Value="32" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Product Grid -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="28,0,28,24">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="188" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="pages:ProductItemViewModel">
+                            <Border Background="White"
+                                    CornerRadius="12"
+                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                    BorderThickness="1"
+                                    Width="172"
+                                    Margin="0,0,12,12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="128" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Image area placeholder -->
+                                    <Border Grid.Row="0"
+                                            Background="{StaticResource FluentPlaySurfaceBrush}"
+                                            CornerRadius="12,12,0,0">
+                                        <Grid>
+                                            <!-- Badge: Low Stock -->
+                                            <Border HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Margin="8,8,0,0"
+                                                    Background="{StaticResource FluentPlayPrimaryBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="7,3"
+                                                    Visibility="{x:Bind IsLowStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind LowStockBadgeLabel, Mode=OneTime}"
+                                                           FontSize="9"
+                                                           FontWeight="Bold"
+                                                           CharacterSpacing="80"
+                                                           Foreground="White" />
+                                            </Border>
+
+                                            <!-- Badge: Out Of Stock -->
+                                            <Border HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Margin="8,8,0,0"
+                                                    Background="#DC3545"
+                                                    CornerRadius="4"
+                                                    Padding="7,3"
+                                                    Visibility="{x:Bind IsOutOfStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind OutOfStockBadgeLabel, Mode=OneTime}"
+                                                           FontSize="9"
+                                                           FontWeight="Bold"
+                                                           CharacterSpacing="80"
+                                                           Foreground="White" />
+                                            </Border>
+
+                                            <!-- Placeholder icon -->
+                                            <TextBlock Text="🧸"
+                                                       FontSize="40"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Opacity="0.4" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Product info -->
+                                    <StackPanel Grid.Row="1" Padding="12,10,12,12" Spacing="6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{x:Bind Name, Mode=OneTime}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{x:Bind PriceDisplay, Mode=OneTime}"
+                                                       FontSize="13"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Top"
+                                                       Margin="6,0,0,0"
+                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                                        </Grid>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Stock chip -->
+                                            <Border Grid.Column="0"
+                                                    Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                                    CornerRadius="999"
+                                                    Padding="7,3"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <Ellipse Width="6" Height="6"
+                                                             Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                                             VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Bind StockDisplay, Mode=OneTime}"
+                                                               FontSize="10"
+                                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Add to cart button -->
+                                            <Button Grid.Column="1"
+                                                    Width="28" Height="28"
+                                                    Padding="0"
+                                                    CornerRadius="999"
+                                                    Background="{StaticResource FluentPlayPrimaryBrush}"
+                                                    BorderThickness="0"
+                                                    Command="{Binding ViewModel.AddToCartCommand, ElementName=RootPage}"
+                                                    CommandParameter="{Binding}"
+                                                    IsEnabled="{x:Bind CanAddToCart, Mode=OneWay}">
+                                                <Button.Resources>
+                                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#E0E0E0" />
+                                                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A0A0A0" />
+                                                </Button.Resources>
+                                                <TextBlock Text="+"
+                                                           FontSize="18"
+                                                           FontWeight="Light"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ── RIGHT: Active Cart Panel ──────────────────────────────────── -->
+        <Border Grid.Column="1"
+                Background="White"
+                BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                BorderThickness="1,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- Header -->
+                    <RowDefinition Height="Auto" /> <!-- Banners -->
+                    <RowDefinition Height="*" />    <!-- Cart items -->
+                    <RowDefinition Height="Auto" /> <!-- Footer -->
+                </Grid.RowDefinitions>
+
+                <!-- Cart header -->
+                <Grid Grid.Row="0" Padding="20,20,20,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="Active Cart"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
+                               VerticalAlignment="Center" />
+
+                    <Button Grid.Column="1"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="4"
+                            Command="{x:Bind ViewModel.ClearCartCommand}"
+                            ToolTipService.ToolTip="Clear cart">
+                        <PathIcon Width="16" Height="16"
+                                  Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                  Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                    </Button>
+                </Grid>
+
+                <!-- Error / Success feedback -->
+                <StackPanel Grid.Row="1" Spacing="8" Margin="12,0,12,8">
+                    <Border Background="#FFF3CD"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Visibility="{x:Bind ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#856404" />
+                    </Border>
+
+                    <Border Background="#D4EDDA"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Visibility="{x:Bind ViewModel.HasSuccess, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{x:Bind ViewModel.SuccessMessage, Mode=OneWay}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#155724" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Cart items -->
+                <ScrollViewer Grid.Row="2"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="12,0,12,8">
+                    <ListView ItemsSource="{x:Bind ViewModel.CartItems, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="False"
+                              Background="Transparent"
+                              BorderThickness="0">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,8" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Background" Value="Transparent" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="pages:CartItemViewModel">
+                                <Border Background="{StaticResource FluentPlaySurfaceBrush}"
+                                        CornerRadius="8">
+                                    <Grid Padding="12,10" ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Thumbnail placeholder -->
+                                        <Border Grid.Column="0"
+                                                Width="36" Height="36"
+                                                CornerRadius="6"
+                                                Background="{StaticResource FluentPlayPrimaryFixedColor}" />
+
+                                        <!-- Name + price -->
+                                        <StackPanel Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Spacing="2">
+                                            <TextBlock Text="{x:Bind Product.Name, Mode=OneTime}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Product.PriceDisplay, Mode=OneTime}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                                        </StackPanel>
+
+                                        <!-- Quantity stepper -->
+                                        <StackPanel Grid.Column="2"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6"
+                                                    VerticalAlignment="Center">
+                                            <Button Width="26" Height="26"
+                                                    Padding="0"
+                                                    CornerRadius="999"
+                                                    Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                                    BorderThickness="1"
+                                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                                    Command="{Binding ViewModel.DecreaseQuantityCommand, ElementName=RootPage}"
+                                                    CommandParameter="{Binding}">
+                                                <TextBlock Text="−"
+                                                           FontSize="16"
+                                                           FontWeight="Light"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                            </Button>
+
+                                            <TextBlock Text="{x:Bind Quantity, Mode=OneWay}"
+                                                       FontSize="14"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       MinWidth="16"
+                                                       TextAlignment="Center"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+
+                                            <Button Width="26" Height="26"
+                                                    Padding="0"
+                                                    CornerRadius="999"
+                                                    Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                                    BorderThickness="1"
+                                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                                    Command="{Binding ViewModel.IncreaseQuantityCommand, ElementName=RootPage}"
+                                                    CommandParameter="{Binding}"
+                                                    IsEnabled="{x:Bind CanIncreaseQuantity, Mode=OneWay}">
+                                                <TextBlock Text="+"
+                                                           FontSize="16"
+                                                           FontWeight="Light"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </ScrollViewer>
+
+                <!-- Cart footer: totals + action buttons -->
+                <Border Grid.Row="3"
+                        BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="20,16,20,20">
+                    <StackPanel Spacing="8">
+                        <!-- Subtotal -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Subtotal"
+                                       FontSize="13"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Bind ViewModel.SubtotalDisplay, Mode=OneWay}"
+                                       FontSize="13"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                        </Grid>
+
+                        <!-- Tax -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Tax (8%)"
+                                       FontSize="13"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Bind ViewModel.TaxDisplay, Mode=OneWay}"
+                                       FontSize="13"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                        </Grid>
+
+                        <!-- Divider -->
+                        <Border Height="1"
+                                Background="{StaticResource FluentPlayOutlineVariantBrush}"
+                                Margin="0,4,0,4" />
+
+                        <!-- Total Due -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Total Due"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Bind ViewModel.TotalDueDisplay, Mode=OneWay}"
+                                       FontSize="18"
+                                       FontWeight="ExtraBold"
+                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                        </Grid>
+
+                        <!-- Process Payment -->
+                        <Button HorizontalAlignment="Stretch"
+                                Margin="0,8,0,0"
+                                Padding="0,12"
+                                CornerRadius="8"
+                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                Command="{x:Bind ViewModel.ProcessPaymentCommand}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                            </Button.Resources>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Width="16" Height="16"
+                                          Foreground="White"
+                                          Data="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
+                                <TextBlock Text="Process Payment"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="White" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Hold Order + Add Note -->
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0"
+                                    HorizontalAlignment="Stretch"
+                                    Padding="0,10"
+                                    CornerRadius="8"
+                                    Background="#FFC107"
+                                    BorderThickness="0"
+                                    Command="{x:Bind ViewModel.HoldOrderCommand}">
+                                <Button.Resources>
+                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FFB300" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#FFA000" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1A1A1A" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1A1A1A" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#FFB300" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#FFA000" />
+                                </Button.Resources>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Width="13" Height="13"
+                                              Foreground="#1A1A1A"
+                                              Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                    <TextBlock Text="Hold Order"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#1A1A1A" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    Padding="0,10"
+                                    CornerRadius="8"
+                                    Background="White"
+                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                    BorderThickness="1"
+                                    Command="{x:Bind ViewModel.AddNoteCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Width="13" Height="13"
+                                              Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
+                                              Data="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                                    <TextBlock Text="Add Note"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Full-page loading overlay -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2"
+              Background="#AA000000"
+              Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" Width="48" Height="48" Foreground="White" />
+                <TextBlock Text="Loading…"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

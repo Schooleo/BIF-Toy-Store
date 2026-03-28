@@ -27,7 +27,8 @@ namespace BIF.ToyStore.WinUI.Services
             string? primaryButtonText = "OK",
             string? closeButtonText = "Cancel",
             string? secondaryButtonText = null,
-            ContentDialogButton defaultButton = ContentDialogButton.Primary)
+            ContentDialogButton defaultButton = ContentDialogButton.Primary,
+            bool destructivePrimary = false)
         {
             var accentBrush = GetTypeBrush(type);
             var onSurfaceBrush = GetBrush("FluentPlayOnSurfaceBrush", Colors.Black);
@@ -37,6 +38,9 @@ namespace BIF.ToyStore.WinUI.Services
             var outlineBrush = GetBrush("FluentPlayOutlineVariantBrush", Color.FromArgb(255, 192, 199, 212));
             var primaryHoverBrush = GetBrush("FluentPlayPrimaryHoverBrush", Color.FromArgb(255, 0, 72, 131));
             var primaryPressedBrush = GetBrush("FluentPlayPrimaryPressedBrush", Color.FromArgb(255, 0, 57, 104));
+            var destructiveBrush = GetBrush("FluentPlayErrorColor", Color.FromArgb(255, 186, 26, 26));
+            var destructiveHoverBrush = new SolidColorBrush(Color.FromArgb(255, 168, 23, 23));
+            var destructivePressedBrush = new SolidColorBrush(Color.FromArgb(255, 145, 20, 20));
             var whiteBrush = new SolidColorBrush(Colors.White);
             var neutralHoverBrush = GetBrush("FluentPlaySurfaceContainerLowBrush", Color.FromArgb(255, 243, 243, 243));
             var neutralPressedBrush = GetBrush("FluentPlaySurfaceContainerHighBrush", Color.FromArgb(255, 232, 232, 232));
@@ -114,16 +118,16 @@ namespace BIF.ToyStore.WinUI.Services
             dialog.Resources["ButtonBorderBrushPointerOver"] = outlineBrush;
             dialog.Resources["ButtonBorderBrushPressed"] = outlineBrush;
 
-            // Primary dialog button: blue with darker blue hover/press.
-            dialog.Resources["AccentButtonBackground"] = primaryBrush;
+            // Primary dialog button: blue by default, red for destructive actions.
+            dialog.Resources["AccentButtonBackground"] = destructivePrimary ? destructiveBrush : primaryBrush;
             dialog.Resources["AccentButtonForeground"] = onPrimaryBrush;
-            dialog.Resources["AccentButtonBorderBrush"] = primaryBrush;
-            dialog.Resources["AccentButtonBackgroundPointerOver"] = primaryHoverBrush;
-            dialog.Resources["AccentButtonBackgroundPressed"] = primaryPressedBrush;
+            dialog.Resources["AccentButtonBorderBrush"] = destructivePrimary ? destructiveBrush : primaryBrush;
+            dialog.Resources["AccentButtonBackgroundPointerOver"] = destructivePrimary ? destructiveHoverBrush : primaryHoverBrush;
+            dialog.Resources["AccentButtonBackgroundPressed"] = destructivePrimary ? destructivePressedBrush : primaryPressedBrush;
             dialog.Resources["AccentButtonForegroundPointerOver"] = onPrimaryBrush;
             dialog.Resources["AccentButtonForegroundPressed"] = onPrimaryBrush;
-            dialog.Resources["AccentButtonBorderBrushPointerOver"] = primaryHoverBrush;
-            dialog.Resources["AccentButtonBorderBrushPressed"] = primaryPressedBrush;
+            dialog.Resources["AccentButtonBorderBrushPointerOver"] = destructivePrimary ? destructiveHoverBrush : primaryHoverBrush;
+            dialog.Resources["AccentButtonBorderBrushPressed"] = destructivePrimary ? destructivePressedBrush : primaryPressedBrush;
 
             IAsyncOperation<ContentDialogResult> operation = dialog.ShowAsync();
             var completion = new TaskCompletionSource<ContentDialogResult>();
