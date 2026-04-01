@@ -1,4 +1,5 @@
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -329,6 +330,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime) {
                 getOrders: orders(page: 1, pageSize: 200, fromDate: $fromDate, toDate: $toDate) {
                     items {
+                        status
                         totalAmount
                     }
                 }
@@ -344,7 +346,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                 ?? new DashboardTodayQueryData();
 
             OrdersToday = payload.GetOrders.Items.Count;
-            TodayRevenue = payload.GetOrders.Items.Sum(x => x.TotalAmount);
+            TodayRevenue = payload.GetOrders.Items
+                .Where(x => string.Equals(x.Status, OrderStatus.Paid.ToString(), StringComparison.OrdinalIgnoreCase))
+                .Sum(x => x.TotalAmount);
         }
 
         private void RebuildRevenueGeometry()

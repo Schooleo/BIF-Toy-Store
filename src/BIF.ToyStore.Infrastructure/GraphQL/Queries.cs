@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Services;
 using HotChocolate.Data;
@@ -125,6 +126,26 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             var products = await orderService.GetTopBestSellingProductsAsync(take);
             return products.Select(BestSellingProductPayload.FromModel).ToList();
+        }
+
+        public async Task<List<ReportTimeSeriesPointPayload>> GetReportTimeSeries(
+            DateTime startDate,
+            DateTime endDate,
+            ReportGroupBy groupBy,
+            [Service] IOrderService orderService)
+        {
+            var points = await orderService.GetReportTimeSeriesAsync(startDate, endDate, groupBy);
+            return points.Select(ReportTimeSeriesPointPayload.FromModel).ToList();
+        }
+
+        public async Task<List<ReportTopProductPointPayload>> GetReportTopProducts(
+            DateTime startDate,
+            DateTime endDate,
+            int take,
+            [Service] IOrderService orderService)
+        {
+            var products = await orderService.GetReportTopProductsAsync(startDate, endDate, take);
+            return products.Select(ReportTopProductPointPayload.FromModel).ToList();
         }
     }
 

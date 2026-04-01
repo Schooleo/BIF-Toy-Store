@@ -75,8 +75,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     {
                         Items =
                         [
-                            new DashboardOrderNode { TotalAmount = 100m },
-                            new DashboardOrderNode { TotalAmount = 50m }
+                            new DashboardOrderNode { Status = "Paid", TotalAmount = 100m },
+                            new DashboardOrderNode { Status = "New", TotalAmount = 50m }
                         ]
                     }
                 });
@@ -108,8 +108,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.True(vm.RevenueAxisMax >= 100);
 
             Assert.Equal(2, vm.OrdersToday);
-            Assert.Equal(150m, vm.TodayRevenue);
-            Assert.Equal("VND 150.00", vm.TodayRevenueDisplay);
+            Assert.Equal(100m, vm.TodayRevenue);
+            Assert.Equal("VND 100.00", vm.TodayRevenueDisplay);
             Assert.Equal("VND 11.00", vm.LowStockProducts.First().PriceDisplay);
             Assert.Equal("VND 100.00", vm.RecentOrders[0].TotalAmountDisplay);
             Assert.Equal("VND 10.00", vm.BestSellingProducts[0].PriceDisplay);

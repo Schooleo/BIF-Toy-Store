@@ -3,6 +3,7 @@
     x:Class="BIF.ToyStore.WinUI.Views.OrderPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls2="using:BIF.ToyStore.WinUI.Controls"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -28,6 +29,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
@@ -271,6 +273,8 @@
                             Padding="12,8" />
                 </StackPanel>
             </Grid>
+
+            <controls2:AppFooter Grid.Row="4" Margin="0,8,0,0" />
         </Grid>
 
         <!-- ─── Overlay dim when panel is open ─────────────────────────── -->
