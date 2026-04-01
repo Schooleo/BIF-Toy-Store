@@ -28,5 +28,15 @@ namespace BIF.ToyStore.Core.Interfaces
         Task<List<RevenueTrendPoint>> GetRevenueTrendAsync(int days);
 
         Task<List<BestSellingProductStat>> GetTopBestSellingProductsAsync(int take);
+
+        Task<List<ReportTimeSeriesPoint>> GetReportTimeSeriesAsync(
+            DateTime startDate,
+            DateTime endDate,
+            ReportGroupBy groupBy);
+
+        Task<List<ReportTopProductPoint>> GetReportTopProductsAsync(
+            DateTime startDate,
+            DateTime endDate,
+            int take);
     }
 }

@@ -91,6 +91,20 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Orders");
         }
 
+        public void NavigateToReports()
+        {
+            if (!IsCurrentUserAdmin)
+            {
+                NavigateToDashboard();
+                return;
+            }
+
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToReports();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Reports");
+        }
+
         public async Task LogoutAsync()
         {
             using var scope = _scopeFactory.CreateScope();
@@ -174,6 +188,20 @@ namespace BIF.ToyStore.WinUI
             if (route == "Orders")
             {
                 NavigateToOrders();
+                return;
+            }
+
+            if (route == "Reports")
+            {
+                if (IsCurrentUserAdmin)
+                {
+                    NavigateToReports();
+                }
+                else
+                {
+                    NavigateToDashboard();
+                    _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+                }
                 return;
             }
 

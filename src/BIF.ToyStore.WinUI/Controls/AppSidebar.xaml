@@ -172,7 +172,7 @@
                                    RadiusY="2"
                                    Fill="{StaticResource FluentPlayPrimaryBrush}"
                                    Visibility="Collapsed" />
-                        <Button Click="PlaceholderButton_Click" Tag="Reports"
+                        <Button Click="ReportsButton_Click" Tag="Reports"
                                 Background="Transparent" BorderThickness="0"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                 Padding="16,10" CornerRadius="6">

@@ -3,6 +3,7 @@
     x:Class="BIF.ToyStore.WinUI.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:BIF.ToyStore.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pages="using:BIF.ToyStore.ViewModels.Pages"
@@ -18,6 +19,7 @@
                       HorizontalScrollMode="Disabled">
             <Grid Padding="32" RowSpacing="24" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -426,7 +428,7 @@
                                 </ItemsControl>
 
                                 <Border Grid.Row="1"
-                                    x:Name="BestSellingProductsEmptyState"
+                                        x:Name="BestSellingProductsEmptyState"
                                         x:Load="{x:Bind ViewModel.IsBestSellingProductsEmpty, Mode=OneWay}"
                                         Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
                                         BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
@@ -531,7 +533,7 @@
                         </ItemsControl>
 
                         <Border Grid.Row="1"
-                            x:Name="RecentOrdersEmptyState"
+                                x:Name="RecentOrdersEmptyState"
                                 x:Load="{x:Bind ViewModel.IsRecentOrdersEmpty, Mode=OneWay}"
                                 Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
                                 BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
@@ -550,6 +552,8 @@
                            Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                            TextWrapping="WrapWholeWords" />
+
+                <controls:AppFooter Grid.Row="5" Margin="0,8,0,0" />
             </Grid>
         </ScrollViewer>
     </Grid>

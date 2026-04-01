@@ -3,6 +3,7 @@ using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
@@ -286,6 +287,174 @@ namespace BIF.ToyStore.Infrastructure.Services
             }
 
             return rows;
+        }
+
+        public async Task<List<ReportTimeSeriesPoint>> GetReportTimeSeriesAsync(
+            DateTime startDate,
+            DateTime endDate,
+            ReportGroupBy groupBy)
+        {
+            if (endDate < startDate)
+            {
+                (startDate, endDate) = (endDate, startDate);
+            }
+
+            var safeStartDate = startDate.Date;
+            var safeEndDate = endDate.Date;
+            var safeEndTimestamp = safeEndDate.AddDays(1).AddTicks(-1);
+
+            var dailyPoints = await (
+                from detail in _dbContext.OrderDetails.AsNoTracking()
+                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
+                where !order.IsDeleted
+                    && order.Status == OrderStatus.Paid
+                    && order.OrderDate >= safeStartDate
+                    && order.OrderDate <= safeEndTimestamp
+                group detail by order.OrderDate.Date
+                into g
+                select new
+                {
+                    Date = g.Key,
+                    TotalQuantity = g.Sum(x => x.Quantity),
+                    TotalRevenue = g.Sum(x => x.Quantity * x.UnitPrice),
+                    TotalProfit = g.Sum(x => x.Quantity * (x.UnitPrice - x.UnitImportPrice))
+                })
+                .ToListAsync();
+
+            var aggregated = dailyPoints
+                .GroupBy(x => GetBucketStart(x.Date, groupBy))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        TotalQuantity = g.Sum(x => x.TotalQuantity),
+                        TotalRevenue = g.Sum(x => x.TotalRevenue),
+                        TotalProfit = g.Sum(x => x.TotalProfit)
+                    });
+
+            var bucketStarts = BuildBucketStarts(safeStartDate, safeEndDate, groupBy);
+            var result = new List<ReportTimeSeriesPoint>(bucketStarts.Count);
+
+            foreach (var bucketStart in bucketStarts)
+            {
+                aggregated.TryGetValue(bucketStart, out var value);
+
+                result.Add(new ReportTimeSeriesPoint
+                {
+                    PeriodStart = bucketStart,
+                    PeriodLabel = GetBucketLabel(bucketStart, groupBy),
+                    TotalQuantity = value?.TotalQuantity ?? 0,
+                    TotalRevenue = value?.TotalRevenue ?? 0m,
+                    TotalProfit = value?.TotalProfit ?? 0m
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<List<ReportTopProductPoint>> GetReportTopProductsAsync(
+            DateTime startDate,
+            DateTime endDate,
+            int take)
+        {
+            if (endDate < startDate)
+            {
+                (startDate, endDate) = (endDate, startDate);
+            }
+
+            int safeTake = Math.Clamp(take, 1, 20);
+            var safeStartDate = startDate.Date;
+            var safeEndTimestamp = endDate.Date.AddDays(1).AddTicks(-1);
+
+            var rows = await (
+                from detail in _dbContext.OrderDetails.AsNoTracking()
+                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
+                join product in _dbContext.Products.AsNoTracking() on detail.ProductId equals product.Id
+                join category in _dbContext.Categories.AsNoTracking() on product.CategoryId equals category.Id into categoryGroup
+                from category in categoryGroup.DefaultIfEmpty()
+                where !order.IsDeleted
+                    && order.Status == OrderStatus.Paid
+                    && order.OrderDate >= safeStartDate
+                    && order.OrderDate <= safeEndTimestamp
+                group new { detail, product, category } by new
+                {
+                    product.Id,
+                    product.Name,
+                    CategoryName = category != null ? category.Name : "Unknown"
+                }
+                into g
+                orderby g.Sum(x => x.detail.Quantity) descending, g.Key.Name
+                select new ReportTopProductPoint
+                {
+                    ProductId = g.Key.Id,
+                    ProductName = g.Key.Name,
+                    CategoryName = g.Key.CategoryName,
+                    TotalQuantity = g.Sum(x => x.detail.Quantity),
+                    TotalRevenue = g.Sum(x => x.detail.Quantity * x.detail.UnitPrice),
+                    TotalProfit = g.Sum(x => x.detail.Quantity * (x.detail.UnitPrice - x.detail.UnitImportPrice))
+                })
+                .Take(safeTake)
+                .ToListAsync();
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                rows[i].Rank = i + 1;
+            }
+
+            return rows;
+        }
+
+        private static DateTime GetBucketStart(DateTime date, ReportGroupBy groupBy)
+        {
+            return groupBy switch
+            {
+                ReportGroupBy.Day => date.Date,
+                ReportGroupBy.Week => StartOfWeek(date),
+                ReportGroupBy.Month => new DateTime(date.Year, date.Month, 1),
+                ReportGroupBy.Year => new DateTime(date.Year, 1, 1),
+                _ => date.Date
+            };
+        }
+
+        private static List<DateTime> BuildBucketStarts(DateTime startDate, DateTime endDate, ReportGroupBy groupBy)
+        {
+            var normalizedStart = GetBucketStart(startDate, groupBy);
+            var normalizedEnd = GetBucketStart(endDate, groupBy);
+
+            var buckets = new List<DateTime>();
+            var cursor = normalizedStart;
+            while (cursor <= normalizedEnd)
+            {
+                buckets.Add(cursor);
+                cursor = groupBy switch
+                {
+                    ReportGroupBy.Day => cursor.AddDays(1),
+                    ReportGroupBy.Week => cursor.AddDays(7),
+                    ReportGroupBy.Month => cursor.AddMonths(1),
+                    ReportGroupBy.Year => cursor.AddYears(1),
+                    _ => cursor.AddDays(1)
+                };
+            }
+
+            return buckets;
+        }
+
+        private static string GetBucketLabel(DateTime bucketStart, ReportGroupBy groupBy)
+        {
+            return groupBy switch
+            {
+                ReportGroupBy.Day => bucketStart.ToString("dd MMM", CultureInfo.InvariantCulture),
+                ReportGroupBy.Week => $"Week {ISOWeek.GetWeekOfYear(bucketStart)}",
+                ReportGroupBy.Month => bucketStart.ToString("MMM yyyy", CultureInfo.InvariantCulture),
+                ReportGroupBy.Year => bucketStart.ToString("yyyy", CultureInfo.InvariantCulture),
+                _ => bucketStart.ToString("dd MMM", CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static DateTime StartOfWeek(DateTime date)
+        {
+            int offset = ((int)date.DayOfWeek + 6) % 7;
+            return date.Date.AddDays(-offset);
         }
     }
 }
