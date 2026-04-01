@@ -1,0 +1,189 @@
+using BIF.ToyStore.Core.Models;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Input;
+
+namespace BIF.ToyStore.WinUI.Controls
+{
+    public sealed partial class ProductDetailsForm : UserControl, INotifyPropertyChanged
+    {
+        private static readonly Product EmptyProduct = new();
+        private bool _isFormLoaded;
+
+        public ProductDetailsForm()
+        {
+            InitializeComponent();
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public Product EditableProduct => Product ?? EmptyProduct;
+
+        public string SelectedCategoryDisplay
+        {
+            get
+            {
+                if (Product?.Category is Category { Name: not null } selectedCategory)
+                {
+                    return selectedCategory.Name;
+                }
+
+                if (Product is not null && Categories is not null)
+                {
+                    foreach (var category in Categories)
+                    {
+                        if (category.Id == Product.CategoryId)
+                        {
+                            return category.Name;
+                        }
+                    }
+                }
+
+                return "Category";
+            }
+        }
+
+        public bool IsErrorOpen => !string.IsNullOrWhiteSpace(EditErrorMessage);
+
+        public Product? Product
+        {
+            get => (Product?)GetValue(ProductProperty);
+            set => SetValue(ProductProperty, value);
+        }
+
+        public static readonly DependencyProperty ProductProperty = DependencyProperty.Register(
+            nameof(Product),
+            typeof(Product),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(null, OnProductChanged));
+
+        public ObservableCollection<Category>? Categories
+        {
+            get => (ObservableCollection<Category>?)GetValue(CategoriesProperty);
+            set => SetValue(CategoriesProperty, value);
+        }
+
+        public static readonly DependencyProperty CategoriesProperty = DependencyProperty.Register(
+            nameof(Categories),
+            typeof(ObservableCollection<Category>),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(new ObservableCollection<Category>(), OnCategoriesChanged));
+
+        public ICommand? SaveCommand
+        {
+            get => (ICommand?)GetValue(SaveCommandProperty);
+            set => SetValue(SaveCommandProperty, value);
+        }
+
+        public static readonly DependencyProperty SaveCommandProperty = DependencyProperty.Register(
+            nameof(SaveCommand),
+            typeof(ICommand),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(null));
+
+        public ICommand? CancelCommand
+        {
+            get => (ICommand?)GetValue(CancelCommandProperty);
+            set => SetValue(CancelCommandProperty, value);
+        }
+
+        public static readonly DependencyProperty CancelCommandProperty = DependencyProperty.Register(
+            nameof(CancelCommand),
+            typeof(ICommand),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(null));
+
+        public string EditErrorMessage
+        {
+            get => (string)GetValue(EditErrorMessageProperty);
+            set => SetValue(EditErrorMessageProperty, value);
+        }
+
+        public static readonly DependencyProperty EditErrorMessageProperty = DependencyProperty.Register(
+            nameof(EditErrorMessage),
+            typeof(string),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(string.Empty, OnEditErrorMessageChanged));
+
+        private static void OnProductChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ProductDetailsForm form && form._isFormLoaded)
+            {
+                form.OnPropertyChanged(nameof(EditableProduct));
+                form.OnPropertyChanged(nameof(SelectedCategoryDisplay));
+            }
+        }
+
+        private static void OnCategoriesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ProductDetailsForm form && form._isFormLoaded)
+            {
+                form.OnPropertyChanged(nameof(SelectedCategoryDisplay));
+            }
+        }
+
+        private static void OnEditErrorMessageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ProductDetailsForm form && form._isFormLoaded)
+            {
+                form.OnPropertyChanged(nameof(IsErrorOpen));
+            }
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            _isFormLoaded = true;
+            OnPropertyChanged(nameof(EditableProduct));
+            OnPropertyChanged(nameof(IsErrorOpen));
+            OnPropertyChanged(nameof(SelectedCategoryDisplay));
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            _isFormLoaded = false;
+        }
+
+        private void FieldChanged_ClearError(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(EditErrorMessage))
+            {
+                EditErrorMessage = string.Empty;
+            }
+        }
+
+        private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (Product is not null && sender is ListView { SelectedItem: Category category })
+            {
+                Product.CategoryId = category.Id;
+                Product.Category = category;
+            }
+            else if (Product is not null)
+            {
+                Product.CategoryId = 0;
+                Product.Category = null;
+            }
+
+            OnPropertyChanged(nameof(SelectedCategoryDisplay));
+
+            FieldChanged_ClearError(sender, e);
+        }
+
+        private void FieldChanged_ClearError(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (!string.IsNullOrWhiteSpace(EditErrorMessage))
+            {
+                EditErrorMessage = string.Empty;
+            }
+        }
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}

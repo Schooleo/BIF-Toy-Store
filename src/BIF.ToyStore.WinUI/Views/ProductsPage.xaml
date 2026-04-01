@@ -476,5 +476,19 @@
                     TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>
+
+        <Grid
+            Background="#66000000"
+            Visibility="{x:Bind ViewModel.IsEditingProduct, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <custom:ProductDetailsForm
+                Margin="0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Product="{x:Bind ViewModel.EditingProduct, Mode=OneWay}"
+                Categories="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                SaveCommand="{x:Bind ViewModel.SaveProductEditCommand, Mode=OneWay}"
+                CancelCommand="{x:Bind ViewModel.CancelProductEditCommand, Mode=OneWay}"
+                EditErrorMessage="{x:Bind ViewModel.EditErrorMessage, Mode=TwoWay}" />
+        </Grid>
     </Grid>
 </Page>

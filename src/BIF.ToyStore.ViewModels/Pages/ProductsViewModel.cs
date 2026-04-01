@@ -56,8 +56,18 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _importErrorMessage = string.Empty;
 
+        [ObservableProperty]
+        private bool _isEditingProduct;
+
+        [ObservableProperty]
+        private Product? _editingProduct;
+
+        [ObservableProperty]
+        private string _editErrorMessage = string.Empty;
+
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
+        public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
 
         // Computed property for total count label (notifies when TotalCount changes)
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
@@ -82,6 +92,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         partial void OnImportSuccessMessageChanged(string value) => OnPropertyChanged(nameof(HasImportSuccessMessage));
         partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
+        partial void OnEditErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasEditErrorMessage));
 
         [RelayCommand]
         public async Task LoadCategoriesAsync()
@@ -278,6 +289,89 @@ namespace BIF.ToyStore.ViewModels.Pages
                 }";
             await _graphQLClient.ExecuteAsync<Product>(query, new { input }, dataKey: "updateProduct");
             await LoadProductsAsync();
+        }
+
+        [RelayCommand]
+        public void OpenEditPanel(Product product)
+        {
+            if (product is null)
+            {
+                return;
+            }
+
+            EditingProduct = new Product
+            {
+                Id = product.Id,
+                Name = product.Name,
+                CategoryId = product.CategoryId,
+                Category = product.Category,
+                RetailPrice = product.RetailPrice,
+                ImportPrice = product.ImportPrice,
+                StockQuantity = product.StockQuantity,
+                IsDeleted = product.IsDeleted
+            };
+
+            EditErrorMessage = string.Empty;
+            IsEditingProduct = true;
+        }
+
+        [RelayCommand]
+        public async Task SaveProductEditAsync()
+        {
+            if (EditingProduct is null)
+            {
+                return;
+            }
+
+            EditErrorMessage = string.Empty;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(EditingProduct.Name))
+                {
+                    EditErrorMessage = "Product name is required.";
+                    return;
+                }
+
+                if (EditingProduct.CategoryId <= 0)
+                {
+                    EditErrorMessage = "Please select a category.";
+                    return;
+                }
+
+                if (EditingProduct.Id <= 0)
+                {
+                    EditErrorMessage = "Invalid product id. Please close and reopen the editor.";
+                    return;
+                }
+
+                var input = new UpdateProductInput
+                {
+                    Id = EditingProduct.Id,
+                    Name = EditingProduct.Name,
+                    CategoryId = EditingProduct.CategoryId,
+                    ImportPrice = EditingProduct.ImportPrice,
+                    RetailPrice = EditingProduct.RetailPrice,
+                    StockQuantity = EditingProduct.StockQuantity
+                };
+
+                await UpdateProductAsync(input);
+
+                IsEditingProduct = false;
+                EditingProduct = null;
+            }
+            catch (Exception ex)
+            {
+                EditErrorMessage = $"Unable to save product changes: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        public void CancelProductEdit()
+        {
+            EditErrorMessage = string.Empty;
+            IsEditingProduct = false;
+            EditingProduct = null;
         }
 
         [RelayCommand]

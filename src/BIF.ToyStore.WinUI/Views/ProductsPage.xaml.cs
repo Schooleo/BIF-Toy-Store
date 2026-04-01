@@ -133,30 +133,11 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private async void EditProduct_Click(object sender, RoutedEventArgs e)
+        private void EditProduct_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            if (button?.Tag is Product product)
+            if (sender is Button { Tag: Product product } && ViewModel.OpenEditPanelCommand.CanExecute(product))
             {
-                var dialog = new Dialogs.AddProductForm(ViewModel.Categories, product)
-                {
-                    XamlRoot = this.XamlRoot
-                };
-                
-                var result = await dialog.ShowAsync();
-                if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
-                {
-                    var input = new BIF.ToyStore.Infrastructure.GraphQL.UpdateProductInput
-                    {
-                        Id = dialog.ResultProduct.Id,
-                        Name = dialog.ResultProduct.Name,
-                        CategoryId = dialog.ResultProduct.CategoryId,
-                        ImportPrice = dialog.ResultProduct.ImportPrice,
-                        RetailPrice = dialog.ResultProduct.RetailPrice,
-                        StockQuantity = dialog.ResultProduct.StockQuantity
-                    };
-                    await ViewModel.UpdateProductAsync(input);
-                }
+                ViewModel.OpenEditPanelCommand.Execute(product);
             }
         }
 
