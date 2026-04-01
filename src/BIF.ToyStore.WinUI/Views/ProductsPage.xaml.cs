@@ -1,9 +1,11 @@
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.WinUI.Services;
+using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System;
 using WinRT.Interop;
 namespace BIF.ToyStore.WinUI.Views
@@ -63,6 +65,50 @@ namespace BIF.ToyStore.WinUI.Views
                     ViewModel.ApplyFilterCommand.Execute(null);
                 }
             }
+        }
+
+        private void ClearCategoryFilter_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel.SelectedCategory = null;
+            ApplyFilter();
+        }
+
+        private void ProductsDataGrid_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            if (IsFromButton(e.OriginalSource as DependencyObject))
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            if (sender is DataGrid dataGrid)
+            {
+                dataGrid.SelectedItem = null;
+            }
+        }
+
+        private void ProductsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is DataGrid dataGrid && dataGrid.SelectedItem != null)
+            {
+                dataGrid.SelectedItem = null;
+            }
+        }
+
+        private static bool IsFromButton(DependencyObject source)
+        {
+            while (source != null)
+            {
+                if (source is Button)
+                {
+                    return true;
+                }
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
         }
 
         private async void AddProduct_Click(object sender, RoutedEventArgs e)
