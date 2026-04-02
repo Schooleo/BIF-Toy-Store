@@ -598,6 +598,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public int Kpi { get; }
         public string Initials { get; }
         public string RoleLabel => Role == UserRole.Admin ? "ADMIN" : "SALE";
+        public bool IsAdmin => Role == UserRole.Admin;
+        public bool IsSale => Role == UserRole.Sale;
 
         [ObservableProperty]
         private bool _isPasswordVisible;
