@@ -2,6 +2,7 @@ using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Utils;
 using Moq;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
@@ -9,12 +10,17 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     public class UserManagementViewModelTests
     {
         private readonly Mock<IGraphQLClient> _graphQLClientMock;
+        private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
         private readonly UserManagementViewModel _viewModel;
 
         public UserManagementViewModelTests()
         {
             _graphQLClientMock = new Mock<IGraphQLClient>();
-            _viewModel = new UserManagementViewModel(_graphQLClientMock.Object);
+            _localSettingsServiceMock = new Mock<ILocalSettingsService>();
+            _localSettingsServiceMock
+                .Setup(x => x.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20))
+                .Returns(20);
+            _viewModel = new UserManagementViewModel(_graphQLClientMock.Object, _localSettingsServiceMock.Object);
         }
 
         [Fact]
@@ -32,22 +38,33 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
-                    It.Is<string>(q => q.Contains("getUserList")),
-                    null,
+                    It.Is<string>(q => q.Contains("usersConnection")),
+                    It.IsAny<object>(),
                     ""))
                 .ReturnsAsync(new UserManagementQueryData
                 {
-                    GetUserList = new List<UserListItemDto>
+                    UsersConnection = new UserConnection
                     {
-                        new() { Id = 1, Username = "alex", Role = "Sale" },
-                        new() { Id = 2, Username = "zoe", Role = "Admin" },
-                        new() { Id = 3, Username = "amy", Role = "UnknownRole" }
+                        TotalCount = 3,
+                        PageInfo = new UserPageInfo
+                        {
+                            HasNextPage = false,
+                            HasPreviousPage = false,
+                            StartCursor = "cursor-start",
+                            EndCursor = "cursor-end"
+                        },
+                        Nodes = new List<UserListItemDto>
+                        {
+                            new() { Id = 1, Username = "alex", Role = "Sale" },
+                            new() { Id = 2, Username = "zoe", Role = "Admin" },
+                            new() { Id = 3, Username = "amy", Role = "UnknownRole" }
+                        }
                     },
                     Users = new List<UserPasswordDto>
                     {
-                        new() { Id = 1, PasswordHash = "enc-1" },
-                        new() { Id = 2, PasswordHash = "enc-2" },
-                        new() { Id = 3, PasswordHash = "enc-3" }
+                        new() { Id = 1, PasswordHash = "enc-1", Role = "Sale" },
+                        new() { Id = 2, PasswordHash = "enc-2", Role = "Admin" },
+                        new() { Id = 3, PasswordHash = "enc-3", Role = "UnknownRole" }
                     },
                     GetSaleKpiRanking = new List<SaleKpiRankingDto>
                     {
@@ -62,6 +79,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(3, _viewModel.TotalStaff);
             Assert.Equal(1, _viewModel.Admins);
             Assert.Equal(2, _viewModel.ActiveSessions);
+            Assert.False(_viewModel.HasNextPage);
+            Assert.False(_viewModel.HasPreviousPage);
+            Assert.Equal("cursor-end", _viewModel.AfterCursor);
 
             Assert.Equal(3, _viewModel.VisibleUsers.Count);
             Assert.Equal("alex", _viewModel.VisibleUsers[0].Username);
@@ -78,7 +98,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
                     It.IsAny<string>(),
-                    null,
+                    It.IsAny<object>(),
                     ""))
                 .ThrowsAsync(new Exception("Field 'getSaleKpiRanking' does not exist on the type 'Query'."));
 
@@ -101,12 +121,53 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
+        public async Task LoadAsync_LegacyMode_PaginatesByPageSize()
+        {
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
+                    It.IsAny<string>(),
+                    It.IsAny<object>(),
+                    ""))
+                .ThrowsAsync(new Exception("Field 'usersConnection' does not exist on the type 'Query'."));
+
+            var legacyUsers = Enumerable.Range(1, 22)
+                .Select(i => new LegacyUserDto
+                {
+                    Id = i,
+                    Username = $"legacy.user{i:D2}",
+                    PasswordHash = $"hash-{i}",
+                    Role = "Sale"
+                })
+                .ToList();
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<List<LegacyUserDto>>(
+                    It.Is<string>(q => q.Contains("users")),
+                    null,
+                    "users"))
+                .ReturnsAsync(legacyUsers);
+
+            await _viewModel.LoadAsync();
+
+            Assert.Equal(22, _viewModel.TotalCount);
+            Assert.Equal(20, _viewModel.VisibleUsers.Count);
+            Assert.True(_viewModel.HasNextPage);
+            Assert.False(_viewModel.HasPreviousPage);
+
+            await _viewModel.NextPageCommand.ExecuteAsync(null);
+
+            Assert.Equal(2, _viewModel.VisibleUsers.Count);
+            Assert.False(_viewModel.HasNextPage);
+            Assert.True(_viewModel.HasPreviousPage);
+        }
+
+        [Fact]
         public async Task LoadAsync_NewApiFailure_ClearsStateAndSetsError()
         {
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
                     It.IsAny<string>(),
-                    null,
+                    It.IsAny<object>(),
                     ""))
                 .ThrowsAsync(new Exception("network down"));
 
@@ -128,21 +189,26 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
-                    It.IsAny<string>(),
-                    null,
+                    It.Is<string>(q => q.Contains("usersConnection")),
+                    It.IsAny<object>(),
                     ""))
                 .ReturnsAsync(new UserManagementQueryData
                 {
-                    GetUserList = new List<UserListItemDto>
+                    UsersConnection = new UserConnection
                     {
-                        new() { Id = 1, Username = "anna", Role = "Sale" },
-                        new() { Id = 2, Username = "bruce", Role = "Sale" },
-                        new() { Id = 3, Username = "adam", Role = "Admin" }
+                        TotalCount = 2,
+                        PageInfo = new UserPageInfo(),
+                        Nodes = new List<UserListItemDto>
+                        {
+                            new() { Id = 1, Username = "anna", Role = "Sale" },
+                            new() { Id = 3, Username = "adam", Role = "Admin" }
+                        }
                     }
                 });
 
             await _viewModel.LoadAsync();
             _viewModel.SelectedNameFilter = "A";
+            await _viewModel.ApplyFilterCommand.ExecuteAsync(null);
 
             Assert.Equal(2, _viewModel.VisibleUsers.Count);
             Assert.All(_viewModel.VisibleUsers, u => Assert.StartsWith("a", u.Username, StringComparison.OrdinalIgnoreCase));
@@ -190,18 +256,22 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
-                    It.Is<string>(q => q.Contains("getUserList")),
-                    null,
+                    It.Is<string>(q => q.Contains("usersConnection")),
+                    It.IsAny<object>(),
                     ""))
                 .ReturnsAsync(new UserManagementQueryData
                 {
-                    GetUserList = new List<UserListItemDto>
+                    UsersConnection = new UserConnection
                     {
-                        new() { Id = 50, Username = "new.sale", Role = "Sale" }
+                        TotalCount = 1,
+                        Nodes = new List<UserListItemDto>
+                        {
+                            new() { Id = 50, Username = "new.sale", Role = "Sale" }
+                        }
                     },
                     Users = new List<UserPasswordDto>
                     {
-                        new() { Id = 50, PasswordHash = "enc-50" }
+                        new() { Id = 50, PasswordHash = "enc-50", Role = "Sale" }
                     }
                 });
 
@@ -215,7 +285,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "createUser"),
                 Times.Once);
             _graphQLClientMock.Verify(
-                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), It.IsAny<object>(), ""),
                 Times.Once);
         }
 
@@ -244,8 +314,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
-                    It.Is<string>(q => q.Contains("getUserList")),
-                    null,
+                    It.Is<string>(q => q.Contains("usersConnection")),
+                    It.IsAny<object>(),
                     ""))
                 .ReturnsAsync(new UserManagementQueryData());
 
@@ -256,7 +326,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.ExecuteAsync<bool>(It.IsAny<string>(), It.IsAny<object>(), "deleteUser"),
                 Times.Once);
             _graphQLClientMock.Verify(
-                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), It.IsAny<object>(), ""),
                 Times.Once);
         }
 
@@ -288,18 +358,22 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             _graphQLClientMock
                 .Setup(x => x.ExecuteAsync<UserManagementQueryData>(
-                    It.Is<string>(q => q.Contains("getUserList")),
-                    null,
+                    It.Is<string>(q => q.Contains("usersConnection")),
+                    It.IsAny<object>(),
                     ""))
                 .ReturnsAsync(new UserManagementQueryData
                 {
-                    GetUserList = new List<UserListItemDto>
+                    UsersConnection = new UserConnection
                     {
-                        new() { Id = 9, Username = "updated.user", Role = "Sale" }
+                        TotalCount = 1,
+                        Nodes = new List<UserListItemDto>
+                        {
+                            new() { Id = 9, Username = "updated.user", Role = "Sale" }
+                        }
                     },
                     Users = new List<UserPasswordDto>
                     {
-                        new() { Id = 9, PasswordHash = "enc-9" }
+                        new() { Id = 9, PasswordHash = "enc-9", Role = "Sale" }
                     }
                 });
 
@@ -316,7 +390,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "updateUser"),
                 Times.Once);
             _graphQLClientMock.Verify(
-                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), null, ""),
+                x => x.ExecuteAsync<UserManagementQueryData>(It.IsAny<string>(), It.IsAny<object>(), ""),
                 Times.Once);
         }
 

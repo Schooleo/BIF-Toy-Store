@@ -23,6 +23,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -133,7 +134,8 @@
                                   Width="150"
                                   HorizontalAlignment="Right"
                                   ItemsSource="{x:Bind ViewModel.NameFilters, Mode=OneWay}"
-                                  SelectedItem="{x:Bind ViewModel.SelectedNameFilter, Mode=TwoWay}" />
+                                  SelectedItem="{x:Bind ViewModel.SelectedNameFilter, Mode=TwoWay}"
+                                  SelectionChanged="NameFilter_SelectionChanged" />
                     </Grid>
 
                     <Border Grid.Row="1"
@@ -277,7 +279,16 @@
                 </Grid>
                 </Border>
 
-                <Grid Grid.Row="3" ColumnSpacing="24">
+                <controls:PaginationControl
+                    Grid.Row="3"
+                    Margin="0,8,0,0"
+                    FirstPageCommand="{x:Bind ViewModel.FirstPageCommand, Mode=OneWay}"
+                    LastPageCommand="{x:Bind ViewModel.LastPageCommand, Mode=OneWay}"
+                    NextPageCommand="{x:Bind ViewModel.NextPageCommand, Mode=OneWay}"
+                    PreviousPageCommand="{x:Bind ViewModel.PreviousPageCommand, Mode=OneWay}"
+                    TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}" />
+
+                <Grid Grid.Row="4" ColumnSpacing="24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
@@ -308,7 +319,7 @@
                     </Border>
                 </Grid>
 
-                <controls:AppFooter Grid.Row="4" Margin="0,8,0,0" />
+                <controls:AppFooter Grid.Row="5" Margin="0,8,0,0" />
             </Grid>
         </ScrollViewer>
 

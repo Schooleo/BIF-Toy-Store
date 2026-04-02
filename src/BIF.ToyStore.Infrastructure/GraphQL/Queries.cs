@@ -93,6 +93,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             }).ToList();
         }
 
+        [UsePaging(IncludeTotalCount = true)]
+        [UseFiltering]
+        [UseSorting]
+        public IQueryable<User> UsersConnection([Service] AppDbContext dbContext)
+        {
+            return dbContext.Users.AsNoTracking();
+        }
+
         public async Task<List<UserListItemPayload>> GetUserList([Service] AppDbContext dbContext)
         {
             var users = await dbContext.Users
