@@ -34,6 +34,35 @@ namespace BIF.ToyStore.WinUI
             }
         }
 
+        public string CurrentUsername
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_currentUser?.Username))
+                {
+                    return _currentUser.Username;
+                }
+
+                return _localSettingsService.GetString("LastUsername", "Unknown User");
+            }
+        }
+
+        public string CurrentUserRoleLabel
+        {
+            get
+            {
+                if (_currentUser is not null)
+                {
+                    return _currentUser.Role == Core.Enums.UserRole.Admin ? "ADMIN" : "SALE";
+                }
+
+                var role = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, string.Empty);
+                return string.Equals(role, Core.Enums.UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
+                    ? "ADMIN"
+                    : "SALE";
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();

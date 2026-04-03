@@ -2,16 +2,19 @@ using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
+using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
-    public partial class UserManagementViewModel : BaseViewModel
+    public partial class UserManagementViewModel : PaginatedViewModel
     {
         private readonly IGraphQLClient _graphQLClient;
-        private readonly List<UserItemViewModel> _allUsers = new();
+        private readonly List<UserItemViewModel> _legacyUsers = new();
+        private bool _isLegacyMode;
+        private int _legacyPageIndex;
 
         [ObservableProperty]
         private ObservableCollection<UserItemViewModel> _visibleUsers = new();
@@ -34,42 +37,81 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _errorMessage = string.Empty;
 
-        public UserManagementViewModel(IGraphQLClient graphQLClient)
+        public UserManagementViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService)
         {
             _graphQLClient = graphQLClient;
             Title = "Staff Directory";
+            PageSize = localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
 
             NameFilters = new ObservableCollection<string>(BuildNameFilters());
         }
 
-        partial void OnSelectedNameFilterChanged(string value)
+        public async Task LoadAsync(bool forceRefresh = false)
         {
-            ApplySortAndFilter();
+            if (!forceRefresh && _isLegacyMode && _legacyUsers.Count > 0)
+            {
+                ApplyLegacySortAndFilterAndPage(direction: null, resetToFirstPage: false);
+                return;
+            }
+
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadPageAsync(null);
         }
 
-        public async Task LoadAsync()
+        [RelayCommand]
+        public async Task ApplyFilterAsync()
         {
+            if (_isLegacyMode && _legacyUsers.Count > 0)
+            {
+                ApplyLegacySortAndFilterAndPage(direction: null, resetToFirstPage: true);
+                return;
+            }
+
+            if (IsBusy)
+            {
+                return;
+            }
+
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadPageAsync(null);
+        }
+
+        protected override async Task LoadPageAsync(string? direction)
+        {
+            IsBusy = true;
             try
             {
                 ErrorMessage = string.Empty;
 
-                bool loadedFromNewApi = await TryLoadFromNewApisAsync();
+                if (_isLegacyMode && _legacyUsers.Count > 0)
+                {
+                    ApplyLegacySortAndFilterAndPage(direction, resetToFirstPage: false);
+                    return;
+                }
+
+                bool loadedFromNewApi = await TryLoadFromNewApisAsync(direction);
                 if (!loadedFromNewApi)
                 {
                     await LoadFromLegacyUsersApiAsync();
+                    ApplyLegacySortAndFilterAndPage(direction, resetToFirstPage: true);
                     ErrorMessage = "Running with legacy GraphQL schema. KPI ranking API is unavailable.";
                 }
-
-                ApplySortAndFilter();
             }
             catch (Exception ex)
             {
                 ErrorMessage = "Unable to load users: " + ex.Message;
-                _allUsers.Clear();
+                _legacyUsers.Clear();
                 VisibleUsers.Clear();
+                ApplyPageInfo(0, false, false, null, null);
                 TotalStaff = 0;
                 Admins = 0;
                 ActiveSessions = 0;
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
@@ -108,7 +150,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return false;
                 }
 
-                await LoadAsync();
+                await LoadAsync(forceRefresh: true);
                 return true;
             }
             catch (Exception ex)
@@ -149,7 +191,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return false;
                 }
 
-                await LoadAsync();
+                await LoadAsync(forceRefresh: true);
                 return true;
             }
             catch (Exception ex)
@@ -207,7 +249,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return false;
                 }
 
-                await LoadAsync();
+                await LoadAsync(forceRefresh: true);
                 return true;
             }
             catch (Exception ex)
@@ -221,18 +263,38 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
-        private async Task<bool> TryLoadFromNewApisAsync()
+        private async Task<bool> TryLoadFromNewApisAsync(string? direction)
         {
-            const string query = @"query {
-                getUserList {
-                    id
-                    username
-                    role
+            const string query = @"query GetUsers(
+                $first: Int, $last: Int, $after: String, $before: String,
+                $where: UserFilterInput, $order: [UserSortInput!]
+            ) {
+                usersConnection(
+                    first: $first,
+                    last: $last,
+                    after: $after,
+                    before: $before,
+                    where: $where,
+                    order: $order
+                ) {
+                    totalCount
+                    pageInfo {
+                        hasNextPage
+                        hasPreviousPage
+                        startCursor
+                        endCursor
+                    }
+                    nodes {
+                        id
+                        username
+                        role
+                    }
                 }
 
                 users {
                     id
                     passwordHash
+                    role
                 }
 
                 getSaleKpiRanking {
@@ -245,8 +307,58 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             try
             {
-                var response = await _graphQLClient.ExecuteAsync<UserManagementQueryData>(query)
+                int? firstVar = null;
+                int? lastVar = null;
+                string? afterVar = null;
+                string? beforeVar = null;
+
+                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
+                {
+                    firstVar = PageSize;
+                    afterVar = AfterCursor;
+                }
+                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
+                {
+                    lastVar = PageSize;
+                    beforeVar = BeforeCursor;
+                }
+                else if (direction == "last")
+                {
+                    lastVar = PageSize;
+                }
+                else
+                {
+                    firstVar = PageSize;
+                }
+
+                string selectedFilter = string.IsNullOrWhiteSpace(SelectedNameFilter)
+                    ? "All"
+                    : SelectedNameFilter;
+
+                object? whereClause = string.Equals(selectedFilter, "All", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : new { username = new { startsWith = selectedFilter } };
+
+                object orderClause = new object[]
+                {
+                    new { username = "ASC" },
+                    new { id = "ASC" }
+                };
+
+                var variables = new
+                {
+                    first = firstVar,
+                    last = lastVar,
+                    after = afterVar,
+                    before = beforeVar,
+                    where = whereClause,
+                    order = orderClause
+                };
+
+                var response = await _graphQLClient.ExecuteAsync<UserManagementQueryData>(query, variables)
                     ?? new UserManagementQueryData();
+
+                var usersConnection = response.UsersConnection ?? new UserConnection();
 
                 var passwordByUserId = response.Users
                     .GroupBy(u => u.Id)
@@ -256,20 +368,36 @@ namespace BIF.ToyStore.ViewModels.Pages
                     .GroupBy(r => r.SaleId)
                     .ToDictionary(g => g.Key, g => g.First());
 
-                _allUsers.Clear();
-                foreach (var item in response.GetUserList)
-                {
-                    passwordByUserId.TryGetValue(item.Id, out var passwordHash);
-                    rankingBySaleId.TryGetValue(item.Id, out var ranking);
+                var mappedUsers = (usersConnection.Nodes ?? new List<UserListItemDto>())
+                    .Select(item =>
+                    {
+                        passwordByUserId.TryGetValue(item.Id, out var passwordHash);
+                        rankingBySaleId.TryGetValue(item.Id, out var ranking);
 
-                    var role = ParseRole(item.Role);
+                        var role = ParseRole(item.Role);
+                        int kpi = role == UserRole.Sale ? ranking?.TotalOrders ?? 0 : 0;
 
-                    int kpi = role == UserRole.Sale
-                        ? ranking?.TotalOrders ?? 0
-                        : 0;
+                        return new UserItemViewModel(item.Id, item.Username, passwordHash ?? string.Empty, role, kpi);
+                    })
+                    .OrderByDescending(x => x.Kpi)
+                    .ThenBy(x => x.Username, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-                    _allUsers.Add(new UserItemViewModel(item.Id, item.Username, passwordHash ?? string.Empty, role, kpi));
-                }
+                VisibleUsers = new ObservableCollection<UserItemViewModel>(mappedUsers);
+
+                _isLegacyMode = false;
+                _legacyUsers.Clear();
+
+                TotalStaff = usersConnection.TotalCount;
+                Admins = response.Users.Count(x => ParseRole(x.Role) == UserRole.Admin);
+                ActiveSessions = response.GetSaleKpiRanking.Count(x => x.TotalOrders >= 80);
+
+                ApplyPageInfo(
+                    usersConnection.TotalCount,
+                    usersConnection.PageInfo?.HasNextPage ?? false,
+                    usersConnection.PageInfo?.HasPreviousPage ?? false,
+                    usersConnection.PageInfo?.StartCursor,
+                    usersConnection.PageInfo?.EndCursor);
 
                 return true;
             }
@@ -293,11 +421,17 @@ namespace BIF.ToyStore.ViewModels.Pages
             var users = await _graphQLClient.ExecuteAsync<List<LegacyUserDto>>(legacyQuery, dataKey: "users")
                 ?? new List<LegacyUserDto>();
 
-            _allUsers.Clear();
+            _isLegacyMode = true;
+            _legacyPageIndex = 0;
+            _legacyUsers.Clear();
             foreach (var user in users)
             {
-                _allUsers.Add(new UserItemViewModel(user.Id, user.Username, user.PasswordHash, ParseRole(user.Role), 0));
+                _legacyUsers.Add(new UserItemViewModel(user.Id, user.Username, user.PasswordHash, ParseRole(user.Role), 0));
             }
+
+            TotalStaff = _legacyUsers.Count;
+            Admins = _legacyUsers.Count(x => x.Role == UserRole.Admin);
+            ActiveSessions = 0;
         }
 
         private static bool IsMissingSchemaFieldError(string message)
@@ -326,9 +460,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             user.IsPasswordVisible = !user.IsPasswordVisible;
         }
 
-        private void ApplySortAndFilter()
+        private void ApplyLegacySortAndFilterAndPage(string? direction, bool resetToFirstPage)
         {
-            IEnumerable<UserItemViewModel> query = _allUsers;
+            IEnumerable<UserItemViewModel> query = _legacyUsers;
             string selectedFilter = string.IsNullOrWhiteSpace(SelectedNameFilter)
                 ? "All"
                 : SelectedNameFilter;
@@ -343,15 +477,54 @@ namespace BIF.ToyStore.ViewModels.Pages
                 .ThenBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            int totalCount = result.Count;
+            int safePageSize = Math.Max(1, PageSize);
+            int totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / safePageSize);
+
+            if (resetToFirstPage)
+            {
+                _legacyPageIndex = 0;
+            }
+            else
+            {
+                if (direction == "next" && _legacyPageIndex < totalPages - 1)
+                {
+                    _legacyPageIndex++;
+                }
+                else if (direction == "prev" && _legacyPageIndex > 0)
+                {
+                    _legacyPageIndex--;
+                }
+                else if (direction == "last")
+                {
+                    _legacyPageIndex = Math.Max(totalPages - 1, 0);
+                }
+            }
+
+            if (totalPages == 0)
+            {
+                _legacyPageIndex = 0;
+            }
+            else
+            {
+                _legacyPageIndex = Math.Clamp(_legacyPageIndex, 0, totalPages - 1);
+            }
+
+            var pagedResult = result
+                .Skip(_legacyPageIndex * safePageSize)
+                .Take(safePageSize)
+                .ToList();
+
             VisibleUsers.Clear();
-            foreach (var item in result)
+            foreach (var item in pagedResult)
             {
                 VisibleUsers.Add(item);
             }
 
-            TotalStaff = _allUsers.Count;
-            Admins = _allUsers.Count(x => x.Role == UserRole.Admin);
-            ActiveSessions = result.Count(x => x.Kpi >= 80);
+            bool hasPrevious = totalPages > 0 && _legacyPageIndex > 0;
+            bool hasNext = totalPages > 0 && _legacyPageIndex < totalPages - 1;
+
+            ApplyPageInfo(totalCount, hasNext, hasPrevious, null, null);
         }
 
         private static IEnumerable<string> BuildNameFilters()
@@ -375,6 +548,22 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         public int Id { get; set; }
         public string PasswordHash { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+
+    public sealed class UserConnection
+    {
+        public int TotalCount { get; set; }
+        public UserPageInfo? PageInfo { get; set; }
+        public List<UserListItemDto>? Nodes { get; set; }
+    }
+
+    public sealed class UserPageInfo
+    {
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public string? StartCursor { get; set; }
+        public string? EndCursor { get; set; }
     }
 
     public sealed class SaleKpiRankingDto
@@ -387,7 +576,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
     public sealed class UserManagementQueryData
     {
-        public List<UserListItemDto> GetUserList { get; set; } = new();
+        public UserConnection? UsersConnection { get; set; }
         public List<UserPasswordDto> Users { get; set; } = new();
         public List<SaleKpiRankingDto> GetSaleKpiRanking { get; set; } = new();
     }
@@ -409,6 +598,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public int Kpi { get; }
         public string Initials { get; }
         public string RoleLabel => Role == UserRole.Admin ? "ADMIN" : "SALE";
+        public bool IsAdmin => Role == UserRole.Admin;
+        public bool IsSale => Role == UserRole.Sale;
 
         [ObservableProperty]
         private bool _isPasswordVisible;

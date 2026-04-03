@@ -39,6 +39,16 @@ namespace BIF.ToyStore.WinUI.Views
             await ViewModel.LoadAsync();
         }
 
+        private async void NameFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || !ViewModel.ApplyFilterCommand.CanExecute(null))
+            {
+                return;
+            }
+
+            await ViewModel.ApplyFilterCommand.ExecuteAsync(null);
+        }
+
         private async void AddNewUserButton_Click(object sender, RoutedEventArgs e)
         {
             CreateUserDialog.XamlRoot = XamlRoot;
