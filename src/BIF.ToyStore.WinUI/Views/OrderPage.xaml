@@ -67,19 +67,15 @@
             </Grid>
 
             <!-- Date Filter Row -->
-            <Grid Grid.Row="1" Margin="0,0,0,20" RowSpacing="10" ColumnSpacing="16">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <Grid Grid.Row="1" Margin="0,0,0,20" ColumnSpacing="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Row="0"
-                            Grid.Column="0"
+                <StackPanel Grid.Column="0"
                             Visibility="{x:Bind ViewModel.IsEmployeeFilterVisible, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}">
                     <TextBlock Text="EMPLOYEE"
                                FontSize="11"
@@ -94,7 +90,7 @@
                               SelectionChanged="EmployeeFilter_Changed" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="1">
+                <StackPanel Grid.Column="1">
                     <TextBlock Text="FROM DATE"
                                FontSize="11"
                                FontWeight="Bold"
@@ -105,7 +101,7 @@
                                 SelectedDate="{x:Bind ViewModel.FromDate, Mode=TwoWay}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="2">
+                <StackPanel Grid.Column="2">
                     <TextBlock Text="TO DATE"
                                FontSize="11"
                                FontWeight="Bold"
@@ -116,11 +112,10 @@
                                 SelectedDate="{x:Bind ViewModel.ToDate, Mode=TwoWay}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="1"
-                            Grid.Column="0"
-                            Grid.ColumnSpan="3"
+                <StackPanel Grid.Column="3"
                             Orientation="Horizontal"
                             Spacing="12"
+                        VerticalAlignment="Bottom"
                             HorizontalAlignment="Right">
                     <Button VerticalAlignment="Center"
                             Background="{StaticResource FluentPlayPrimaryBrush}"
@@ -401,58 +396,8 @@
                             </Grid>
                         </Border>
 
-                        <!-- Product Lines Header -->
-                        <TextBlock Text="PRODUCTS"
-                                   FontSize="11"
-                                   CharacterSpacing="40"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-
-                        <!-- Product Lines List -->
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedOrder.Lines, Mode=OneWay}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:OrderDetailLineViewModel">
-                                    <Border BorderBrush="#1AC0C7D4"
-                                            BorderThickness="0,0,0,1"
-                                            Padding="0,12">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0" Spacing="2">
-                                                <TextBlock Text="{x:Bind ProductName}"
-                                                           FontSize="14"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                                                <TextBlock Text="{x:Bind UnitPriceDisplay}"
-                                                           FontSize="12"
-                                                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                                            </StackPanel>
-
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{x:Bind QtyDisplay}"
-                                                       FontSize="13"
-                                                       VerticalAlignment="Center"
-                                                       Margin="12,0"
-                                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-
-                                            <TextBlock Grid.Column="2"
-                                                       Text="{x:Bind LineTotalDisplay}"
-                                                       FontSize="14"
-                                                       FontWeight="SemiBold"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
                         <!-- Total Row -->
-                        <Grid Margin="0,8,0,0">
+                        <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -516,6 +461,57 @@
                                 Click="QuickUpdateStatus_Click" />
                             </Grid>
                         </StackPanel>
+
+                        <!-- Product Lines Header -->
+                        <TextBlock Text="PRODUCTS"
+                                   FontSize="11"
+                                   CharacterSpacing="40"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                   Margin="0,4,0,0" />
+
+                        <!-- Product Lines List -->
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedOrder.Lines, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:OrderDetailLineViewModel">
+                                    <Border BorderBrush="#1AC0C7D4"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="{x:Bind ProductName}"
+                                                           FontSize="14"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                                <TextBlock Text="{x:Bind UnitPriceDisplay}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{x:Bind QtyDisplay}"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Margin="12,0"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{x:Bind LineTotalDisplay}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
 
