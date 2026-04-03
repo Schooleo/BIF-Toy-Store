@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
+using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Reflection;
 
@@ -162,19 +163,21 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task CreateBackup_WhenWalAndShmExist_CopiesCompanionFiles()
+        public async Task CreateBackup_UsesVacuumInto_AndProducesReadableSnapshot()
         {
             using var scope = new LocalAppDataScope();
 
             var sourceDirectory = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(sourceDirectory);
             var sourceDbPath = Path.Combine(sourceDirectory, "ToyStore.db");
-            var sourceWalPath = sourceDbPath + "-wal";
-            var sourceShmPath = sourceDbPath + "-shm";
 
-            await File.WriteAllTextAsync(sourceDbPath, "main-db");
-            await File.WriteAllTextAsync(sourceWalPath, "wal-data");
-            await File.WriteAllTextAsync(sourceShmPath, "shm-data");
+            await using (var sourceConnection = new SqliteConnection($"Data Source={sourceDbPath}"))
+            {
+                await sourceConnection.OpenAsync();
+                await using var cmd = sourceConnection.CreateCommand();
+                cmd.CommandText = "CREATE TABLE IF NOT EXISTS BackupProbe (Id INTEGER PRIMARY KEY, Name TEXT NOT NULL); INSERT INTO BackupProbe(Name) VALUES ('snapshot-row');";
+                await cmd.ExecuteNonQueryAsync();
+            }
 
             var local = new InMemoryLocalSettingsService();
             var graph = new FakeGraphQlClient();
@@ -195,13 +198,14 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 .FirstOrDefault();
 
             Assert.NotNull(backupFile);
-            Assert.True(File.Exists(backupFile!.FullName + "-wal"));
-            Assert.True(File.Exists(backupFile.FullName + "-shm"));
 
-            var walContent = await File.ReadAllTextAsync(backupFile.FullName + "-wal");
-            var shmContent = await File.ReadAllTextAsync(backupFile.FullName + "-shm");
-            Assert.Equal("wal-data", walContent);
-            Assert.Equal("shm-data", shmContent);
+            await using var backupConnection = new SqliteConnection($"Data Source={backupFile!.FullName}");
+            await backupConnection.OpenAsync();
+            await using var verify = backupConnection.CreateCommand();
+            verify.CommandText = "SELECT Name FROM BackupProbe LIMIT 1;";
+            var value = await verify.ExecuteScalarAsync();
+
+            Assert.Equal("snapshot-row", value as string);
             Assert.Equal(string.Empty, vm.ErrorMessage);
         }
 
