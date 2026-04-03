@@ -2,6 +2,7 @@ using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Messages;
+using BIF.ToyStore.ViewModels.Utils;
 using BIF.ToyStore.Infrastructure.GraphQL;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +19,7 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         private readonly IGraphQLClient _graphQLClient;
         private readonly IMessenger _messenger;
+        private readonly ILocalSettingsService _localSettingsService;
         private List<ProductItemViewModel> _allProducts = new();
 
         // ── Bound collections ─────────────────────────────────────────────────
@@ -72,11 +74,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         private const decimal TaxRate = 0.08m;
 
         // ─────────────────────────────────────────────────────────────────────
-        public POSViewModel(IGraphQLClient graphQLClient, IMessenger messenger)
+        public POSViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService, IMessenger messenger)
         {
             _graphQLClient = graphQLClient;
+            _localSettingsService = localSettingsService;
             _messenger = messenger;
             Title = "Point of Sale";
+            _currentSaleId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
 
             _messenger.Register(this);
         }
@@ -84,6 +88,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public void Receive(LoginSucceededMessage message)
         {
             _currentSaleId = message.Value.Id;
+            _localSettingsService.SetInt(AppPreferenceKeys.CurrentUserId, _currentSaleId);
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -315,9 +320,21 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }";
 
+                var saleId = _currentSaleId > 0
+                    ? _currentSaleId
+                    : _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
+
+                if (saleId <= 0)
+                {
+                    ErrorMessage = "Could not identify the current employee. Please log in again.";
+                    return;
+                }
+
+                _currentSaleId = saleId;
+
                 var input = new
                 {
-                    saleId = _currentSaleId > 0 ? _currentSaleId : 1,
+                    saleId,
                     customerId = (int?)null,
                     items = CartItems.Select(c => new
                     {

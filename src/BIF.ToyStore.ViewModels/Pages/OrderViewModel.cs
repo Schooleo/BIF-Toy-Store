@@ -17,6 +17,9 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         private readonly IGraphQLClient _graphQLClient;
         private readonly ILocalSettingsService _localSettingsService;
+        private readonly bool _isAdminUser;
+        private readonly string _currentUsername;
+        private int? _currentEmployeeId;
 
         // ── Bound collections ─────────────────────────────────────────────────
         [ObservableProperty]
@@ -34,6 +37,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private DateTimeOffset? _toDate;
+
+        [ObservableProperty]
+        private bool _isEmployeeFilterVisible = true;
 
         public string PaginationLabel => $"Showing {Orders.Count} of {TotalCount} ORDERS";
 
@@ -65,6 +71,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             _localSettingsService = localSettingsService;
             Title = "Order Management";
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
+
+            _currentUsername = _localSettingsService.GetString("LastUsername", string.Empty);
+            var roleValue = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
+            _isAdminUser = Enum.TryParse<UserRole>(roleValue, true, out var role) && role == UserRole.Admin;
+            IsEmployeeFilterVisible = _isAdminUser;
         }
 
         // ── Load / Lifecycle ──────────────────────────────────────────────────
@@ -74,7 +85,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             ErrorMessage = string.Empty;
             try
             {
-                await Task.WhenAll(LoadEmployeesAsync(), LoadPageAsync(null));
+                await LoadEmployeesAsync();
+                await LoadPageAsync(null);
             }
             catch (Exception ex)
             {
@@ -109,12 +121,34 @@ namespace BIF.ToyStore.ViewModels.Pages
             if (result?.GetUserList != null)
             {
                 Employees.Clear();
-                Employees.Add(new EmployeeListItem { Id = null, Username = "All Employees" });
-                foreach (var u in result.GetUserList)
+
+                if (_isAdminUser)
                 {
-                    Employees.Add(u);
+                    Employees.Add(new EmployeeListItem { Id = null, Username = "All Employees" });
+                    foreach (var u in result.GetUserList)
+                    {
+                        Employees.Add(u);
+                    }
+
+                    SelectedEmployee = Employees.FirstOrDefault();
+                    _currentEmployeeId = null;
+                    return;
                 }
-                SelectedEmployee = Employees.FirstOrDefault();
+
+                var currentEmployee = result.GetUserList.FirstOrDefault(x =>
+                    string.Equals(x.Username, _currentUsername, StringComparison.OrdinalIgnoreCase));
+
+                if (currentEmployee != null)
+                {
+                    Employees.Add(currentEmployee);
+                    SelectedEmployee = currentEmployee;
+                    _currentEmployeeId = currentEmployee.Id;
+                }
+                else
+                {
+                    // Avoid exposing all orders when current sale user cannot be resolved.
+                    _currentEmployeeId = -1;
+                }
             }
         }
 
@@ -132,7 +166,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task ClearFilterAsync()
         {
-            SelectedEmployee = Employees.FirstOrDefault();
+            if (_isAdminUser)
+            {
+                SelectedEmployee = Employees.FirstOrDefault();
+            }
+
             FromDate = null;
             ToDate = null;
             BeforeCursor = null;
@@ -207,7 +245,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     before = beforeVar,
                     fromDate = FromDate?.LocalDateTime.Date,
                     toDate = ToDate?.LocalDateTime.Date.AddDays(1).AddTicks(-1),
-                    employeeId = SelectedEmployee?.Id
+                    employeeId = _isAdminUser ? SelectedEmployee?.Id : _currentEmployeeId
                 };
 
                 var payload = await _graphQLClient.ExecuteAsync<OrderConnectionResponse>(query, variables, dataKey: "orders")
@@ -313,17 +351,18 @@ namespace BIF.ToyStore.ViewModels.Pages
                     }";
 
                 var input = new { id = SelectedOrder.Id, status = status.ToString().ToUpperInvariant(), customerId = (int?)null };
-                await _graphQLClient.ExecuteAsync<object>(mutation, new { input }, dataKey: "updateOrder");
+                var updated = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(mutation, new { input }, dataKey: "updateOrder");
+                var updatedStatus = updated?.Status ?? status.ToString();
 
-                StatusMessage = $"Order #{SelectedOrder.Id} status updated to {statusString}.";
-                SelectedOrder.Status = statusString;
-                SelectedOrder.StatusBadgeClass = statusString;
+                StatusMessage = $"Order #{SelectedOrder.Id} status updated to {updatedStatus}.";
+                SelectedOrder.Status = updatedStatus;
+                SelectedOrder.StatusBadgeClass = updatedStatus;
 
                 // Refresh list row
                 var row = Orders.FirstOrDefault(o => o.Id == SelectedOrder.Id);
                 if (row is not null)
                 {
-                    row.Status = statusString;
+                    row.Status = updatedStatus;
                 }
             }
             catch (Exception ex)
@@ -561,5 +600,11 @@ namespace BIF.ToyStore.ViewModels.Pages
     public sealed class OrderUserListResponse
     {
         public List<EmployeeListItem> GetUserList { get; set; } = new();
+    }
+
+    public sealed class OrderStatusUpdateResponse
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

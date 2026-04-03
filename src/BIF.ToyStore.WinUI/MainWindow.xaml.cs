@@ -115,6 +115,7 @@ namespace BIF.ToyStore.WinUI
             _credentialVaultService.ClearCredentials(CredentialResourceName);
             _currentUser = null;
             _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, string.Empty);
+            _localSettingsService.SetInt(AppPreferenceKeys.CurrentUserId, 0);
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
 
             NavigateToLogin();
