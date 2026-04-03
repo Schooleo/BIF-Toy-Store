@@ -161,6 +161,50 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(string.Empty, vm.ErrorMessage);
         }
 
+        [Fact]
+        public async Task CreateBackup_WhenWalAndShmExist_CopiesCompanionFiles()
+        {
+            using var scope = new LocalAppDataScope();
+
+            var sourceDirectory = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(sourceDirectory);
+            var sourceDbPath = Path.Combine(sourceDirectory, "ToyStore.db");
+            var sourceWalPath = sourceDbPath + "-wal";
+            var sourceShmPath = sourceDbPath + "-shm";
+
+            await File.WriteAllTextAsync(sourceDbPath, "main-db");
+            await File.WriteAllTextAsync(sourceWalPath, "wal-data");
+            await File.WriteAllTextAsync(sourceShmPath, "shm-data");
+
+            var local = new InMemoryLocalSettingsService();
+            var graph = new FakeGraphQlClient();
+            graph.SetStoreSettings(0.1m, "VND", "H", "F", sourceDbPath);
+            var vm = new SettingsViewModel(graph, local);
+
+            await vm.LoadAsync();
+            await vm.CreateBackupCommand.ExecuteAsync(null);
+
+            var backupDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "BIF.ToyStore",
+                "Backups");
+
+            var backupFile = new DirectoryInfo(backupDirectory)
+                .GetFiles("*.bak")
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .FirstOrDefault();
+
+            Assert.NotNull(backupFile);
+            Assert.True(File.Exists(backupFile!.FullName + "-wal"));
+            Assert.True(File.Exists(backupFile.FullName + "-shm"));
+
+            var walContent = await File.ReadAllTextAsync(backupFile.FullName + "-wal");
+            var shmContent = await File.ReadAllTextAsync(backupFile.FullName + "-shm");
+            Assert.Equal("wal-data", walContent);
+            Assert.Equal("shm-data", shmContent);
+            Assert.Equal(string.Empty, vm.ErrorMessage);
+        }
+
         private sealed class InMemoryLocalSettingsService : ILocalSettingsService
         {
             private readonly Dictionary<string, string> _stringValues = new(StringComparer.OrdinalIgnoreCase);

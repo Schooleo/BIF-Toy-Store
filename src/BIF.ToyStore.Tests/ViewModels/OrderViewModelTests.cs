@@ -230,11 +230,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = CreateViewModel(client)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 99 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 99 };
 
             await vm.ApplyFilterCommand.ExecuteAsync(null);
 
@@ -286,11 +284,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void CloseDetailsPanelCommand_ClearsSelectedOrderAndClosesPanel()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = CreateViewModel(client)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 1 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 1 };
 
             vm.CloseDetailsPanelCommand.Execute(null);
 
@@ -328,11 +324,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(true);
 
-            var vm = CreateViewModel(client)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 42 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 42 };
 
             await vm.DeleteOrderCommand.ExecuteAsync(42);
 
@@ -384,7 +378,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_NullSelectedOrder_DoesNothing()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = CreateViewModel(client) { SelectedOrder = null };
+            var vm = CreateViewModel(client);
+            vm.SelectedOrder = null;
 
             // Should silently return
             await vm.UpdateOrderStatusCommand.ExecuteAsync("Paid");
@@ -398,10 +393,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_InvalidStatus_DoesNotCallApi()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = CreateViewModel(client)
-            {
-                SelectedOrder = new OrderDetailsViewModel { Id = 1, Status = "New" }
-            };
+            var vm = CreateViewModel(client);
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 1, Status = "New" };
 
             await vm.UpdateOrderStatusCommand.ExecuteAsync("InvalidStatus");
 
