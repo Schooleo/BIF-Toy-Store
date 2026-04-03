@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Base;
+using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -12,12 +13,10 @@ using System.Threading.Tasks;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
-    public partial class OrderViewModel : BaseViewModel
+    public partial class OrderViewModel : PaginatedViewModel
     {
         private readonly IGraphQLClient _graphQLClient;
-
-        private const int DefaultPageSize = 10;
-        private int _currentPage = 1;
+        private readonly ILocalSettingsService _localSettingsService;
 
         // ── Bound collections ─────────────────────────────────────────────────
         [ObservableProperty]
@@ -36,21 +35,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private DateTimeOffset? _toDate;
 
-        // ── Pagination ────────────────────────────────────────────────────────
-        [ObservableProperty]
-        private int _totalCount;
-
-        [ObservableProperty]
-        private int _pageCount = 1;
-
-        [ObservableProperty]
-        private bool _hasNextPage;
-
-        [ObservableProperty]
-        private bool _hasPreviousPage;
-
-        public string PaginationLabel => $"Showing {(TotalCount == 0 ? 0 : (_currentPage - 1) * DefaultPageSize + 1)} to {Math.Min(_currentPage * DefaultPageSize, TotalCount)} of {TotalCount} ORDERS";
-        public int CurrentPage => _currentPage;
+        public string PaginationLabel => $"Showing {Orders.Count} of {TotalCount} ORDERS";
 
         // ── Details sidebar ───────────────────────────────────────────────────
         [ObservableProperty]
@@ -74,10 +59,12 @@ namespace BIF.ToyStore.ViewModels.Pages
             "New", "Paid", "Cancelled"
         };
 
-        public OrderViewModel(IGraphQLClient graphQLClient)
+        public OrderViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService)
         {
             _graphQLClient = graphQLClient;
+            _localSettingsService = localSettingsService;
             Title = "Order Management";
+            PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
         }
 
         // ── Load / Lifecycle ──────────────────────────────────────────────────
@@ -87,7 +74,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             ErrorMessage = string.Empty;
             try
             {
-                await Task.WhenAll(LoadEmployeesAsync(), LoadOrdersInternalAsync());
+                await Task.WhenAll(LoadEmployeesAsync(), LoadPageAsync(null));
             }
             catch (Exception ex)
             {
@@ -102,8 +89,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task RefreshAsync()
         {
-            _currentPage = 1;
-            await LoadOrdersInternalAsync();
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadPageAsync(null);
         }
 
         // ── Employees ─────────────────────────────────────────────────────────
@@ -134,10 +122,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task ApplyFilterAsync()
         {
-            _currentPage = 1;
+            BeforeCursor = null;
+            AfterCursor = null;
             IsDetailsPanelOpen = false;
             SelectedOrder = null;
-            await LoadOrdersInternalAsync();
+            await LoadPageAsync(null);
         }
 
         [RelayCommand]
@@ -146,50 +135,37 @@ namespace BIF.ToyStore.ViewModels.Pages
             SelectedEmployee = Employees.FirstOrDefault();
             FromDate = null;
             ToDate = null;
-            _currentPage = 1;
-            await LoadOrdersInternalAsync();
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadPageAsync(null);
         }
 
-        [RelayCommand(CanExecute = nameof(HasNextPage))]
-        public async Task NextPageAsync()
-        {
-            _currentPage++;
-            await LoadOrdersInternalAsync();
-        }
-
-        [RelayCommand(CanExecute = nameof(HasPreviousPage))]
-        public async Task PreviousPageAsync()
-        {
-            if (_currentPage > 1) _currentPage--;
-            await LoadOrdersInternalAsync();
-        }
-
-        [RelayCommand]
-        public async Task GoToPageAsync(int page)
-        {
-            if (page < 1 || page > PageCount) return;
-            _currentPage = page;
-            await LoadOrdersInternalAsync();
-        }
-
-        private async Task LoadOrdersInternalAsync()
+        protected override async Task LoadPageAsync(string? direction)
         {
             IsBusy = true;
             try
             {
                 const string query = @"
-                    query GetOrdersPage($page: Int!, $pageSize: Int!, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int) {
-                        orders(page: $page, pageSize: $pageSize, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId) {
+                    query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int) {
+                        orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId) {
                             totalCount
-                            page
-                            pageSize
-                            items {
+                            pageInfo {
+                                hasNextPage
+                                hasPreviousPage
+                                startCursor
+                                endCursor
+                            }
+                            nodes {
                                 id
                                 orderDate
                                 status
                                 totalAmount
-                                customerName
-                                saleName
+                                customer {
+                                    fullName
+                                }
+                                sale {
+                                    username
+                                }
                                 orderDetails {
                                     id
                                     quantity
@@ -199,33 +175,58 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }";
 
+                int? firstVar = null;
+                int? lastVar = null;
+                string? afterVar = null;
+                string? beforeVar = null;
+
+                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
+                {
+                    firstVar = PageSize;
+                    afterVar = AfterCursor;
+                }
+                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
+                {
+                    lastVar = PageSize;
+                    beforeVar = BeforeCursor;
+                }
+                else if (direction == "last")
+                {
+                    lastVar = PageSize;
+                }
+                else
+                {
+                    firstVar = PageSize;
+                }
+
                 var variables = new
                 {
-                    page = _currentPage,
-                    pageSize = DefaultPageSize,
+                    first = firstVar,
+                    last = lastVar,
+                    after = afterVar,
+                    before = beforeVar,
                     fromDate = FromDate?.LocalDateTime.Date,
                     toDate = ToDate?.LocalDateTime.Date.AddDays(1).AddTicks(-1),
                     employeeId = SelectedEmployee?.Id
                 };
 
-                var result = await _graphQLClient.ExecuteAsync<OrdersPageResponse>(query, variables);
-                var payload = result?.Orders ?? new OrderListResponse();
+                var payload = await _graphQLClient.ExecuteAsync<OrderConnectionResponse>(query, variables, dataKey: "orders")
+                    ?? new OrderConnectionResponse();
 
                 Orders.Clear();
-                foreach (var item in payload.Items)
+                foreach (var item in payload.Nodes)
                 {
                     Orders.Add(OrderItemViewModel.FromPayload(item));
                 }
 
-                TotalCount = payload.TotalCount;
-                PageCount = TotalCount == 0 ? 1 : (int)Math.Ceiling((double)TotalCount / DefaultPageSize);
-                HasNextPage = _currentPage < PageCount;
-                HasPreviousPage = _currentPage > 1;
+                ApplyPageInfo(
+                    payload.TotalCount,
+                    payload.PageInfo?.HasNextPage ?? false,
+                    payload.PageInfo?.HasPreviousPage ?? false,
+                    payload.PageInfo?.StartCursor,
+                    payload.PageInfo?.EndCursor);
 
                 OnPropertyChanged(nameof(PaginationLabel));
-                OnPropertyChanged(nameof(CurrentPage));
-                NextPageCommand.NotifyCanExecuteChanged();
-                PreviousPageCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -402,8 +403,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             OrderDate = node.OrderDate,
             Status = node.Status,
             TotalAmount = node.TotalAmount,
-            EmployeeName = node.SaleName,
-            CustomerName = node.CustomerName
+            EmployeeName = node.Sale?.Username,
+            CustomerName = node.Customer?.FullName
         };
     }
 
@@ -481,15 +482,22 @@ namespace BIF.ToyStore.ViewModels.Pages
 
     public sealed class OrdersPageResponse
     {
-        public OrderListResponse Orders { get; set; } = new();
+        public OrderConnectionResponse Orders { get; set; } = new();
     }
 
-    public sealed class OrderListResponse
+    public sealed class OrderConnectionResponse
     {
         public int TotalCount { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public List<OrderItemNode> Items { get; set; } = new();
+        public OrderPageInfo? PageInfo { get; set; }
+        public List<OrderItemNode> Nodes { get; set; } = new();
+    }
+
+    public sealed class OrderPageInfo
+    {
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public string? StartCursor { get; set; }
+        public string? EndCursor { get; set; }
     }
 
     public sealed class OrderItemNode
@@ -498,9 +506,19 @@ namespace BIF.ToyStore.ViewModels.Pages
         public DateTime OrderDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
-        public string? CustomerName { get; set; }
-        public string? SaleName { get; set; }
+        public OrderCustomerNode? Customer { get; set; }
+        public OrderSaleNode? Sale { get; set; }
         public List<OrderDetailNodeSimple> OrderDetails { get; set; } = new();
+    }
+
+    public sealed class OrderCustomerNode
+    {
+        public string? FullName { get; set; }
+    }
+
+    public sealed class OrderSaleNode
+    {
+        public string? Username { get; set; }
     }
 
     public sealed class OrderDetailNodeSimple

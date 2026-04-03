@@ -161,12 +161,19 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         }
     }
 
-    public class OrderListPayload
+    public class OrderConnectionPayload
     {
-        public List<OrderPayload> Items { get; init; } = [];
+        public List<OrderPayload> Nodes { get; init; } = [];
         public int TotalCount { get; init; }
-        public int Page { get; init; }
-        public int PageSize { get; init; }
+        public OrderPageInfoPayload? PageInfo { get; init; }
+    }
+
+    public class OrderPageInfoPayload
+    {
+        public bool HasNextPage { get; init; }
+        public bool HasPreviousPage { get; init; }
+        public string? StartCursor { get; init; }
+        public string? EndCursor { get; init; }
     }
 
     public class CreateProductInput

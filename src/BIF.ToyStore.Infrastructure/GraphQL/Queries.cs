@@ -29,26 +29,38 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var config = await configService.GetConfigAsync();
             return AppConfigPayload.FromConfig(config);
         }
-
-
-        public async Task<OrderListPayload> GetOrders(
-            int page,
-            int pageSize,
+        [UsePaging(IncludeTotalCount = true)]
+        public IQueryable<Order> Orders(
             DateTime? fromDate,
             DateTime? toDate,
             int? employeeId,
-            [Service] IOrderService orderService)
+            [Service] AppDbContext dbContext)
         {
-            var (items, totalCount) = await orderService.GetOrdersAsync(
-                page, pageSize, fromDate, toDate, employeeId);
+            var query = dbContext.Orders
+                .Include(o => o.Sale)
+                .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
+                .AsNoTracking()
+                .AsQueryable();
 
-            return new OrderListPayload
+            if (fromDate.HasValue)
             {
-                Items = items.Select(OrderPayload.FromOrder).ToList(),
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            };
+                query = query.Where(o => o.OrderDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate <= toDate.Value);
+            }
+
+            if (employeeId.HasValue)
+            {
+                query = query.Where(o => o.SaleId == employeeId.Value);
+            }
+
+            return query
+                .OrderByDescending(o => o.OrderDate)
+                .ThenByDescending(o => o.Id);
         }
 
         public async Task<OrderPayload?> GetOrderById(

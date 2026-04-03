@@ -245,33 +245,12 @@
                            Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
                            VerticalAlignment="Center" />
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                    <Button Content="&lt; Previous"
-                            Command="{x:Bind ViewModel.PreviousPageCommand}"
-                            IsEnabled="{x:Bind ViewModel.HasPreviousPage, Mode=OneWay}"
-                            Background="Transparent"
-                            BorderBrush="#1AC0C7D4"
-                            BorderThickness="1"
-                            Padding="12,8" />
-
-                    <Button x:Name="PageInfoButton"
-                            IsEnabled="False"
-                            Background="{StaticResource FluentPlayPrimaryBrush}"
-                            Foreground="White"
-                            BorderThickness="0"
-                            Padding="12,8"
-                            MinWidth="40">
-                        <TextBlock Text="{x:Bind ViewModel.CurrentPage, Mode=OneWay}" />
-                    </Button>
-
-                    <Button Content="Next &gt;"
-                            Command="{x:Bind ViewModel.NextPageCommand}"
-                            IsEnabled="{x:Bind ViewModel.HasNextPage, Mode=OneWay}"
-                            Background="Transparent"
-                            BorderBrush="#1AC0C7D4"
-                            BorderThickness="1"
-                            Padding="12,8" />
-                </StackPanel>
+                <controls2:PaginationControl Grid.Column="1"
+                                            FirstPageCommand="{x:Bind ViewModel.FirstPageCommand}"
+                                            PreviousPageCommand="{x:Bind ViewModel.PreviousPageCommand}"
+                                            NextPageCommand="{x:Bind ViewModel.NextPageCommand}"
+                                            LastPageCommand="{x:Bind ViewModel.LastPageCommand}"
+                                            TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}" />
             </Grid>
 
             <controls2:AppFooter Grid.Row="4" Margin="0,8,0,0" />
