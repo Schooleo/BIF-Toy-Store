@@ -2,6 +2,7 @@ using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Messages;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.Messaging;
 using Moq;
 using System.Collections.Generic;
@@ -14,15 +15,21 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     public class POSViewModelTests
     {
         private readonly Mock<IGraphQLClient> _graphQLClientMock;
+        private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
         private readonly Mock<IMessenger> _messengerMock;
         private readonly POSViewModel _viewModel;
 
         public POSViewModelTests()
         {
             _graphQLClientMock = new Mock<IGraphQLClient>();
+            _localSettingsServiceMock = new Mock<ILocalSettingsService>();
             _messengerMock = new Mock<IMessenger>();
 
-            _viewModel = new POSViewModel(_graphQLClientMock.Object, _messengerMock.Object);
+            _localSettingsServiceMock
+                .Setup(x => x.GetInt(AppPreferenceKeys.CurrentUserId, 0))
+                .Returns(7);
+
+            _viewModel = new POSViewModel(_graphQLClientMock.Object, _localSettingsServiceMock.Object, _messengerMock.Object);
         }
 
         [Fact]

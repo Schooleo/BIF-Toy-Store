@@ -45,6 +45,12 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             settings
                 .Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20))
                 .Returns(20);
+            settings
+                .Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns("Admin");
+            settings
+                .Setup(s => s.GetString("LastUsername", It.IsAny<string>()))
+                .Returns("alice");
 
             return new OrderViewModel(client.Object, settings.Object);
         }
@@ -359,9 +365,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_ValidStatus_UpdatesLocalState()
         {
             var client = new Mock<IGraphQLClient>();
-            client.Setup(x => x.ExecuteAsync<object>(
+                        client.Setup(x => x.ExecuteAsync<OrderStatusUpdateResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync((object?)null);
+                                    .ReturnsAsync(new OrderStatusUpdateResponse { Id = 7, Status = "Paid" });
 
             var vm = CreateViewModel(client);
             vm.SelectedOrder = new OrderDetailsViewModel { Id = 7, Status = "New" };
@@ -385,7 +391,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             await vm.UpdateOrderStatusCommand.ExecuteAsync("Paid");
 
             client.Verify(
-                x => x.ExecuteAsync<object>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
+                x => x.ExecuteAsync<OrderStatusUpdateResponse>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
                 Times.Never);
         }
 
@@ -399,8 +405,49 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             await vm.UpdateOrderStatusCommand.ExecuteAsync("InvalidStatus");
 
             client.Verify(
-                x => x.ExecuteAsync<object>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
+                x => x.ExecuteAsync<OrderStatusUpdateResponse>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task LoadAsync_NonAdmin_HidesEmployeeFilterAndAppliesCurrentEmployeeId()
+        {
+            var client = new Mock<IGraphQLClient>();
+            int? capturedEmployeeId = null;
+
+            client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                .Callback<string, object?, string>((_, variables, _) =>
+                {
+                    var property = variables?.GetType().GetProperty("employeeId");
+                    var value = property?.GetValue(variables);
+                    if (value is int id)
+                    {
+                        capturedEmployeeId = id;
+                    }
+                    else if (value != null)
+                    {
+                        capturedEmployeeId = Convert.ToInt32(value);
+                    }
+                })
+                .ReturnsAsync(MakeOrdersResponse(1, false, false, (9, "New", "bob")));
+
+            client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
+                  .ReturnsAsync(MakeUserListResponse((1, "alice"), (2, "bob")));
+
+            var settings = new Mock<ILocalSettingsService>();
+            settings.Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20)).Returns(20);
+            settings.Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>())).Returns("Sale");
+            settings.Setup(s => s.GetString("LastUsername", It.IsAny<string>())).Returns("bob");
+
+            var vm = new OrderViewModel(client.Object, settings.Object);
+            await vm.LoadAsync();
+
+            Assert.False(vm.IsEmployeeFilterVisible);
+            Assert.Single(vm.Employees);
+            Assert.Equal("bob", vm.Employees[0].Username);
+            Assert.Equal(2, capturedEmployeeId);
         }
 
         // ─── OrderItemViewModel display helpers ───────────────────────────────

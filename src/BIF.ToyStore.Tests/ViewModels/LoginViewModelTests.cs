@@ -255,6 +255,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _localSettingsServiceMock.Verify(
                 x => x.SetString(AppPreferenceKeys.CurrentUserRole, UserRole.Sale.ToString()),
                 Times.Once);
+            _localSettingsServiceMock.Verify(
+                x => x.SetInt(AppPreferenceKeys.CurrentUserId, 2),
+                Times.Once);
             Assert.Contains(
                 _messengerMock.Invocations,
                 call => call.Arguments.Any(arg => arg is LoginSucceededMessage));
