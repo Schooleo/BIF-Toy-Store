@@ -198,6 +198,8 @@ namespace BIF.ToyStore.WinUI
 
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath) ?? AppContext.BaseDirectory);
                 File.Copy(backupPath, targetPath, overwrite: true);
+                RestoreCompanionFile(backupPath + "-wal", targetPath + "-wal");
+                RestoreCompanionFile(backupPath + "-shm", targetPath + "-shm");
 
                 localSettings.SetString(AppPreferenceKeys.PendingRestoreBackupPath, string.Empty);
                 localSettings.SetString(AppPreferenceKeys.PendingRestoreTargetPath, string.Empty);
@@ -207,6 +209,20 @@ namespace BIF.ToyStore.WinUI
             catch (Exception ex)
             {
                 return (false, ex.Message);
+            }
+        }
+
+        private static void RestoreCompanionFile(string sourcePath, string targetPath)
+        {
+            if (File.Exists(sourcePath))
+            {
+                File.Copy(sourcePath, targetPath, overwrite: true);
+                return;
+            }
+
+            if (File.Exists(targetPath))
+            {
+                File.Delete(targetPath);
             }
         }
 

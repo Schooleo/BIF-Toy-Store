@@ -142,7 +142,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 var backupFileName = $"ToyStore_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
                 var destinationPath = Path.Combine(backupDirectory, backupFileName);
 
-                await CopyWithRetryAsync(sourcePath, destinationPath);
+                await BackupDatabaseFilesAsync(sourcePath, destinationPath);
 
                 var nowUtc = DateTime.UtcNow;
                 _localSettingsService.SetString(AppPreferenceKeys.LastBackupUtc, nowUtc.ToString("o", CultureInfo.InvariantCulture));
@@ -459,6 +459,34 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             throw new IOException(
                 "The database file is currently in use. Close other tools accessing the database and try backup again.");
+        }
+
+        private static async Task BackupDatabaseFilesAsync(string sourceDatabasePath, string backupDatabasePath)
+        {
+            await CopyWithRetryAsync(sourceDatabasePath, backupDatabasePath);
+
+            var sourceWalPath = sourceDatabasePath + "-wal";
+            var sourceShmPath = sourceDatabasePath + "-shm";
+            var backupWalPath = backupDatabasePath + "-wal";
+            var backupShmPath = backupDatabasePath + "-shm";
+
+            if (File.Exists(sourceWalPath))
+            {
+                await CopyWithRetryAsync(sourceWalPath, backupWalPath);
+            }
+            else if (File.Exists(backupWalPath))
+            {
+                File.Delete(backupWalPath);
+            }
+
+            if (File.Exists(sourceShmPath))
+            {
+                await CopyWithRetryAsync(sourceShmPath, backupShmPath);
+            }
+            else if (File.Exists(backupShmPath))
+            {
+                File.Delete(backupShmPath);
+            }
         }
 
         private sealed class StoreSettingsView
