@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Utils;
 using Moq;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
@@ -8,22 +9,50 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     {
         // ─── Factories ────────────────────────────────────────────────────────
 
-        private static OrdersPageResponse MakeOrdersResponse(int total, params (int id, string status, string? saleName)[] orders)
+        private static OrderConnectionResponse MakeOrdersResponse(
+            int total,
+            bool hasNextPage,
+            bool hasPreviousPage,
+            params (int id, string status, string? saleName)[] orders)
         {
-            var items = orders.Select(o => new OrderItemNode
+            var nodes = orders.Select(o => new OrderItemNode
             {
                 Id = o.id,
                 OrderDate = new DateTime(2026, 1, 10, 12, 0, 0),
                 Status = o.status,
                 TotalAmount = 100m,
-                SaleName = o.saleName,
-                CustomerName = "Walk-in"
+                Sale = new OrderSaleNode { Username = o.saleName },
+                Customer = new OrderCustomerNode { FullName = "Walk-in" }
             }).ToList();
 
-            return new OrdersPageResponse
+            return new OrderConnectionResponse
             {
-                Orders = new OrderListResponse { TotalCount = total, Page = 1, PageSize = 10, Items = items }
+                TotalCount = total,
+                PageInfo = new OrderPageInfo
+                {
+                    HasNextPage = hasNextPage,
+                    HasPreviousPage = hasPreviousPage,
+                    StartCursor = hasPreviousPage ? "start-cursor" : null,
+                    EndCursor = hasNextPage ? "end-cursor" : null
+                },
+                Nodes = nodes
             };
+        }
+
+        private static OrderViewModel CreateViewModel(Mock<IGraphQLClient> client)
+        {
+            var settings = new Mock<ILocalSettingsService>();
+            settings
+                .Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20))
+                .Returns(20);
+            settings
+                .Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns("Admin");
+            settings
+                .Setup(s => s.GetString("LastUsername", It.IsAny<string>()))
+                .Returns("alice");
+
+            return new OrderViewModel(client.Object, settings.Object);
         }
 
         private static OrderUserListResponse MakeUserListResponse(params (int id, string username)[] users)
@@ -67,15 +96,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(2, (1, "New", "alice"), (2, "Paid", "bob")));
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(2, false, false, (1, "New", "alice"), (2, "Paid", "bob")));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse((1, "alice"), (2, "bob")));
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
             Assert.Equal(2, vm.Orders.Count);
@@ -90,15 +119,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(0));
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(0, false, false));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
             Assert.Empty(vm.Orders);
@@ -110,15 +139,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
+                client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), "orders"))
                   .ThrowsAsync(new InvalidOperationException("network error"));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
             Assert.True(vm.HasError);
@@ -133,21 +162,21 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(25,
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(25, true, false,
                       (1, "New", null), (2, "Paid", null)));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
             Assert.True(vm.HasNextPage);
             Assert.False(vm.HasPreviousPage);
-            Assert.Equal(3, vm.PageCount);   // ceil(25 / 10)
+            Assert.Equal("end-cursor", vm.AfterCursor);
         }
 
         [Fact]
@@ -155,20 +184,20 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(3, (1, "New", null)));
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(3, false, false, (1, "New", null)));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
             Assert.False(vm.HasNextPage);
             Assert.False(vm.HasPreviousPage);
-            Assert.Equal(1, vm.PageCount);
+            Assert.Null(vm.AfterCursor);
         }
 
         // ─── PaginationLabel ──────────────────────────────────────────────────
@@ -178,18 +207,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(25, (1, "New", null)));
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(25, false, false, (1, "New", null)));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             await vm.LoadAsync();
 
-            Assert.Contains("1 to 10 of 25", vm.PaginationLabel);
+            Assert.Contains("1 of 25", vm.PaginationLabel);
         }
 
         // ─── ApplyFilterCommand ───────────────────────────────────────────────
@@ -199,19 +228,17 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            client.Setup(x => x.ExecuteAsync<OrdersPageResponse>(
-                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync(MakeOrdersResponse(0));
+                        client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                                        It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                                    .ReturnsAsync(MakeOrdersResponse(0, false, false));
 
             client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeUserListResponse());
 
-            var vm = new OrderViewModel(client.Object)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 99 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 99 };
 
             await vm.ApplyFilterCommand.ExecuteAsync(null);
 
@@ -230,7 +257,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(MakeOrderByIdResponse(orderId: 5, status: "New"));
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             var order = new OrderItemViewModel { Id = 5, Status = "New" };
 
             await vm.OpenOrderDetailsCommand.ExecuteAsync(order);
@@ -248,7 +275,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var client = new Mock<IGraphQLClient>();
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
 
             // Should silently return without throwing
             await vm.OpenOrderDetailsCommand.ExecuteAsync(null!);
@@ -263,11 +290,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void CloseDetailsPanelCommand_ClearsSelectedOrderAndClosesPanel()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = new OrderViewModel(client.Object)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 1 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 1 };
 
             vm.CloseDetailsPanelCommand.Execute(null);
 
@@ -285,7 +310,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(true);
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             vm.Orders.Add(new OrderItemViewModel { Id = 42, Status = "New" });
             vm.TotalCount = 1;
 
@@ -305,11 +330,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ReturnsAsync(true);
 
-            var vm = new OrderViewModel(client.Object)
-            {
-                IsDetailsPanelOpen = true,
-                SelectedOrder = new OrderDetailsViewModel { Id = 42 }
-            };
+            var vm = CreateViewModel(client);
+            vm.IsDetailsPanelOpen = true;
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 42 };
 
             await vm.DeleteOrderCommand.ExecuteAsync(42);
 
@@ -325,7 +348,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
                   .ThrowsAsync(new InvalidOperationException("server error"));
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             vm.Orders.Add(new OrderItemViewModel { Id = 1, Status = "New" });
 
             await vm.DeleteOrderCommand.ExecuteAsync(1);
@@ -342,11 +365,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_ValidStatus_UpdatesLocalState()
         {
             var client = new Mock<IGraphQLClient>();
-            client.Setup(x => x.ExecuteAsync<object>(
+                        client.Setup(x => x.ExecuteAsync<OrderStatusUpdateResponse>(
                     It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
-                  .ReturnsAsync((object?)null);
+                                    .ReturnsAsync(new OrderStatusUpdateResponse { Id = 7, Status = "Paid" });
 
-            var vm = new OrderViewModel(client.Object);
+            var vm = CreateViewModel(client);
             vm.SelectedOrder = new OrderDetailsViewModel { Id = 7, Status = "New" };
             vm.Orders.Add(new OrderItemViewModel { Id = 7, Status = "New" });
 
@@ -361,13 +384,14 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_NullSelectedOrder_DoesNothing()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = new OrderViewModel(client.Object) { SelectedOrder = null };
+            var vm = CreateViewModel(client);
+            vm.SelectedOrder = null;
 
             // Should silently return
             await vm.UpdateOrderStatusCommand.ExecuteAsync("Paid");
 
             client.Verify(
-                x => x.ExecuteAsync<object>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
+                x => x.ExecuteAsync<OrderStatusUpdateResponse>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
                 Times.Never);
         }
 
@@ -375,16 +399,55 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task UpdateOrderStatusCommand_InvalidStatus_DoesNotCallApi()
         {
             var client = new Mock<IGraphQLClient>();
-            var vm = new OrderViewModel(client.Object)
-            {
-                SelectedOrder = new OrderDetailsViewModel { Id = 1, Status = "New" }
-            };
+            var vm = CreateViewModel(client);
+            vm.SelectedOrder = new OrderDetailsViewModel { Id = 1, Status = "New" };
 
             await vm.UpdateOrderStatusCommand.ExecuteAsync("InvalidStatus");
 
             client.Verify(
-                x => x.ExecuteAsync<object>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
+                x => x.ExecuteAsync<OrderStatusUpdateResponse>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task LoadAsync_NonAdmin_HidesEmployeeFilterAndAppliesCurrentEmployeeId()
+        {
+            var client = new Mock<IGraphQLClient>();
+            int? capturedEmployeeId = null;
+
+            client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                .Callback<string, object?, string>((_, variables, _) =>
+                {
+                    var property = variables?.GetType().GetProperty("employeeId");
+                    var value = property?.GetValue(variables);
+                    if (value is int id)
+                    {
+                        capturedEmployeeId = id;
+                    }
+                    else if (value != null)
+                    {
+                        capturedEmployeeId = Convert.ToInt32(value);
+                    }
+                })
+                .ReturnsAsync(MakeOrdersResponse(1, false, false, (9, "New", "bob")));
+
+            client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
+                  .ReturnsAsync(MakeUserListResponse((1, "alice"), (2, "bob")));
+
+            var settings = new Mock<ILocalSettingsService>();
+            settings.Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20)).Returns(20);
+            settings.Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>())).Returns("Sale");
+            settings.Setup(s => s.GetString("LastUsername", It.IsAny<string>())).Returns("bob");
+
+            var vm = new OrderViewModel(client.Object, settings.Object);
+            await vm.LoadAsync();
+
+            Assert.False(vm.IsEmployeeFilterVisible);
+            Assert.Single(vm.Employees);
+            Assert.Equal("bob", vm.Employees[0].Username);
+            Assert.Equal(2, capturedEmployeeId);
         }
 
         // ─── OrderItemViewModel display helpers ───────────────────────────────

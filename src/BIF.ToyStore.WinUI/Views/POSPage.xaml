@@ -200,44 +200,14 @@
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
                                                        Opacity="0.4" />
-                                        </Grid>
-                                    </Border>
 
-                                    <!-- Product info -->
-                                    <StackPanel Grid.Row="1" Padding="12,10,12,12" Spacing="6">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{x:Bind Name, Mode=OneTime}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       TextWrapping="Wrap"
-                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{x:Bind PriceDisplay, Mode=OneTime}"
-                                                       FontSize="13"
-                                                       FontWeight="Bold"
-                                                       VerticalAlignment="Top"
-                                                       Margin="6,0,0,0"
-                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
-                                        </Grid>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <!-- Stock chip -->
-                                            <Border Grid.Column="0"
+                                            <!-- Stock chip (bottom-left on image) -->
+                                            <Border HorizontalAlignment="Left"
+                                                    VerticalAlignment="Bottom"
+                                                    Margin="8,0,0,8"
                                                     Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
                                                     CornerRadius="999"
-                                                    Padding="7,3"
-                                                    HorizontalAlignment="Left"
-                                                    VerticalAlignment="Center">
+                                                    Padding="7,3">
                                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                                     <Ellipse Width="6" Height="6"
                                                              Fill="{StaticResource FluentPlayPrimaryBrush}"
@@ -247,6 +217,31 @@
                                                                Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
                                                 </StackPanel>
                                             </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Product info -->
+                                    <StackPanel Grid.Row="1" Padding="12,10,12,12" Spacing="6">
+                                        <TextBlock Text="{x:Bind Name, Mode=OneTime}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   MaxLines="2"
+                                                   MinHeight="36"
+                                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{x:Bind PriceDisplay, Mode=OneTime}"
+                                                       FontSize="13"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}" />
 
                                             <!-- Add to cart button -->
                                             <Button Grid.Column="1"
@@ -318,9 +313,9 @@
                             Padding="4"
                             Command="{x:Bind ViewModel.ClearCartCommand}"
                             ToolTipService.ToolTip="Clear cart">
-                        <PathIcon Width="16" Height="16"
-                                  Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                  Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        <FontIcon Glyph="&#xE74D;"
+                                  FontSize="16"
+                                  Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
                     </Button>
                 </Grid>
 
@@ -409,12 +404,11 @@
                                                     BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                                                     Command="{Binding ViewModel.DecreaseQuantityCommand, ElementName=RootPage}"
                                                     CommandParameter="{Binding}">
-                                                <TextBlock Text="−"
-                                                           FontSize="16"
-                                                           FontWeight="Light"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                                <FontIcon Glyph="&#xE711;"
+                                                          FontSize="12"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
                                             </Button>
 
                                             <TextBlock Text="{x:Bind Quantity, Mode=OneWay}"
@@ -434,12 +428,11 @@
                                                     Command="{Binding ViewModel.IncreaseQuantityCommand, ElementName=RootPage}"
                                                     CommandParameter="{Binding}"
                                                     IsEnabled="{x:Bind CanIncreaseQuantity, Mode=OneWay}">
-                                                <TextBlock Text="+"
-                                                           FontSize="16"
-                                                           FontWeight="Light"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                                <FontIcon Glyph="&#xE710;"
+                                                          FontSize="12"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
                                             </Button>
                                         </StackPanel>
                                     </Grid>
@@ -527,9 +520,9 @@
                                 <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
                             </Button.Resources>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <PathIcon Width="16" Height="16"
-                                          Foreground="White"
-                                          Data="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
+                                <FontIcon Glyph="&#xE8C7;"
+                                          FontSize="14"
+                                          Foreground="White" />
                                 <TextBlock Text="Process Payment"
                                            FontSize="14"
                                            FontWeight="SemiBold"
@@ -560,9 +553,9 @@
                                     <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#FFA000" />
                                 </Button.Resources>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <PathIcon Width="13" Height="13"
-                                              Foreground="#1A1A1A"
-                                              Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                    <FontIcon Glyph="&#xE823;"
+                                              FontSize="13"
+                                              Foreground="#1A1A1A" />
                                     <TextBlock Text="Hold Order"
                                                FontSize="12"
                                                FontWeight="SemiBold"
@@ -579,9 +572,9 @@
                                     BorderThickness="1"
                                     Command="{x:Bind ViewModel.AddNoteCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <PathIcon Width="13" Height="13"
-                                              Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
-                                              Data="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                                    <FontIcon Glyph="&#xE70B;"
+                                              FontSize="13"
+                                              Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
                                     <TextBlock Text="Add Note"
                                                FontSize="12"
                                                FontWeight="SemiBold"

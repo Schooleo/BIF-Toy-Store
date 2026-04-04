@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
+using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Reflection;
 
@@ -158,6 +159,53 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 Path.Combine(AppContext.BaseDirectory, "ToyStore.db"),
                 local.GetString(AppPreferenceKeys.PendingRestoreTargetPath));
             Assert.Equal("Restore scheduled. Restart the app to apply restored data.", vm.StatusMessage);
+            Assert.Equal(string.Empty, vm.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task CreateBackup_UsesVacuumInto_AndProducesReadableSnapshot()
+        {
+            using var scope = new LocalAppDataScope();
+
+            var sourceDirectory = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(sourceDirectory);
+            var sourceDbPath = Path.Combine(sourceDirectory, "ToyStore.db");
+
+            await using (var sourceConnection = new SqliteConnection($"Data Source={sourceDbPath}"))
+            {
+                await sourceConnection.OpenAsync();
+                await using var cmd = sourceConnection.CreateCommand();
+                cmd.CommandText = "CREATE TABLE IF NOT EXISTS BackupProbe (Id INTEGER PRIMARY KEY, Name TEXT NOT NULL); INSERT INTO BackupProbe(Name) VALUES ('snapshot-row');";
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            var local = new InMemoryLocalSettingsService();
+            var graph = new FakeGraphQlClient();
+            graph.SetStoreSettings(0.1m, "VND", "H", "F", sourceDbPath);
+            var vm = new SettingsViewModel(graph, local);
+
+            await vm.LoadAsync();
+            await vm.CreateBackupCommand.ExecuteAsync(null);
+
+            var backupDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "BIF.ToyStore",
+                "Backups");
+
+            var backupFile = new DirectoryInfo(backupDirectory)
+                .GetFiles("*.bak")
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .FirstOrDefault();
+
+            Assert.NotNull(backupFile);
+
+            await using var backupConnection = new SqliteConnection($"Data Source={backupFile!.FullName}");
+            await backupConnection.OpenAsync();
+            await using var verify = backupConnection.CreateCommand();
+            verify.CommandText = "SELECT Name FROM BackupProbe LIMIT 1;";
+            var value = await verify.ExecuteScalarAsync();
+
+            Assert.Equal("snapshot-row", value as string);
             Assert.Equal(string.Empty, vm.ErrorMessage);
         }
 
