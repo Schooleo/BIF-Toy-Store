@@ -63,7 +63,11 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         [UseSorting]
         public IQueryable<Product> Products([Service] AppDbContext dbContext)
         {
-            return dbContext.Products.Include(p => p.Category).AsNoTracking();
+            return dbContext.Products
+                .IgnoreQueryFilters()
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.Category)
+                .AsNoTracking();
         }
 
         [UsePaging(IncludeTotalCount = true)]
@@ -153,6 +157,10 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             if (product.Category != null)
             {
+                if (product.Category.IsDeleted)
+                {
+                    return await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == AppConstants.OtherCategoryId);
+                }
                 return product.Category;
             }
 
@@ -165,7 +173,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 return await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == AppConstants.OtherCategoryId);
             }
 
-            return null;
+            return originalCategory;
         }
     }
 }

@@ -198,11 +198,13 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
     public class CreateCategoryInput
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
     }
 
     public class UpdateCategoryInput : CreateCategoryInput
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
     }
 

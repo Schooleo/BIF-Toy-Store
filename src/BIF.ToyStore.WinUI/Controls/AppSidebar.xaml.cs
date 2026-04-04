@@ -65,6 +65,7 @@ namespace BIF.ToyStore.WinUI.Controls
             bool isDashboard = string.Equals(ActiveTab, "Dashboard", System.StringComparison.OrdinalIgnoreCase);
             bool isPos = string.Equals(ActiveTab, "POS", System.StringComparison.OrdinalIgnoreCase);
             bool isProducts = string.Equals(ActiveTab, "Products", System.StringComparison.OrdinalIgnoreCase);
+            bool isCategories = string.Equals(ActiveTab, "Categories", System.StringComparison.OrdinalIgnoreCase);
             bool isOrders = string.Equals(ActiveTab, "Orders", System.StringComparison.OrdinalIgnoreCase);
             bool isUsers = string.Equals(ActiveTab, "Users", System.StringComparison.OrdinalIgnoreCase);
             bool isReports = string.Equals(ActiveTab, "Reports", System.StringComparison.OrdinalIgnoreCase);
@@ -74,6 +75,7 @@ namespace BIF.ToyStore.WinUI.Controls
             SetTabState(DashboardActiveWrap, DashboardActiveIndicator, DashboardText, DashboardIcon, isDashboard, activeBrush, inactiveBrush);
             SetTabState(PosActiveWrap, PosActiveIndicator, PosText, PosIcon, isPos, activeBrush, inactiveBrush);
             SetTabState(ProductsActiveWrap, ProductsActiveIndicator, ProductsText, ProductsIcon, isProducts, activeBrush, inactiveBrush);
+            SetTabState(CategoriesActiveWrap, CategoriesActiveIndicator, CategoriesText, CategoriesIcon, isCategories, activeBrush, inactiveBrush);
             SetTabState(OrdersActiveWrap, OrdersActiveIndicator, OrdersText, OrdersIcon, isOrders, activeBrush, inactiveBrush);
             SetTabState(UsersActiveWrap, UsersActiveIndicator, UsersText, UsersIcon, isUsers, activeBrush, inactiveBrush);
             SetTabState(ReportsActiveWrap, ReportsActiveIndicator, ReportsText, ReportsIcon, isReports, activeBrush, inactiveBrush);
@@ -135,6 +137,11 @@ namespace BIF.ToyStore.WinUI.Controls
         private void ProductsButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToProducts();
+        }
+
+        private void CategoriesButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToCategories();
         }
 
         private void OrdersButton_Click(object sender, RoutedEventArgs e)
