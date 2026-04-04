@@ -96,6 +96,7 @@ namespace BIF.ToyStore.WinUI
                         services.AddTransient<UserManagementViewModel>();
                         services.AddTransient<POSViewModel>();
                         services.AddTransient<OrderViewModel>();
+                        services.AddTransient<ReportsViewModel>();
                         services.AddTransient<SettingsViewModel>();
                     });
 

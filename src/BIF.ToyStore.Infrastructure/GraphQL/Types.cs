@@ -162,12 +162,19 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         }
     }
 
-    public class OrderListPayload
+    public class OrderConnectionPayload
     {
-        public List<OrderPayload> Items { get; init; } = [];
+        public List<OrderPayload> Nodes { get; init; } = [];
         public int TotalCount { get; init; }
-        public int Page { get; init; }
-        public int PageSize { get; init; }
+        public OrderPageInfoPayload? PageInfo { get; init; }
+    }
+
+    public class OrderPageInfoPayload
+    {
+        public bool HasNextPage { get; init; }
+        public bool HasPreviousPage { get; init; }
+        public string? StartCursor { get; init; }
+        public string? EndCursor { get; init; }
     }
 
     public class CreateProductInput
@@ -287,6 +294,52 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 CategoryName = model.CategoryName,
                 RetailPrice = model.RetailPrice,
                 UnitsSold = model.UnitsSold,
+                Rank = model.Rank
+            };
+        }
+    }
+
+    public class ReportTimeSeriesPointPayload
+    {
+        public DateTime PeriodStart { get; init; }
+        public string PeriodLabel { get; init; } = string.Empty;
+        public int TotalQuantity { get; init; }
+        public decimal TotalRevenue { get; init; }
+        public decimal TotalProfit { get; init; }
+
+        public static ReportTimeSeriesPointPayload FromModel(ReportTimeSeriesPoint model)
+        {
+            return new ReportTimeSeriesPointPayload
+            {
+                PeriodStart = model.PeriodStart,
+                PeriodLabel = model.PeriodLabel,
+                TotalQuantity = model.TotalQuantity,
+                TotalRevenue = model.TotalRevenue,
+                TotalProfit = model.TotalProfit
+            };
+        }
+    }
+
+    public class ReportTopProductPointPayload
+    {
+        public int ProductId { get; init; }
+        public string ProductName { get; init; } = string.Empty;
+        public string CategoryName { get; init; } = string.Empty;
+        public int TotalQuantity { get; init; }
+        public decimal TotalRevenue { get; init; }
+        public decimal TotalProfit { get; init; }
+        public int Rank { get; init; }
+
+        public static ReportTopProductPointPayload FromModel(ReportTopProductPoint model)
+        {
+            return new ReportTopProductPointPayload
+            {
+                ProductId = model.ProductId,
+                ProductName = model.ProductName,
+                CategoryName = model.CategoryName,
+                TotalQuantity = model.TotalQuantity,
+                TotalRevenue = model.TotalRevenue,
+                TotalProfit = model.TotalProfit,
                 Rank = model.Rank
             };
         }

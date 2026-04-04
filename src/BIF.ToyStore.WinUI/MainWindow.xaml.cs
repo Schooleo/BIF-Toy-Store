@@ -34,6 +34,35 @@ namespace BIF.ToyStore.WinUI
             }
         }
 
+        public string CurrentUsername
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_currentUser?.Username))
+                {
+                    return _currentUser.Username;
+                }
+
+                return _localSettingsService.GetString("LastUsername", "Unknown User");
+            }
+        }
+
+        public string CurrentUserRoleLabel
+        {
+            get
+            {
+                if (_currentUser is not null)
+                {
+                    return _currentUser.Role == Core.Enums.UserRole.Admin ? "ADMIN" : "SALE";
+                }
+
+                var role = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, string.Empty);
+                return string.Equals(role, Core.Enums.UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
+                    ? "ADMIN"
+                    : "SALE";
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -91,6 +120,20 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Orders");
         }
 
+        public void NavigateToReports()
+        {
+            if (!IsCurrentUserAdmin)
+            {
+                NavigateToDashboard();
+                return;
+            }
+
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToReports();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Reports");
+        }
+
         public async Task LogoutAsync()
         {
             using var scope = _scopeFactory.CreateScope();
@@ -101,6 +144,7 @@ namespace BIF.ToyStore.WinUI
             _credentialVaultService.ClearCredentials(CredentialResourceName);
             _currentUser = null;
             _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, string.Empty);
+            _localSettingsService.SetInt(AppPreferenceKeys.CurrentUserId, 0);
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
 
             NavigateToLogin();
@@ -188,6 +232,20 @@ namespace BIF.ToyStore.WinUI
             if (route == "Orders")
             {
                 NavigateToOrders();
+                return;
+            }
+
+            if (route == "Reports")
+            {
+                if (IsCurrentUserAdmin)
+                {
+                    NavigateToReports();
+                }
+                else
+                {
+                    NavigateToDashboard();
+                    _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Dashboard");
+                }
                 return;
             }
 

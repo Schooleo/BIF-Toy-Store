@@ -114,6 +114,78 @@
     <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
     <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush">#66C0C7D4</SolidColorBrush>
 
+    <SolidColorBrush x:Key="CalendarDatePickerBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerBackgroundPointerOver" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerBackgroundPressed" Color="{StaticResource FluentPlaySurfaceContainerColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerBackgroundDisabled">#FFEDEDED</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerBackgroundFocused">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerBorderBrushPointerOver" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerBorderBrushPressed" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerBorderBrushDisabled">#66C0C7D4</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerTextForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerTextForegroundPointerOver" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerTextForegroundPressed" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerTextForegroundDisabled">#88404752</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerTextForegroundSelected" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerHeaderForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerHeaderForegroundDisabled">#88404752</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerCalendarGlyphForeground">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarDatePickerCalendarGlyphForegroundPointerOver" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerCalendarGlyphForegroundPressed" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarDatePickerCalendarGlyphForegroundDisabled">#88404752</SolidColorBrush>
+
+    <SolidColorBrush x:Key="CalendarViewBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CalendarViewFocusBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewHoverBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewPressedBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewCalendarItemBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewCalendarItemHoverBackground" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarViewCalendarItemPressedBackground" Color="{StaticResource FluentPlaySurfaceContainerColor}" />
+    <SolidColorBrush x:Key="CalendarViewCalendarItemDisabledBackground">#FFEDEDED</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewCalendarItemForeground">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewCalendarItemBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CalendarViewDisabledForeground">#80404752</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewPressedForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedHoverForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedPressedForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedDisabledForeground">#80404752</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewSelectedBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedHoverBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedPressedBorderBrush" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewSelectedDisabledBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CalendarViewOutOfScopeBackground" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarViewOutOfScopeForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewOutOfScopeHoverForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewOutOfScopePressedForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewBlackoutBackground" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarViewBlackoutForeground">#FF9CA3AF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewBlackoutStrikethroughBrush">#FF9CA3AF</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewTodayBackground" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarViewTodayHoverBackground" Color="{StaticResource FluentPlaySurfaceContainerColor}" />
+    <SolidColorBrush x:Key="CalendarViewTodayPressedBackground" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+    <SolidColorBrush x:Key="CalendarViewTodayDisabledBackground">#FFEDEDED</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewTodayForeground" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+    <SolidColorBrush x:Key="CalendarViewTodayBlackoutBackground" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+    <SolidColorBrush x:Key="CalendarViewTodayBlackoutForeground">#FF8A919E</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewTodaySelectedInnerBorderBrush">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonBackground" Color="{StaticResource FluentPlaySurfaceContainerLowColor}" />
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonBackgroundPointerOver" Color="{StaticResource FluentPlaySurfaceContainerColor}" />
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonBackgroundPressed" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonBorderBrush" Color="{StaticResource FluentPlayOutlineVariantColor}" />
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayOutlineColor}" />
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonForeground">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonForegroundPointerOver">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonForegroundPressed">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewNavigationButtonForegroundDisabled">#80404752</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewHeaderNavigationButtonForeground">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewHeaderNavigationButtonForegroundPointerOver">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewHeaderNavigationButtonForegroundPressed">#FF1A1C1C</SolidColorBrush>
+    <SolidColorBrush x:Key="CalendarViewHeaderNavigationButtonForegroundDisabled">#80404752</SolidColorBrush>
+
     <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource FluentPlayPrimaryColor}" />
     <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
     <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />

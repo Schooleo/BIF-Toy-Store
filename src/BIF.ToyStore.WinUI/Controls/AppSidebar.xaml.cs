@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using BIF.ToyStore.WinUI.Services;
 
@@ -149,6 +151,11 @@ namespace BIF.ToyStore.WinUI.Controls
             App.Current.MainWindowInstance?.NavigateToOrders();
         }
 
+        private void ReportsButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.Current.MainWindowInstance?.NavigateToReports();
+        }
+
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToSettings();
@@ -156,10 +163,34 @@ namespace BIF.ToyStore.WinUI.Controls
 
         private void PlaceholderButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is string tab && !string.IsNullOrWhiteSpace(tab))
+            if (sender is not Button button || button.Tag is not string tab || string.IsNullOrWhiteSpace(tab))
             {
-                ActiveTab = tab;
+                return;
             }
+
+            ActiveTab = tab;
+
+            var mainWindow = App.Current.MainWindowInstance;
+            var username = mainWindow?.CurrentUsername;
+            var role = mainWindow?.CurrentUserRoleLabel;
+
+            ProfileUsernameText.Text = string.IsNullOrWhiteSpace(username) ? "Unknown User" : username;
+
+            bool isAdmin = string.Equals(role, "ADMIN", System.StringComparison.OrdinalIgnoreCase);
+            ProfileRoleText.Text = isAdmin ? "ADMIN" : "SALE";
+
+            if (isAdmin)
+            {
+                ProfileRoleBadge.Background = Application.Current.Resources["FluentPlayPrimaryFixedColor"] as Brush;
+                ProfileRoleText.Foreground = Application.Current.Resources["FluentPlayPrimaryBrush"] as Brush;
+            }
+            else
+            {
+                ProfileRoleBadge.Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 242, 194));
+                ProfileRoleText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 169, 116, 0));
+            }
+
+            FlyoutBase.ShowAttachedFlyout(button);
         }
 
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)

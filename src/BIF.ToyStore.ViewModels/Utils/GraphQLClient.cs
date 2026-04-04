@@ -97,7 +97,7 @@ namespace BIF.ToyStore.ViewModels.Utils
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var statusCode = (int)response.StatusCode;
 
-                var errorDetails = responseBody.Length > 500 ? responseBody[..500] + "..." : responseBody;
+                var errorDetails = ExtractGraphQlHttpError(responseBody);
                 throw new HttpRequestException(
                     $"HTTP {statusCode} Error: {errorDetails}",
                     null,
@@ -139,6 +139,45 @@ namespace BIF.ToyStore.ViewModels.Utils
             }
 
             return data.Deserialize<T>(_jsonOptions);
+        }
+
+        private static string ExtractGraphQlHttpError(string responseBody)
+        {
+            if (string.IsNullOrWhiteSpace(responseBody))
+            {
+                return "Server returned an empty error response.";
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(responseBody);
+                var root = document.RootElement;
+                if (root.TryGetProperty("errors", out var errors) &&
+                    errors.ValueKind == JsonValueKind.Array &&
+                    errors.GetArrayLength() > 0)
+                {
+                    var messages = Enumerable.Range(0, errors.GetArrayLength())
+                        .Select(i => errors[i].TryGetProperty("message", out var msg)
+                            ? msg.GetString()
+                            : null)
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Cast<string>()
+                        .ToList();
+
+                    if (messages.Count > 0)
+                    {
+                        return string.Join("; ", messages);
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to raw text when the server response is not JSON.
+            }
+
+            return responseBody.Length > 300
+                ? responseBody[..300] + "..."
+                : responseBody;
         }
     }
 }

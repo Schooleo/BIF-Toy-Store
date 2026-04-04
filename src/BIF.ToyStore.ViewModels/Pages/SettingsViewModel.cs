@@ -3,6 +3,7 @@ using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Data.Sqlite;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -142,7 +143,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 var backupFileName = $"ToyStore_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
                 var destinationPath = Path.Combine(backupDirectory, backupFileName);
 
-                await CopyWithRetryAsync(sourcePath, destinationPath);
+                await CreateVacuumBackupWithRetryAsync(sourcePath, destinationPath);
 
                 var nowUtc = DateTime.UtcNow;
                 _localSettingsService.SetString(AppPreferenceKeys.LastBackupUtc, nowUtc.ToString("o", CultureInfo.InvariantCulture));
@@ -459,6 +460,54 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             throw new IOException(
                 "The database file is currently in use. Close other tools accessing the database and try backup again.");
+        }
+
+        private static async Task CreateVacuumBackupWithRetryAsync(string sourceDatabasePath, string backupDatabasePath)
+        {
+            const int maxAttempts = 5;
+            const int retryDelayMs = 250;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    if (File.Exists(backupDatabasePath))
+                    {
+                        File.Delete(backupDatabasePath);
+                    }
+
+                    var escapedBackupPath = backupDatabasePath.Replace("'", "''", StringComparison.Ordinal);
+                    var connectionString = new SqliteConnectionStringBuilder
+                    {
+                        DataSource = sourceDatabasePath,
+                        Mode = SqliteOpenMode.ReadWrite
+                    }.ToString();
+
+                    await using var connection = new SqliteConnection(connectionString);
+                    await connection.OpenAsync();
+
+                    await using var command = connection.CreateCommand();
+                    command.CommandText = $"VACUUM INTO '{escapedBackupPath}';";
+                    await command.ExecuteNonQueryAsync();
+                    return;
+                }
+                catch (SqliteException ex) when (
+                    (ex.SqliteErrorCode == 5 || ex.SqliteErrorCode == 6) && attempt < maxAttempts)
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+                catch (IOException) when (attempt < maxAttempts)
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+                catch (UnauthorizedAccessException) when (attempt < maxAttempts)
+                {
+                    await Task.Delay(retryDelayMs);
+                }
+            }
+
+            throw new IOException(
+                "The database is currently busy. Try backup again in a moment.");
         }
 
         private sealed class StoreSettingsView
