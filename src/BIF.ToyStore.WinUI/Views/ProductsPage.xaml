@@ -148,7 +148,7 @@
                             <TextBox
                                 Width="240"
                                 HorizontalAlignment="Left"
-                                KeyDown="SearchBox_KeyDown"
+                                TextChanged="SearchBox_TextChanged"
                                 PlaceholderText="Enter product name..."
                                 Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>

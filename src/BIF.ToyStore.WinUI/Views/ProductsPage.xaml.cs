@@ -8,16 +8,23 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
 using WinRT.Interop;
+using Microsoft.UI.Dispatching;
+
 namespace BIF.ToyStore.WinUI.Views
 {
     public sealed partial class ProductsPage : Page
     {
         public ProductsViewModel ViewModel { get; }
+        private DispatcherQueueTimer _searchDebounceTimer;
 
         public ProductsPage()
         {
             ViewModel = App.Current.Services.GetRequiredService<ProductsViewModel>();
             InitializeComponent();
+            
+            _searchDebounceTimer = DispatcherQueue.CreateTimer();
+            _searchDebounceTimer.Interval = TimeSpan.FromMilliseconds(400);
+            _searchDebounceTimer.Tick += SearchDebounceTimer_Tick;
             
             Loaded += async (s, e) =>
             {
@@ -56,15 +63,16 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private void SearchBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (e.Key == Windows.System.VirtualKey.Enter)
-            {
-                if (ViewModel.ApplyFilterCommand.CanExecute(null))
-                {
-                    ViewModel.ApplyFilterCommand.Execute(null);
-                }
-            }
+            _searchDebounceTimer.Stop();
+            _searchDebounceTimer.Start();
+        }
+
+        private void SearchDebounceTimer_Tick(DispatcherQueueTimer sender, object args)
+        {
+            _searchDebounceTimer.Stop();
+            ApplyFilter();
         }
 
         private void ClearCategoryFilter_Click(object sender, RoutedEventArgs e)
@@ -121,7 +129,7 @@ namespace BIF.ToyStore.WinUI.Views
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
             {
-                var input = new BIF.ToyStore.Infrastructure.GraphQL.CreateProductInput
+                var input = new Product
                 {
                     Name = dialog.ResultProduct.Name,
                     CategoryId = dialog.ResultProduct.CategoryId,

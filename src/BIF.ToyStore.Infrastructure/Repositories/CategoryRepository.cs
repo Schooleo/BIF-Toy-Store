@@ -1,5 +1,6 @@
 ﻿using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Settings;
 using BIF.ToyStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,40 @@ namespace BIF.ToyStore.Infrastructure.Repositories
 {
     public class CategoryRepository(AppDbContext dbContext) : BaseRepository<Category>(dbContext), ICategoryRepository
     {
+        public IQueryable<Category> QueryForGraphQL()
+        {
+            return _dbContext.Categories.AsNoTracking();
+        }
+
+        public async Task<Category> UpdateNameAsync(int id, string name)
+        {
+            var category = await _dbContext.Categories
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)
+                ?? throw new InvalidOperationException("Category not found.");
+
+            category.Name = name;
+            await _dbContext.SaveChangesAsync();
+            return category;
+        }
+
+        public async Task<bool> SoftDeleteAsync(int id)
+        {
+            if (id == AppConstants.OtherCategoryId)
+            {
+                throw new InvalidOperationException("Cannot delete the default 'Other' category.");
+            }
+
+            var category = await _dbContext.Categories
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)
+                ?? throw new InvalidOperationException("Category not found.");
+
+            category.IsDeleted = true;
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<Category> RestoreAsync(int id)
         {
             var category = await _dbContext.Categories

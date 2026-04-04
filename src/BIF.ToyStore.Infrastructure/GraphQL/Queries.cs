@@ -6,7 +6,6 @@ using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using BIF.ToyStore.Core.Settings;
 using HotChocolate;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
@@ -61,21 +60,17 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         [UsePaging(IncludeTotalCount = true)]
         [UseFiltering]
         [UseSorting]
-        public IQueryable<Product> Products([Service] AppDbContext dbContext)
+        public IQueryable<Product> Products([Service] IProductRepository productRepository)
         {
-            return dbContext.Products
-                .IgnoreQueryFilters()
-                .Where(p => !p.IsDeleted)
-                .Include(p => p.Category)
-                .AsNoTracking();
+            return productRepository.QueryForGraphQL();
         }
 
         [UsePaging(IncludeTotalCount = true)]
         [UseFiltering]
         [UseSorting]
-        public IQueryable<Category> Categories([Service] AppDbContext dbContext)
+        public IQueryable<Category> Categories([Service] ICategoryRepository categoryRepository)
         {
-            return dbContext.Categories.Include(c => c.Products).AsNoTracking();
+            return categoryRepository.QueryForGraphQL();
         }
 
         public async Task<List<UserPayload>> Users([Service] AppDbContext dbContext)
@@ -136,16 +131,9 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
     public class CategoryExtension
     {
         [BindMember(nameof(Category.Products))]
-        public IQueryable<Product> GetProducts([Parent] Category category, [Service] AppDbContext dbContext)
+        public IQueryable<Product> GetProducts([Parent] Category category, [Service] IProductRepository productRepository)
         {
-            if (category.Id != AppConstants.OtherCategoryId)
-            {
-                return dbContext.Products.Where(p => p.CategoryId == category.Id);
-            }
-
-            return dbContext.Products.Where(p => 
-                p.CategoryId == AppConstants.OtherCategoryId || 
-                dbContext.Categories.IgnoreQueryFilters().Any(c => c.Id == p.CategoryId && c.IsDeleted));
+            return productRepository.QueryByCategoryForGraphQL(category.Id);
         }
     }
 
@@ -153,27 +141,9 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
     public class ProductExtension
     {
         [BindMember(nameof(Product.Category))]
-        public async Task<Category?> GetCategory([Parent] Product product, [Service] AppDbContext dbContext)
+        public async Task<Category?> GetCategory([Parent] Product product, [Service] IProductRepository productRepository)
         {
-            if (product.Category != null)
-            {
-                if (product.Category.IsDeleted)
-                {
-                    return await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == AppConstants.OtherCategoryId);
-                }
-                return product.Category;
-            }
-
-            var originalCategory = await dbContext.Categories
-                                            .IgnoreQueryFilters()
-                                            .FirstOrDefaultAsync(c => c.Id == product.CategoryId);
-
-            if (originalCategory != null && originalCategory.IsDeleted)
-            {
-                return await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == AppConstants.OtherCategoryId);
-            }
-
-            return originalCategory;
+            return await productRepository.ResolveEffectiveCategoryAsync(product);
         }
     }
 }

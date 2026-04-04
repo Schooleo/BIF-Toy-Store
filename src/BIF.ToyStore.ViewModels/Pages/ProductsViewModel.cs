@@ -8,13 +8,12 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
-using BIF.ToyStore.Infrastructure.GraphQL;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class ProductsViewModel : PaginatedViewModel
     {
-        private readonly IGraphQLClient _graphQLClient;
+        private readonly IProductService _productService;
         private readonly ILocalSettingsService _localSettingsService;
         private readonly IExcelFilePickerService _excelFilePickerService;
         private nint _windowHandle;
@@ -73,11 +72,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
-            IGraphQLClient graphQLClient,
+            IProductService productService,
             ILocalSettingsService localSettingsService,
             IExcelFilePickerService excelFilePickerService)
         {
-            _graphQLClient = graphQLClient;
+            _productService = productService;
             _localSettingsService = localSettingsService;
             _excelFilePickerService = excelFilePickerService;
             Title = "Product Management";
@@ -97,21 +96,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task LoadCategoriesAsync()
         {
-            const string query = @"
-                query GetCategories {
-                    categories(first: 50) {
-                        nodes {
-                            id
-                            name
-                        }
-                    }
-                }";
-
-            var result = await _graphQLClient.ExecuteAsync<CategoryConnection>(query, dataKey: "categories");
-            if (result?.Nodes != null)
-            {
-                Categories = new ObservableCollection<Category>(result.Nodes);
-            }
+            var categories = await _productService.GetCategoriesAsync();
+            Categories = new ObservableCollection<Category>(categories);
         }
 
         [RelayCommand]
@@ -125,119 +111,26 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
-                const string queryTemplate = @"
-                    query GetProducts(
-                        $first: Int, $last: Int, $after: String, $before: String,
-                        $where: ProductFilterInput, $order: [ProductSortInput!]
-                    ) {
-                        products(
-                            first: $first,
-                            last: $last,
-                            after: $after,
-                            before: $before,
-                            where: $where,
-                            order: $order
-                        ) {
-                            totalCount
-                            pageInfo {
-                                hasNextPage
-                                hasPreviousPage
-                                startCursor
-                                endCursor
-                            }
-                            nodes {
-                                id
-                                name
-                                categoryId
-                                category {
-                                    id
-                                    name
-                                }
-                                retailPrice
-                                importPrice
-                                stockQuantity
-                            }
-                        }
-                    }";
-
-                var whereConditions = new List<object>();
-
-                if (!string.IsNullOrWhiteSpace(SearchText))
+                var result = await _productService.GetProductsAsync(new ProductListQuery
                 {
-                    whereConditions.Add(new { name = new { contains = SearchText } });
-                }
+                    PageSize = PageSize,
+                    Direction = direction,
+                    AfterCursor = AfterCursor,
+                    BeforeCursor = BeforeCursor,
+                    SearchText = SearchText,
+                    CategoryId = SelectedCategory?.Id,
+                    MinRetailPrice = MinPrice > 0 ? (decimal)MinPrice : null,
+                    MaxRetailPrice = MaxPrice < 1000 ? (decimal)MaxPrice : null,
+                    SortValue = SelectedSort?.Value
+                });
 
-                if (SelectedCategory != null)
-                {
-                    whereConditions.Add(new { categoryId = new { eq = SelectedCategory.Id } });
-                }
-
-                if (MinPrice > 0)
-                {
-                    whereConditions.Add(new { retailPrice = new { gte = (decimal)MinPrice } });
-                }
-
-                if (MaxPrice < 1000)
-                {
-                    whereConditions.Add(new { retailPrice = new { lte = (decimal)MaxPrice } });
-                }
-
-                object? whereClause = whereConditions.Count > 0
-                    ? new { and = whereConditions }
-                    : null;
-
-                object orderClause = SelectedSort?.Value switch
-                {
-                    "price_asc" => new[] { new { retailPrice = "ASC" } },
-                    "price_desc" => new[] { new { retailPrice = "DESC" } },
-                    "stock_asc" => new[] { new { stockQuantity = "ASC" } },
-                    "name_asc" => new[] { new { name = "ASC" } },
-                    _ => new[] { new { id = "DESC" } }
-                };
-
-                int? firstVar = null;
-                int? lastVar = null;
-                string? afterVar = null;
-                string? beforeVar = null;
-
-                if (direction == "next" && !string.IsNullOrEmpty(AfterCursor))
-                {
-                    firstVar = PageSize;
-                    afterVar = AfterCursor;
-                }
-                else if (direction == "prev" && !string.IsNullOrEmpty(BeforeCursor))
-                {
-                    lastVar = PageSize;
-                    beforeVar = BeforeCursor;
-                }
-                else if (direction == "last")
-                {
-                    lastVar = PageSize;
-                }
-                else
-                {
-                    firstVar = PageSize;
-                }
-
-                var variables = new
-                {
-                    first = firstVar,
-                    last = lastVar,
-                    after = afterVar,
-                    before = beforeVar,
-                    where = whereClause,
-                    order = orderClause
-                };
-
-                var result = await _graphQLClient.ExecuteAsync<ProductConnection>(queryTemplate, variables, dataKey: "products");
-
-                if (result != null)
-                {
-                    Products = new ObservableCollection<Product>(result.Nodes ?? new List<Product>());
-                    ApplyPageInfo(result.TotalCount, result.PageInfo?.HasNextPage ?? false,
-                        result.PageInfo?.HasPreviousPage ?? false,
-                        result.PageInfo?.StartCursor, result.PageInfo?.EndCursor);
-                }
+                Products = new ObservableCollection<Product>(result.Items);
+                ApplyPageInfo(
+                    result.TotalCount,
+                    result.HasNextPage,
+                    result.HasPreviousPage,
+                    result.StartCursor,
+                    result.EndCursor);
             }
             finally
             {
@@ -266,28 +159,16 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
 
         [RelayCommand]
-        public async Task CreateProductAsync(CreateProductInput input)
+        public async Task CreateProductAsync(Product input)
         {
-            const string query = @"
-                mutation Create($input: CreateProductInput!) {
-                    createProduct(input: $input) {
-                        id
-                    }
-                }";
-            await _graphQLClient.ExecuteAsync<Product>(query, new { input }, dataKey: "createProduct");
+            await _productService.CreateProductAsync(input);
             await LoadProductsAsync();
         }
 
         [RelayCommand]
-        public async Task UpdateProductAsync(UpdateProductInput input)
+        public async Task UpdateProductAsync(Product input)
         {
-            const string query = @"
-                mutation Update($input: UpdateProductInput!) {
-                    updateProduct(input: $input) {
-                        id
-                    }
-                }";
-            await _graphQLClient.ExecuteAsync<Product>(query, new { input }, dataKey: "updateProduct");
+            await _productService.UpdateProductAsync(input);
             await LoadProductsAsync();
         }
 
@@ -345,7 +226,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return;
                 }
 
-                var input = new UpdateProductInput
+                var input = new Product
                 {
                     Id = EditingProduct.Id,
                     Name = EditingProduct.Name,
@@ -377,11 +258,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task DeleteProductAsync(int id)
         {
-            const string query = @"
-                mutation Delete($id: Int!) {
-                    deleteProduct(id: $id)
-                }";
-            await _graphQLClient.ExecuteAsync<bool>(query, new { id }, dataKey: "deleteProduct");
+            await _productService.DeleteProductAsync(id);
             await LoadProductsAsync();
         }
 
@@ -407,19 +284,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 IsBusy = true;
 
-                const string query = @"
-                    mutation Import($file: Upload!) {
-                        importProducts(file: $file) {
-                            importedCount
-                            errors
-                        }
-                    }";
-
-                var result = await _graphQLClient.UploadFileAsync<ImportProductsPayload>(
-                    query,
-                    "file",
-                    selectedFilePath,
-                    dataKey: "importProducts");
+                var result = await _productService.ImportProductsAsync(selectedFilePath);
 
                 if (result is null)
                 {
@@ -448,22 +313,6 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 IsBusy = false;
             }
-        }
-
-        // Helper classes for GraphQL response mapping
-        public class CategoryConnection { public List<Category>? Nodes { get; set; } }
-        public class ProductConnection 
-        { 
-            public int TotalCount { get; set; }
-            public PageInfo? PageInfo { get; set; }
-            public List<Product>? Nodes { get; set; } 
-        }
-        public class PageInfo
-        {
-            public bool HasNextPage { get; set; }
-            public bool HasPreviousPage { get; set; }
-            public string? StartCursor { get; set; }
-            public string? EndCursor { get; set; }
         }
 
         public class SortOption
