@@ -2,6 +2,9 @@ using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Messages;
+using BIF.ToyStore.ViewModels.Utils;
+using CommunityToolkit.Mvvm.Messaging;
 using Moq;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
@@ -9,6 +12,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     public class LoginViewModelTests
     {
         private readonly Mock<IGraphQLClient> _graphQLClientMock;
+        private readonly Mock<ICredentialVaultService> _credentialVaultServiceMock;
+        private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
+        private readonly Mock<IAppInfoService> _appInfoServiceMock;
+        private readonly Mock<IMessenger> _messengerMock;
         private readonly LoginViewModel _viewModel;
 
         // GraphQL mutation query constant – must match what LoginViewModel sends
@@ -24,7 +31,27 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public LoginViewModelTests()
         {
             _graphQLClientMock = new Mock<IGraphQLClient>();
-            _viewModel = new LoginViewModel(_graphQLClientMock.Object);
+            _credentialVaultServiceMock = new Mock<ICredentialVaultService>();
+            _localSettingsServiceMock = new Mock<ILocalSettingsService>();
+            _appInfoServiceMock = new Mock<IAppInfoService>();
+            _messengerMock = new Mock<IMessenger>();
+
+            _localSettingsServiceMock
+                .Setup(x => x.GetString("LastUsername", It.IsAny<string>()))
+                .Returns(string.Empty);
+            _localSettingsServiceMock
+                .Setup(x => x.GetString("LastActiveRoute", "Dashboard"))
+                .Returns("Dashboard");
+            _appInfoServiceMock
+                .Setup(x => x.GetAppVersion())
+                .Returns("Version 1.0.0.0");
+
+            _viewModel = new LoginViewModel(
+                _graphQLClientMock.Object,
+                _credentialVaultServiceMock.Object,
+                _localSettingsServiceMock.Object,
+                _appInfoServiceMock.Object,
+                _messengerMock.Object);
         }
 
         // ─── Constructor defaults ────────────────────────────────────────────────
@@ -146,7 +173,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             // Assert – GraphQL must never be called on invalid input
             _graphQLClientMock.Verify(
-                x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>()),
                 Times.Never);
         }
 
@@ -159,17 +186,16 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Username = "adminUser";
             _viewModel.Password = "adminPass";
 
-            var user = new User { Id = 1, Username = "adminUser", Role = UserRole.Admin };
+            var user = new LoginUser { Id = 1, Username = "adminUser", Role = UserRole.Admin };
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
                 .ReturnsAsync(user);
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
 
             // Assert
-            Assert.Contains("adminUser", _viewModel.ErrorMessage);
-            Assert.Contains("Admin", _viewModel.ErrorMessage);
+            Assert.Contains("Login successful", _viewModel.ErrorMessage);
             Assert.False(_viewModel.IsBusy);
         }
 
@@ -180,17 +206,16 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Username = "saleUser";
             _viewModel.Password = "salePass";
 
-            var user = new User { Id = 2, Username = "saleUser", Role = UserRole.Sale };
+            var user = new LoginUser { Id = 2, Username = "saleUser", Role = UserRole.Sale };
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
                 .ReturnsAsync(user);
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
 
             // Assert
-            Assert.Contains("saleUser", _viewModel.ErrorMessage);
-            Assert.Contains("Sale", _viewModel.ErrorMessage);
+            Assert.Contains("Login successful", _viewModel.ErrorMessage);
             Assert.False(_viewModel.IsBusy);
         }
 
@@ -202,16 +227,40 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "validPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
-                .ReturnsAsync(new User { Username = "validUser" });
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new LoginUser { Username = "validUser" });
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
 
             // Assert
             _graphQLClientMock.Verify(
-                x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"),
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_PersistsRoleAndSendsMessage()
+        {
+            _viewModel.Username = "saleUser";
+            _viewModel.Password = "salePass";
+
+            var user = new LoginUser { Id = 2, Username = "saleUser", Role = UserRole.Sale };
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(user);
+
+            await _viewModel.LoginCommand.ExecuteAsync(null);
+
+            _localSettingsServiceMock.Verify(
+                x => x.SetString(AppPreferenceKeys.CurrentUserRole, UserRole.Sale.ToString()),
+                Times.Once);
+            _localSettingsServiceMock.Verify(
+                x => x.SetInt(AppPreferenceKeys.CurrentUserId, 2),
+                Times.Once);
+            Assert.Contains(
+                _messengerMock.Invocations,
+                call => call.Arguments.Any(arg => arg is LoginSucceededMessage));
         }
 
         // ─── Failed login ─────────────────────────────────────────────────────────
@@ -224,8 +273,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "invalidPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
-                .ReturnsAsync((User?)null);
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync((LoginUser?)null);
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
@@ -245,7 +294,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "validPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
                 .ThrowsAsync(new Exception("Server unavailable"));
 
             // Act
@@ -265,7 +314,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "validPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
                 .ThrowsAsync(new HttpRequestException("Network failure"));
 
             // Act
@@ -285,8 +334,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "validPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
-                .ReturnsAsync(new User { Username = "validUser" });
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new LoginUser { Username = "validUser" });
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
@@ -303,8 +352,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Password = "validPass";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
-                .ReturnsAsync((User?)null);
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync((LoginUser?)null);
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
@@ -322,14 +371,81 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.ErrorMessage = "Old error";
 
             _graphQLClientMock
-                .Setup(x => x.ExecuteAsync<User>(It.IsAny<string>(), It.IsAny<object>(), "login"))
-                .ReturnsAsync(new User { Username = "validUser" });
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new LoginUser { Username = "validUser" });
 
             // Act
             await _viewModel.LoginCommand.ExecuteAsync(null);
 
             // Assert – the old error is gone (replaced with the success message)
             Assert.DoesNotContain("Old error", _viewModel.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_NoStoredCredentials_DoesNothing()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(((string Username, string Password)?)null);
+
+            await _viewModel.TryAutoLoginAsync();
+
+            _graphQLClientMock.Verify(
+                x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_InvalidStoredCredentials_ClearsVaultEntry()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(("saved-user", "wrong-pass"));
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync((LoginUser?)null);
+
+            await _viewModel.TryAutoLoginAsync();
+
+            _credentialVaultServiceMock.Verify(
+                x => x.ClearCredentials("BIF.ToyStore.POS"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_ValidStoredCredentials_SetsAutoLoginMessage()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(("saved-user", "saved-pass"));
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ReturnsAsync(new LoginUser { Id = 99, Username = "saved-user", Role = UserRole.Admin });
+
+            await _viewModel.TryAutoLoginAsync();
+
+            Assert.StartsWith("Auto-login successful.", _viewModel.ErrorMessage);
+            _credentialVaultServiceMock.Verify(
+                x => x.SaveCredentials("BIF.ToyStore.POS", "saved-user", "saved-pass"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TryAutoLoginAsync_GraphQlThrows_DoesNotSurfaceError()
+        {
+            _credentialVaultServiceMock
+                .Setup(x => x.GetCredentials("BIF.ToyStore.POS"))
+                .Returns(("saved-user", "saved-pass"));
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(It.IsAny<string>(), It.IsAny<object>(), "login"))
+                .ThrowsAsync(new Exception("network down"));
+
+            await _viewModel.TryAutoLoginAsync();
+
+            Assert.Equal(string.Empty, _viewModel.ErrorMessage);
         }
     }
 }

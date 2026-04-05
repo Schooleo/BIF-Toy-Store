@@ -1,3 +1,4 @@
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,41 @@ namespace BIF.ToyStore.Infrastructure.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
+
+            modelBuilder.Entity<AppConfig>()
+                .ToTable(t => t.HasCheckConstraint("CK_AppConfig_SingleRow", "Id = 1"));
+
+            modelBuilder.Entity<AppConfig>()
+                .Property(c => c.Id)
+                .ValueGeneratedNever();
+
+            // Category: Soft-delete global query filter
+            modelBuilder.Entity<Category>()
+                .HasQueryFilter(c => !c.IsDeleted);
+
+            // Product: Soft-delete global query filter
+            modelBuilder.Entity<Product>()
+                .HasQueryFilter(p => !p.IsDeleted);
+
+            // Order: Soft-delete global query filter
+            modelBuilder.Entity<Order>()
+                .HasQueryFilter(o => !o.IsDeleted);
+
+            // Order: Store OrderStatus enum as integer
+            modelBuilder.Entity<Order>()
+                .Property(o => o.Status)
+                .HasConversion<int>();
+
+            // OrderDetail: composite relationship
+            modelBuilder.Entity<OrderDetail>()
+                .HasOne(d => d.Order)
+                .WithMany(o => o.OrderDetails)
+                .HasForeignKey(d => d.OrderId);
+
+            modelBuilder.Entity<OrderDetail>()
+                .HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId);
         }
     }
 }

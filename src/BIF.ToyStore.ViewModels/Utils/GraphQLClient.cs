@@ -1,5 +1,7 @@
 using BIF.ToyStore.Core.Interfaces;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,9 +12,9 @@ namespace BIF.ToyStore.ViewModels.Utils
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public GraphQLClient()
+        public GraphQLClient(string baseAddress = "http://localhost:5000/")
         {
-            _httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5000/") };
+            _httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
 
             // Ensures JSON properties map correctly
             _jsonOptions = new JsonSerializerOptions
@@ -25,43 +27,157 @@ namespace BIF.ToyStore.ViewModels.Utils
         }
 
         public async Task<T?> ExecuteAsync<T>(string query, object? variables = null, string dataKey = "")
+        {
+            var requestBody = new { query, variables };
+            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody, _jsonOptions);
+            return await ParseGraphQLResponseAsync<T>(response, dataKey);
+        }
+
+        public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
         {
-            var requestBody = new { query, variables };
+            if (string.IsNullOrWhiteSpace(variableName))
+            {
+                throw new ArgumentException("Variable name is required.", nameof(variableName));
+            }
 
-            var response = await _httpClient.PostAsJsonAsync("graphql", requestBody);
-            response.EnsureSuccessStatusCode();
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                throw new FileNotFoundException("The selected file was not found.", filePath);
+            }
 
-            // Use JsonDocument for more flexible parsing
-            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>() 
-                ?? throw new Exception("Empty response from server.");
+            var operations = JsonSerializer.Serialize(new
+            {
+                query,
+                variables = new Dictionary<string, object?>
+                {
+                    [variableName] = null
+                }
+            }, _jsonOptions);
+
+            var map = JsonSerializer.Serialize(new Dictionary<string, string[]>
+            {
+                ["0"] = [$"variables.{variableName}"]
+            });
+
+            using var stream = File.OpenRead(filePath);
+            using var multipart = new MultipartFormDataContent();
+            multipart.Add(new StringContent(operations, Encoding.UTF8, "application/json"), "operations");
+            multipart.Add(new StringContent(map, Encoding.UTF8, "application/json"), "map");
+
+            var fileContent = new StreamContent(stream);
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var contentType = extension == ".xls"
+                ? "application/vnd.ms-excel"
+                : extension == ".xlsx"
+                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    : "application/octet-stream";
+
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            multipart.Add(fileContent, "0", Path.GetFileName(filePath));
+
+            // Server requires GraphQL preflight header for multipart uploads
+            var request = new HttpRequestMessage(HttpMethod.Post, "graphql")
+            {
+                Content = multipart
+            };
+            request.Headers.Add("GraphQL-Preflight", "1");
+
+            var response = await _httpClient.SendAsync(request);
+            return await ParseGraphQLResponseAsync<T>(response, dataKey);
+        }
+
+        /// <summary>
+        /// Parse GraphQL response and handle errors uniformly across ExecuteAsync and UploadFileAsync.
+        /// Collects all GraphQL errors (not just the first one) and provides better diagnostics.
+        /// </summary>
+        private async Task<T?> ParseGraphQLResponseAsync<T>(HttpResponseMessage response, string dataKey)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode;
+
+                var errorDetails = ExtractGraphQlHttpError(responseBody);
+                throw new HttpRequestException(
+                    $"HTTP {statusCode} Error: {errorDetails}",
+                    null,
+                    response.StatusCode);
+            }
+
+            using var jsonDocument = await response.Content.ReadFromJsonAsync<JsonDocument>()
+                ?? throw new InvalidOperationException("Empty response from server.");
             var root = jsonDocument.RootElement;
 
-            // Check for GraphQL Server Errors
+            // Collect ALL GraphQL errors, not just the first one
             if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
             {
-                var errorMessage = errors[0].GetProperty("message").GetString();
-                throw new Exception($"GraphQL Error: {errorMessage}");
+                var messages = Enumerable.Range(0, errors.GetArrayLength())
+                    .Select(i => errors[i].TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error")
+                    .Where(m => m is not null);
+
+                throw new InvalidOperationException($"GraphQL Error(s): {string.Join("; ", messages)}");
             }
 
             if (!root.TryGetProperty("data", out var data))
             {
-                throw new Exception("No data returned from GraphQL.");
+                throw new InvalidOperationException("No 'data' field in GraphQL response.");
             }
 
-            // Drill down into the specific query node (e.g., "login" or "products")
             if (!string.IsNullOrEmpty(dataKey))
             {
-                if (data.TryGetProperty(dataKey, out var specificData))
+                if (!data.TryGetProperty(dataKey, out var specificData))
                 {
-                    if (specificData.ValueKind == JsonValueKind.Null) return default;
-
-                    return specificData.Deserialize<T>(_jsonOptions);
+                    throw new KeyNotFoundException($"Key '{dataKey}' not found in GraphQL response.");
                 }
-                throw new Exception($"The key '{dataKey}' was not found in the GraphQL response.");
+
+                if (specificData.ValueKind == JsonValueKind.Null)
+                {
+                    return default;
+                }
+
+                return specificData.Deserialize<T>(_jsonOptions);
             }
 
-            // If no dataKey is provided, deserialize the entire data block
             return data.Deserialize<T>(_jsonOptions);
+        }
+
+        private static string ExtractGraphQlHttpError(string responseBody)
+        {
+            if (string.IsNullOrWhiteSpace(responseBody))
+            {
+                return "Server returned an empty error response.";
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(responseBody);
+                var root = document.RootElement;
+                if (root.TryGetProperty("errors", out var errors) &&
+                    errors.ValueKind == JsonValueKind.Array &&
+                    errors.GetArrayLength() > 0)
+                {
+                    var messages = Enumerable.Range(0, errors.GetArrayLength())
+                        .Select(i => errors[i].TryGetProperty("message", out var msg)
+                            ? msg.GetString()
+                            : null)
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Cast<string>()
+                        .ToList();
+
+                    if (messages.Count > 0)
+                    {
+                        return string.Join("; ", messages);
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to raw text when the server response is not JSON.
+            }
+
+            return responseBody.Length > 300
+                ? responseBody[..300] + "..."
+                : responseBody;
         }
     }
 }

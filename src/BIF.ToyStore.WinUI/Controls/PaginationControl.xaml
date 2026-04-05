@@ -1,0 +1,46 @@
+<UserControl
+    x:Class="BIF.ToyStore.WinUI.Controls.PaginationControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:BIF.ToyStore.WinUI.Controls"
+    mc:Ignorable="d">
+
+    <StackPanel Orientation="Horizontal" Padding="24,16" Spacing="50" HorizontalAlignment="Center">
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="First" 
+                    Command="{x:Bind FirstPageCommand, Mode=OneWay}" 
+                Padding="16,10"
+                MinWidth="90"
+                MinHeight="40"
+                FontSize="14"
+                Background="Transparent" BorderBrush="Transparent" Foreground="{ThemeResource FluentPlayPrimaryBrush}" />
+            <Button Content="Previous" 
+                    Command="{x:Bind PreviousPageCommand, Mode=OneWay}" 
+                Padding="16,10"
+                MinWidth="90"
+                MinHeight="40"
+                FontSize="14"
+                Background="White" BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Next" 
+                    Command="{x:Bind NextPageCommand, Mode=OneWay}" 
+                Padding="16,10"
+                MinWidth="90"
+                MinHeight="40"
+                FontSize="14"
+                Background="White" BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+            <Button Content="Last" 
+                    Command="{x:Bind LastPageCommand, Mode=OneWay}" 
+                Padding="16,10"
+                MinWidth="90"
+                MinHeight="40"
+                FontSize="14"
+                Background="Transparent" BorderBrush="Transparent" Foreground="{ThemeResource FluentPlayPrimaryBrush}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

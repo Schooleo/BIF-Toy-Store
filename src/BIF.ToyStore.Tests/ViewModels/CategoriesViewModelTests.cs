@@ -1,0 +1,174 @@
+using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Settings;
+using BIF.ToyStore.ViewModels.Pages;
+using Moq;
+using Xunit;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace BIF.ToyStore.Tests.ViewModels.Pages
+{
+    public class CategoriesViewModelTests
+    {
+        private readonly Mock<ICategoryService> _categoryServiceMock;
+        private readonly CategoriesViewModel _viewModel;
+
+        public CategoriesViewModelTests()
+        {
+            _categoryServiceMock = new Mock<ICategoryService>();
+            _viewModel = new CategoriesViewModel(_categoryServiceMock.Object);
+        }
+
+        // ─── Constructor defaults ────────────────────────────────────────────────
+
+        [Fact]
+        public void Constructor_SetsCorrectTitle()
+        {
+            Assert.Equal("Category Management", _viewModel.Title);
+        }
+
+        // ─── LoadCategoriesAsync ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task LoadCategoriesAsync_ValidResponse_UpdatesCollectionAndPagingInfo()
+        {
+            // Arrange
+            var fakeResponse = new CategoryListResult
+            {
+                TotalCount = 10,
+                HasNextPage = false,
+                HasPreviousPage = false,
+                StartCursor = "c1",
+                EndCursor = "c10",
+                Items = new List<Category>
+                {
+                    new Category { Id = 1, Name = "Other" },
+                    new Category { Id = 2, Name = "Lego" },
+                    new Category { Id = 3, Name = "Board Games" }
+                }
+            };
+
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(fakeResponse);
+
+            // Act
+            await _viewModel.LoadCategoriesAsync();
+
+            // Assert
+            Assert.Equal(3, _viewModel.Categories.Count);
+            Assert.Equal("Other", _viewModel.Categories[0].Name);
+            Assert.Equal(10, _viewModel.TotalCount);
+            Assert.False(_viewModel.HasNextPage);
+            Assert.False(_viewModel.HasPreviousPage);
+            Assert.Equal("c10", _viewModel.AfterCursor);
+        }
+
+        [Fact]
+        public async Task LoadCategoriesAsync_WhenCompleted_IsBusyResetToFalse()
+        {
+            // Arrange
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
+
+            // Act
+            await _viewModel.LoadCategoriesAsync();
+
+            // Assert
+            Assert.False(_viewModel.IsBusy);
+        }
+
+        // ─── Filter ──────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task ApplyFilterAsync_WhenCalled_ResetsCursorsAndReloads()
+        {
+            // Arrange
+            _viewModel.AfterCursor = "some_cursor";
+            _viewModel.SearchText = "Lego";
+
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
+
+            // Act
+            await _viewModel.ApplyFilterCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Null(_viewModel.AfterCursor);
+            _categoryServiceMock.Verify(x => x.GetCategoriesAsync(
+                It.Is<CategoryListQuery>(q => q.SearchText == "Lego")), Times.Once);
+        }
+
+        [Fact]
+        public async Task ClearFilterAsync_WhenCalled_ResetsSearchTextAndReloads()
+        {
+            // Arrange
+            _viewModel.SearchText = "Lego";
+
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
+
+            // Act
+            await _viewModel.ClearFilterCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Empty(_viewModel.SearchText);
+        }
+
+        // ─── DeleteCategoryAsync ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task DeleteCategoryAsync_OtherCategoryId_DoesNotCallGraphQL()
+        {
+            // Act – attempt to delete the protected "Other" category
+            await _viewModel.DeleteCategoryAsync(AppConstants.OtherCategoryId);
+
+            // Assert – GraphQL must never be called
+            _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteCategoryAsync_ValidId_CallsGraphQLAndReloads()
+        {
+            // Arrange
+            _categoryServiceMock
+                .Setup(x => x.DeleteCategoryAsync(5))
+                .ReturnsAsync(true);
+
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
+
+            // Act
+            await _viewModel.DeleteCategoryAsync(5);
+
+            // Assert
+            _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(5), Times.Once);
+        }
+
+        // ─── RestoreCategoryAsync ────────────────────────────────────────────────
+
+        [Fact]
+        public async Task RestoreCategoryAsync_ValidId_CallsGraphQLAndReloads()
+        {
+            // Arrange
+            _categoryServiceMock
+                .Setup(x => x.RestoreCategoryAsync(5))
+                .ReturnsAsync(new Category { Id = 5, Name = "Restored" });
+
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
+
+            // Act
+            await _viewModel.RestoreCategoryAsync(5);
+
+            // Assert
+            _categoryServiceMock.Verify(x => x.RestoreCategoryAsync(5), Times.Once);
+        }
+    }
+}
