@@ -13,6 +13,9 @@
 
     <Page.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringNullOrEmptyToVisibilityConverter" />
+        <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter" />
+        <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
     </Page.Resources>
 
     <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
@@ -24,7 +27,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ── LEFT: Product Catalog ─────────────────────────────────────── -->
+        <!-- Ã¢â€â‚¬Ã¢â€â‚¬ LEFT: Product Catalog Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -194,12 +197,17 @@
                                                            Foreground="White" />
                                             </Border>
 
-                                            <!-- Placeholder icon -->
-                                            <TextBlock Text="🧸"
-                                                       FontSize="40"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       Opacity="0.4" />
+                                            <Image Source="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                                   Stretch="UniformToFill"
+                                                   Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
+
+                                            <FontIcon Glyph="&#xE7C3;"
+                                                      FontSize="32"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Opacity="0.45"
+                                                      Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                      Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
 
                                             <!-- Stock chip (bottom-left on image) -->
                                             <Border HorizontalAlignment="Left"
@@ -280,7 +288,7 @@
             </ScrollViewer>
         </Grid>
 
-        <!-- ── RIGHT: Active Cart Panel ──────────────────────────────────── -->
+        <!-- Ã¢â€â‚¬Ã¢â€â‚¬ RIGHT: Active Cart Panel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
         <Border Grid.Column="1"
                 Background="White"
                 BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
@@ -370,11 +378,24 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Thumbnail placeholder -->
+                                        <!-- Thumbnail preview -->
                                         <Border Grid.Column="0"
-                                                Width="36" Height="36"
+                                                Width="36"
+                                                Height="36"
                                                 CornerRadius="6"
-                                                Background="{StaticResource FluentPlayPrimaryFixedColor}" />
+                                                Background="{StaticResource FluentPlayPrimaryFixedColor}">
+                                            <Grid>
+                                                <Image Source="{x:Bind Product.ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="{x:Bind Product.ImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
+                                                <FontIcon Glyph="&#xE7C3;"
+                                                          FontSize="14"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                          Visibility="{x:Bind Product.ImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                            </Grid>
+                                        </Border>
 
                                         <!-- Name + price -->
                                         <StackPanel Grid.Column="1"
@@ -593,7 +614,7 @@
               Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
                 <ProgressRing IsActive="True" Width="48" Height="48" Foreground="White" />
-                <TextBlock Text="Loading…"
+                <TextBlock Text="LoadingÃ¢â‚¬Â¦"
                            FontSize="14"
                            FontWeight="SemiBold"
                            Foreground="White"

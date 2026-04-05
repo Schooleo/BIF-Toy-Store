@@ -71,6 +71,8 @@ namespace BIF.ToyStore.WinUI
                         services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
                         services.AddSingleton<IAppInfoService, AppInfoService>();
                         services.AddSingleton<IExcelFilePickerService, ExcelFilePickerService>();
+                        services.AddSingleton<IImageFilePickerService, ImageFilePickerService>();
+                        services.AddSingleton<IProductImageUploadService, CloudinaryProductImageUploadService>();
                         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
                         // GraphQL

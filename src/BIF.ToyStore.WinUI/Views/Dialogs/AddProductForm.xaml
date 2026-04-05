@@ -16,6 +16,10 @@
     FullSizeDesired="False">
     
     <ContentDialog.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringNullOrEmptyToVisibilityConverter" />
+        <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter" />
+        <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
         <converters:DecimalToDoubleConverter x:Key="DecimalToDoubleConverter" />
         <Style x:Key="ErrorTextBlockStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
@@ -72,16 +76,48 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Image Placeholder -->
-            <Border Grid.Column="0" Width="140" Height="140" 
-                    Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}" 
-                    BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}" 
-                    BorderThickness="1" CornerRadius="12">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
-                    <FontIcon Glyph="&#xE71A;" FontSize="28" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
-                    <TextBlock Text="UPLOAD" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
-                </StackPanel>
-            </Border>
+            <StackPanel Grid.Column="0" Width="140" Spacing="6">
+                <Button Width="140"
+                        Height="140"
+                        Padding="0"
+                        Command="{x:Bind ViewModel.UploadImageCommand}"
+                        Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                        BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12">
+                    <Grid>
+                        <Image Source="{x:Bind ViewModel.ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                               Stretch="UniformToFill"
+                               Visibility="{x:Bind ViewModel.ImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
+
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Spacing="8"
+                                    Visibility="{x:Bind ViewModel.ImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                            <FontIcon Glyph="&#xE71A;"
+                                      FontSize="28"
+                                      Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                            <TextBlock Text="UPLOAD"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                        </StackPanel>
+
+                        <ProgressRing Width="32"
+                                      Height="32"
+                                      IsActive="{x:Bind ViewModel.IsUploadingImage, Mode=OneWay}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Visibility="{x:Bind ViewModel.IsUploadingImage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    </Grid>
+                </Button>
+
+                <TextBlock Text="{x:Bind ViewModel.UploadErrorMessage, Mode=OneWay}"
+                           TextWrapping="WrapWholeWords"
+                           Visibility="{x:Bind ViewModel.HasUploadError, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Style="{StaticResource ErrorTextBlockStyle}" />
+            </StackPanel>
 
             <!-- Product Name & Category -->
             <StackPanel Grid.Column="1" Margin="24,0,0,0" Spacing="16" VerticalAlignment="Center">

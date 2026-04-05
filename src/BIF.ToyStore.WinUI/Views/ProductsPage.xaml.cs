@@ -129,15 +129,30 @@ namespace BIF.ToyStore.WinUI.Views
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
             {
-                var input = new Product
+                try
                 {
-                    Name = dialog.ResultProduct.Name,
-                    CategoryId = dialog.ResultProduct.CategoryId,
-                    ImportPrice = dialog.ResultProduct.ImportPrice,
-                    RetailPrice = dialog.ResultProduct.RetailPrice,
-                    StockQuantity = dialog.ResultProduct.StockQuantity
-                };
-                await ViewModel.CreateProductAsync(input);
+                    var input = new Product
+                    {
+                        Name = dialog.ResultProduct.Name,
+                        CategoryId = dialog.ResultProduct.CategoryId,
+                        ImportPrice = dialog.ResultProduct.ImportPrice,
+                        RetailPrice = dialog.ResultProduct.RetailPrice,
+                        StockQuantity = dialog.ResultProduct.StockQuantity,
+                        ImageUrl = dialog.ResultProduct.ImageUrl
+                    };
+
+                    await ViewModel.CreateProductAsync(input);
+                }
+                catch (Exception ex)
+                {
+                    await CommonDialog.ShowAsync(
+                        XamlRoot,
+                        CommonDialogType.Error,
+                        title: "Unable to add product",
+                        message: ex.Message,
+                        primaryButtonText: "OK",
+                        closeButtonText: null);
+                }
             }
         }
 

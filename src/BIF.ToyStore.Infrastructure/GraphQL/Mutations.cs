@@ -188,7 +188,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 CategoryId = input.CategoryId,
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
-                StockQuantity = input.StockQuantity
+                StockQuantity = input.StockQuantity,
+                ImageUrl = input.ImageUrl
             };
             return await repo.AddAsync(product);
         }
@@ -202,7 +203,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 CategoryId = input.CategoryId,
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
-                StockQuantity = input.StockQuantity
+                StockQuantity = input.StockQuantity,
+                ImageUrl = input.ImageUrl
             };
 
             return await repo.UpdateDetailsAsync(product);

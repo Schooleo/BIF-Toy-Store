@@ -1,20 +1,29 @@
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
+using Moq;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
     public class AddProductFormViewModelTests
     {
+        private static AddProductFormViewModel CreateViewModel(
+            Mock<IImageFilePickerService>? imagePickerMock = null,
+            nint windowHandle = 1)
+        {
+            return new AddProductFormViewModel(
+                (imagePickerMock ?? new Mock<IImageFilePickerService>()).Object,
+                windowHandle);
+        }
+
         [Fact]
         public void Validate_EmptyRequiredFields_ReturnsFalseAndSetsErrors()
         {
-            var vm = new AddProductFormViewModel
-            {
-                Name = "",
-                SelectedCategory = null,
-                ImportPrice = 0,
-                RetailPrice = 0
-            };
+            var vm = CreateViewModel();
+            vm.Name = "";
+            vm.SelectedCategory = null;
+            vm.ImportPrice = 0;
+            vm.RetailPrice = 0;
 
             var result = vm.Validate();
 
@@ -28,7 +37,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         [Fact]
         public void InitializeForEdit_LoadsExistingProductAndSwitchesTitle()
         {
-            var vm = new AddProductFormViewModel();
+            var vm = CreateViewModel();
             var categories = new[]
             {
                 new Category { Id = 1, Name = "Action" },
@@ -41,7 +50,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 CategoryId = 2,
                 ImportPrice = 10m,
                 RetailPrice = 20m,
-                StockQuantity = 5
+                StockQuantity = 5,
+                ImageUrl = "https://example.com/image.png"
             };
 
             vm.InitializeForEdit(product, categories);
@@ -53,13 +63,14 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(10m, vm.ImportPrice);
             Assert.Equal(20m, vm.RetailPrice);
             Assert.Equal(5, vm.StockQuantity);
+            Assert.Equal("https://example.com/image.png", vm.ImageUrl);
             Assert.Equal(2, vm.Categories.Count);
         }
 
         [Fact]
         public void GetProduct_EditMode_PreservesOriginalId()
         {
-            var vm = new AddProductFormViewModel();
+            var vm = CreateViewModel();
             var categories = new[] { new Category { Id = 9, Name = "Blocks" } };
             var existing = new Product
             {
@@ -76,6 +87,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             vm.ImportPrice = 5m;
             vm.RetailPrice = 9m;
             vm.StockQuantity = 3;
+            vm.ImageUrl = "https://example.com/updated.png";
 
             var result = vm.GetProduct();
 
@@ -85,17 +97,20 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(5m, result.ImportPrice);
             Assert.Equal(9m, result.RetailPrice);
             Assert.Equal(3, result.StockQuantity);
+            Assert.Equal("https://example.com/updated.png", result.ImageUrl);
         }
 
         [Fact]
         public void ResetForm_ClearsStateAndReturnsToAddMode()
         {
-            var vm = new AddProductFormViewModel();
+            var vm = CreateViewModel();
             vm.Name = "Toy";
             vm.SelectedCategory = new Category { Id = 1, Name = "A" };
             vm.ImportPrice = 1;
             vm.RetailPrice = 2;
             vm.StockQuantity = 3;
+            vm.ImageUrl = "https://example.com/product.png";
+            vm.UploadErrorMessage = "oops";
             vm.HasNameError = true;
             vm.HasCategoryError = true;
             vm.HasImportPriceError = true;
@@ -109,10 +124,27 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(0m, vm.ImportPrice);
             Assert.Equal(0m, vm.RetailPrice);
             Assert.Equal(0, vm.StockQuantity);
+            Assert.Null(vm.ImageUrl);
+            Assert.Equal(string.Empty, vm.UploadErrorMessage);
             Assert.False(vm.HasNameError);
             Assert.False(vm.HasCategoryError);
             Assert.False(vm.HasImportPriceError);
             Assert.False(vm.HasRetailPriceError);
+        }
+
+        [Fact]
+        public async Task UploadImageAsync_Success_SetsImageUrl()
+        {
+            var pickerMock = new Mock<IImageFilePickerService>();
+            pickerMock.Setup(x => x.PickImageFilePathAsync(1)).ReturnsAsync("C:\\temp\\product.png");
+
+            var vm = CreateViewModel(pickerMock);
+
+            await vm.UploadImageCommand.ExecuteAsync(null);
+
+            Assert.Equal("C:\\temp\\product.png", vm.ImageUrl);
+            Assert.False(vm.IsUploadingImage);
+            Assert.Equal(string.Empty, vm.UploadErrorMessage);
         }
     }
 }

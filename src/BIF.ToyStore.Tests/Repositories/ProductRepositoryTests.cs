@@ -36,5 +36,36 @@ namespace BIF.ToyStore.Tests.Repositories
             Assert.Equal(2, count);
             Assert.Equal(2, _dbContext.Products.Count());
         }
+
+        [Fact]
+        public async Task UpdateDetailsAsync_UpdatesImageUrl()
+        {
+            var product = new Product
+            {
+                Id = 10,
+                Name = "Robot",
+                CategoryId = 1,
+                RetailPrice = 50m,
+                ImportPrice = 25m,
+                StockQuantity = 4
+            };
+
+            _dbContext.Products.Add(product);
+            await _dbContext.SaveChangesAsync();
+
+            var updated = await _repository.UpdateDetailsAsync(new Product
+            {
+                Id = 10,
+                Name = "Robot",
+                CategoryId = 1,
+                RetailPrice = 50m,
+                ImportPrice = 25m,
+                StockQuantity = 4,
+                ImageUrl = "https://example.com/robot.png"
+            });
+
+            Assert.Equal("https://example.com/robot.png", updated.ImageUrl);
+            Assert.Equal("https://example.com/robot.png", _dbContext.Products.Single(p => p.Id == 10).ImageUrl);
+        }
     }
 }

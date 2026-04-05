@@ -36,6 +36,9 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Contains("EnableLoyaltyPoints", columns);
             Assert.Contains("IsInitialSetupCompleted", columns);
 
+            var productColumns = await GetTableColumnsAsync(context, "Products");
+            Assert.Contains("ImageUrl", productColumns);
+
             var config = await context.AppConfigs.SingleAsync(c => c.Id == 1);
             Assert.False(config.IsInitialSetupCompleted);
             Assert.Equal("Legacy", config.DisplayName);

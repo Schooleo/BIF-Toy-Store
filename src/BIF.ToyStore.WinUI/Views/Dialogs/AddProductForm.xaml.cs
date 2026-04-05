@@ -1,8 +1,11 @@
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.Generic;
+using WinRT.Interop;
 
 namespace BIF.ToyStore.WinUI.Views.Dialogs
 {
@@ -14,9 +17,14 @@ namespace BIF.ToyStore.WinUI.Views.Dialogs
         public AddProductForm(IEnumerable<Category> categories, Product? existingProduct = null)
         {
             InitializeComponent();
+
+            var imageFilePickerService = App.Current.Services.GetRequiredService<IImageFilePickerService>();
+            var windowHandle = App.Current.MainWindowInstance is null
+                ? 0
+                : WindowNative.GetWindowHandle(App.Current.MainWindowInstance);
             
             // Create and set ViewModel
-            ViewModel = new AddProductFormViewModel();
+            ViewModel = new AddProductFormViewModel(imageFilePickerService, windowHandle);
             this.DataContext = ViewModel;
 
             // Subscribe to property changes to update visibility
@@ -54,6 +62,13 @@ namespace BIF.ToyStore.WinUI.Views.Dialogs
 
         private void ContentDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
+            if (ViewModel.IsUploadingImage)
+            {
+                ViewModel.UploadErrorMessage = "Please wait for the image upload to finish.";
+                args.Cancel = true;
+                return;
+            }
+
             // Validate through ViewModel
             if (!ViewModel.Validate())
             {

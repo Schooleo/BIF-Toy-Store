@@ -94,6 +94,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public int Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public decimal RetailPrice { get; init; }
+        public string? ImageUrl { get; init; }
 
         public static ProductPayload FromProduct(Product product)
         {
@@ -101,7 +102,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             {
                 Id = product.Id,
                 Name = product.Name,
-                RetailPrice = product.RetailPrice
+                RetailPrice = product.RetailPrice,
+                ImageUrl = product.ImageUrl
             };
         }
     }
@@ -189,6 +191,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public decimal ImportPrice { get; set; }
         [JsonPropertyName("stockQuantity")]
         public int StockQuantity { get; set; }
+        [JsonPropertyName("imageUrl")]
+        public string? ImageUrl { get; set; }
     }
 
     public class UpdateProductInput : CreateProductInput

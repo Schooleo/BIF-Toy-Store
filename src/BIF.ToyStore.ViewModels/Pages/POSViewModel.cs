@@ -151,15 +151,16 @@ namespace BIF.ToyStore.ViewModels.Pages
                             id
                             name
                             categoryId
-                            category {
-                                id
-                                name
-                            }
-                            retailPrice
-                            stockQuantity
-                        }
-                    }
-                }";
+                             category {
+                                 id
+                                 name
+                             }
+                             retailPrice
+                             stockQuantity
+                             imageUrl
+                         }
+                     }
+                 }";
 
             _allProducts.Clear();
             bool hasNext = true;
@@ -409,6 +410,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal Price { get; }
         public int StockQuantity { get; }
         public string CategoryName { get; }
+        public string? ImageUrl { get; }
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanAddToCart))]
@@ -431,6 +433,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             Price = p.RetailPrice;
             StockQuantity = p.StockQuantity;
             CategoryName = p.Category?.Name ?? string.Empty;
+            ImageUrl = p.ImageUrl;
             CartQuantity = 0;
         }
     }

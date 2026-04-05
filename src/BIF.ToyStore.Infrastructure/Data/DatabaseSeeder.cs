@@ -337,6 +337,7 @@ namespace BIF.ToyStore.Infrastructure.Data
                 }
 
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "ImageUrl", "TEXT NULL");
             }
             finally
             {

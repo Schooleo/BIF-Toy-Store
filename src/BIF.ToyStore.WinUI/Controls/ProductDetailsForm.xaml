@@ -11,6 +11,10 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringNullOrEmptyToVisibilityConverter" />
+        <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter" />
+        <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
         <converters:DecimalToDoubleConverter x:Key="DecimalToDoubleConverter" />
 
         <Style x:Key="DetailsLabelStyle" TargetType="TextBlock">
@@ -84,28 +88,46 @@
                         Message="{x:Bind EditErrorMessage, Mode=OneWay}"
                         Severity="Error" />
 
-                    <Border
-                        Height="168"
-                        HorizontalAlignment="Stretch"
-                        Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                        BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12">
-                        <StackPanel
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Spacing="8">
-                            <FontIcon
-                                FontSize="28"
-                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                                Glyph="&#xE7C3;" />
-                            <TextBlock
-                                FontSize="11"
-                                FontWeight="SemiBold"
-                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                                Text="IMAGE" />
-                        </StackPanel>
-                    </Border>
+                    <InfoBar
+                        IsClosable="False"
+                        IsOpen="{x:Bind IsUploadErrorOpen, Mode=OneWay}"
+                        Message="{x:Bind UploadErrorMessage, Mode=OneWay}"
+                        Severity="Error" />
+
+                    <Button Height="168"
+                            HorizontalAlignment="Stretch"
+                            Padding="0"
+                            Click="UploadImageButton_Click"
+                            Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                            BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <Grid>
+                            <Image Source="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                   Stretch="UniformToFill"
+                                   Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
+
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8"
+                                        Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                <FontIcon FontSize="28"
+                                          Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                          Glyph="&#xE7C3;" />
+                                <TextBlock FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                           Text="UPLOAD IMAGE" />
+                            </StackPanel>
+
+                            <ProgressRing Width="32"
+                                          Height="32"
+                                          IsActive="{x:Bind IsUploadingImage, Mode=OneWay}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Visibility="{x:Bind IsUploadingImage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </Grid>
+                    </Button>
 
                     <StackPanel Spacing="6">
                         <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="NAME" />

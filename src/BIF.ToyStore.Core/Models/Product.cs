@@ -17,6 +17,8 @@ namespace BIF.ToyStore.Core.Models
         // For listing "Low Stock" products
         public int StockQuantity { get; set; }
 
+        public string? ImageUrl { get; set; }
+
         public bool IsDeleted { get; set; } = false;
     }
 }

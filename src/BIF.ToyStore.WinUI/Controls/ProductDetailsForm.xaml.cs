@@ -1,20 +1,34 @@
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Interfaces;
+using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+using WinRT.Interop;
 
 namespace BIF.ToyStore.WinUI.Controls
 {
     public sealed partial class ProductDetailsForm : UserControl, INotifyPropertyChanged
     {
         private static readonly Product EmptyProduct = new();
+        private readonly IImageFilePickerService? _imageFilePickerService;
+        private readonly nint _windowHandle;
         private bool _isFormLoaded;
+        private bool _isUploadingImage;
+        private string _uploadErrorMessage = string.Empty;
 
         public ProductDetailsForm()
         {
             InitializeComponent();
+
+            _imageFilePickerService = App.Current.Services.GetService<IImageFilePickerService>();
+            _windowHandle = App.Current.MainWindowInstance is null
+                ? 0
+                : WindowNative.GetWindowHandle(App.Current.MainWindowInstance);
+
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
         }
@@ -48,6 +62,39 @@ namespace BIF.ToyStore.WinUI.Controls
         }
 
         public bool IsErrorOpen => !string.IsNullOrWhiteSpace(EditErrorMessage);
+        public bool IsUploadErrorOpen => !string.IsNullOrWhiteSpace(UploadErrorMessage);
+        public bool IsUploadingImage
+        {
+            get => _isUploadingImage;
+            private set
+            {
+                if (_isUploadingImage == value)
+                {
+                    return;
+                }
+
+                _isUploadingImage = value;
+                OnPropertyChanged(nameof(IsUploadingImage));
+            }
+        }
+
+        public string UploadErrorMessage
+        {
+            get => _uploadErrorMessage;
+            private set
+            {
+                if (string.Equals(_uploadErrorMessage, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _uploadErrorMessage = value;
+                OnPropertyChanged(nameof(UploadErrorMessage));
+                OnPropertyChanged(nameof(IsUploadErrorOpen));
+            }
+        }
+
+        public string? CurrentImageUrl => Product?.ImageUrl;
 
         public Product? Product
         {
@@ -115,6 +162,7 @@ namespace BIF.ToyStore.WinUI.Controls
             {
                 form.OnPropertyChanged(nameof(EditableProduct));
                 form.OnPropertyChanged(nameof(SelectedCategoryDisplay));
+                form.OnPropertyChanged(nameof(CurrentImageUrl));
             }
         }
 
@@ -139,7 +187,9 @@ namespace BIF.ToyStore.WinUI.Controls
             _isFormLoaded = true;
             OnPropertyChanged(nameof(EditableProduct));
             OnPropertyChanged(nameof(IsErrorOpen));
+            OnPropertyChanged(nameof(IsUploadErrorOpen));
             OnPropertyChanged(nameof(SelectedCategoryDisplay));
+            OnPropertyChanged(nameof(CurrentImageUrl));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -178,6 +228,55 @@ namespace BIF.ToyStore.WinUI.Controls
             if (!string.IsNullOrWhiteSpace(EditErrorMessage))
             {
                 EditErrorMessage = string.Empty;
+            }
+        }
+
+        private async void UploadImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsUploadingImage)
+            {
+                return;
+            }
+
+            if (Product is null)
+            {
+                UploadErrorMessage = "No product is selected for editing.";
+                return;
+            }
+
+            if (_imageFilePickerService is null)
+            {
+                UploadErrorMessage = "Image picker service is not available.";
+                return;
+            }
+
+            if (_windowHandle == 0)
+            {
+                UploadErrorMessage = "Cannot open image picker because the window is not ready.";
+                return;
+            }
+
+            try
+            {
+                UploadErrorMessage = string.Empty;
+                IsUploadingImage = true;
+
+                var selectedFilePath = await _imageFilePickerService.PickImageFilePathAsync(_windowHandle);
+                if (string.IsNullOrWhiteSpace(selectedFilePath))
+                {
+                    return;
+                }
+
+                Product.ImageUrl = selectedFilePath;
+                OnPropertyChanged(nameof(CurrentImageUrl));
+            }
+            catch (Exception ex)
+            {
+                UploadErrorMessage = $"Image selection failed: {ex.Message}";
+            }
+            finally
+            {
+                IsUploadingImage = false;
             }
         }
 
