@@ -108,7 +108,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Assert
             Assert.Empty(_viewModel.SearchText);
             Assert.Equal(0, _viewModel.MinPrice);
-            Assert.Null(_viewModel.SelectedCategory);
+            Assert.NotNull(_viewModel.SelectedCategory);
+            Assert.Equal(0, _viewModel.SelectedCategory!.Id);
+            Assert.Equal("All Categories", _viewModel.SelectedCategory.Name);
             _productServiceMock.Verify(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()), Times.Once);
         }
 

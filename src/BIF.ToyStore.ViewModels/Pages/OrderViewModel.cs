@@ -4,12 +4,8 @@ using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -42,6 +38,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private bool _isEmployeeFilterVisible = true;
 
         public string PaginationLabel => $"Showing {Orders.Count} of {TotalCount} ORDERS";
+        public string SelectedEmployeeDisplay => SelectedEmployee?.Username ?? "All Employees";
 
         // ── Details sidebar ───────────────────────────────────────────────────
         [ObservableProperty]
@@ -76,6 +73,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             var roleValue = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
             _isAdminUser = Enum.TryParse<UserRole>(roleValue, true, out var role) && role == UserRole.Admin;
             IsEmployeeFilterVisible = _isAdminUser;
+        }
+
+        partial void OnSelectedEmployeeChanged(EmployeeListItem? value)
+        {
+            OnPropertyChanged(nameof(SelectedEmployeeDisplay));
         }
 
         // ── Load / Lifecycle ──────────────────────────────────────────────────

@@ -1,14 +1,15 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using BIF.ToyStore.WinUI.Services;
+using System;
 
 namespace BIF.ToyStore.WinUI.Controls
 {
     public sealed partial class AppSidebar : UserControl
     {
+        private const int MaxStoreNameLength = 15;
+
         public static readonly DependencyProperty IsAdminProperty =
             DependencyProperty.Register(
                 nameof(IsAdmin),
@@ -23,6 +24,13 @@ namespace BIF.ToyStore.WinUI.Controls
                 typeof(AppSidebar),
                 new PropertyMetadata("Dashboard", OnActiveTabChanged));
 
+        public static readonly DependencyProperty StoreNameProperty =
+            DependencyProperty.Register(
+                nameof(StoreName),
+                typeof(string),
+                typeof(AppSidebar),
+                new PropertyMetadata("BIF Toy Store", OnStoreNameChanged));
+
         public bool IsAdmin
         {
             get => (bool)GetValue(IsAdminProperty);
@@ -35,11 +43,25 @@ namespace BIF.ToyStore.WinUI.Controls
             set => SetValue(ActiveTabProperty, value);
         }
 
+        public string StoreName
+        {
+            get => (string)GetValue(StoreNameProperty);
+            set => SetValue(StoreNameProperty, value);
+        }
+
         public AppSidebar()
         {
             InitializeComponent();
+            UpdateStoreName();
             UpdateRoleVisibility();
             UpdateActiveState();
+            UpdateCurrentUsername();
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            UpdateCurrentUsername();
         }
 
         private static void OnIsAdminChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -48,6 +70,7 @@ namespace BIF.ToyStore.WinUI.Controls
             {
                 sidebar.UpdateRoleVisibility();
                 sidebar.UpdateActiveState();
+                sidebar.UpdateCurrentUsername();
             }
         }
 
@@ -57,6 +80,37 @@ namespace BIF.ToyStore.WinUI.Controls
             {
                 sidebar.UpdateActiveState();
             }
+        }
+
+        private static void OnStoreNameChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is AppSidebar sidebar)
+            {
+                sidebar.UpdateStoreName();
+            }
+        }
+
+        private void UpdateStoreName()
+        {
+            var resolvedStoreName = string.IsNullOrWhiteSpace(StoreName)
+                ? "BIF Toy Store"
+                : StoreName.Trim();
+
+            StoreNameText.Text = resolvedStoreName.Length > MaxStoreNameLength
+                ? resolvedStoreName[..MaxStoreNameLength]
+                : resolvedStoreName;
+        }
+
+        private void UpdateCurrentUsername()
+        {
+            var roleLabel = App.Current.MainWindowInstance?.CurrentUserRoleLabel;
+            var isAdmin = string.Equals(roleLabel, "ADMIN", StringComparison.OrdinalIgnoreCase);
+            SidebarUserRoleText.Text = isAdmin ? "Admin" : "Sale";
+
+            var username = App.Current.MainWindowInstance?.CurrentUsername;
+            SidebarUsernameText.Text = string.IsNullOrWhiteSpace(username)
+                ? "Unknown User"
+                : username.Trim();
         }
 
         private void UpdateActiveState()
@@ -72,7 +126,6 @@ namespace BIF.ToyStore.WinUI.Controls
             bool isUsers = string.Equals(ActiveTab, "Users", System.StringComparison.OrdinalIgnoreCase);
             bool isReports = string.Equals(ActiveTab, "Reports", System.StringComparison.OrdinalIgnoreCase);
             bool isSettings = string.Equals(ActiveTab, "Settings", System.StringComparison.OrdinalIgnoreCase);
-            bool isProfile = string.Equals(ActiveTab, "Profile", System.StringComparison.OrdinalIgnoreCase);
 
             SetTabState(DashboardActiveWrap, DashboardActiveIndicator, DashboardText, DashboardIcon, isDashboard, activeBrush, inactiveBrush);
             SetTabState(PosActiveWrap, PosActiveIndicator, PosText, PosIcon, isPos, activeBrush, inactiveBrush);
@@ -82,7 +135,6 @@ namespace BIF.ToyStore.WinUI.Controls
             SetTabState(UsersActiveWrap, UsersActiveIndicator, UsersText, UsersIcon, isUsers, activeBrush, inactiveBrush);
             SetTabState(ReportsActiveWrap, ReportsActiveIndicator, ReportsText, ReportsIcon, isReports, activeBrush, inactiveBrush);
             SetTabState(SettingsActiveWrap, SettingsActiveIndicator, SettingsText, SettingsIcon, isSettings, activeBrush, inactiveBrush);
-            SetTabState(ProfileActiveWrap, ProfileActiveIndicator, ProfileText, ProfileIcon, isProfile, activeBrush, inactiveBrush);
         }
 
         private void UpdateRoleVisibility()
@@ -159,38 +211,6 @@ namespace BIF.ToyStore.WinUI.Controls
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             App.Current.MainWindowInstance?.NavigateToSettings();
-        }
-
-        private void PlaceholderButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button button || button.Tag is not string tab || string.IsNullOrWhiteSpace(tab))
-            {
-                return;
-            }
-
-            ActiveTab = tab;
-
-            var mainWindow = App.Current.MainWindowInstance;
-            var username = mainWindow?.CurrentUsername;
-            var role = mainWindow?.CurrentUserRoleLabel;
-
-            ProfileUsernameText.Text = string.IsNullOrWhiteSpace(username) ? "Unknown User" : username;
-
-            bool isAdmin = string.Equals(role, "ADMIN", System.StringComparison.OrdinalIgnoreCase);
-            ProfileRoleText.Text = isAdmin ? "ADMIN" : "SALE";
-
-            if (isAdmin)
-            {
-                ProfileRoleBadge.Background = Application.Current.Resources["FluentPlayPrimaryFixedColor"] as Brush;
-                ProfileRoleText.Foreground = Application.Current.Resources["FluentPlayPrimaryBrush"] as Brush;
-            }
-            else
-            {
-                ProfileRoleBadge.Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 242, 194));
-                ProfileRoleText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 169, 116, 0));
-            }
-
-            FlyoutBase.ShowAttachedFlyout(button);
         }
 
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)

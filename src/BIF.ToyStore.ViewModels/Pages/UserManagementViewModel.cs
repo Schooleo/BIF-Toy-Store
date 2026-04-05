@@ -26,6 +26,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         private string _selectedNameFilter = "All";
 
         [ObservableProperty]
+        private ObservableCollection<string> _roleFilters = new();
+
+        [ObservableProperty]
+        private string _selectedRoleFilter = "All Roles";
+
+        [ObservableProperty]
         private int _totalStaff;
 
         [ObservableProperty]
@@ -44,10 +50,17 @@ namespace BIF.ToyStore.ViewModels.Pages
             PageSize = localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
 
             NameFilters = new ObservableCollection<string>(BuildNameFilters());
+            RoleFilters = new ObservableCollection<string>(BuildRoleFilters());
         }
 
         public async Task LoadAsync(bool forceRefresh = false)
         {
+            if (forceRefresh)
+            {
+                _legacyUsers.Clear();
+                _legacyPageIndex = 0;
+            }
+
             if (!forceRefresh && _isLegacyMode && _legacyUsers.Count > 0)
             {
                 ApplyLegacySortAndFilterAndPage(direction: null, resetToFirstPage: false);
@@ -70,6 +83,23 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             if (IsBusy)
             {
+                return;
+            }
+
+            BeforeCursor = null;
+            AfterCursor = null;
+            await LoadPageAsync(null);
+        }
+
+        [RelayCommand]
+        public async Task ClearFilterAsync()
+        {
+            SelectedNameFilter = "All";
+            SelectedRoleFilter = "All Roles";
+
+            if (_isLegacyMode && _legacyUsers.Count > 0)
+            {
+                ApplyLegacySortAndFilterAndPage(direction: null, resetToFirstPage: true);
                 return;
             }
 
@@ -115,7 +145,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
-        public async Task<bool> CreateUserAsync(string username, string password)
+        public async Task<bool> CreateUserAsync(string username, string password, UserRole role = UserRole.Sale)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -140,7 +170,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 {
                     user = username.Trim(),
                     pass = password,
-                    role = "SALE"
+                    role = role == UserRole.Admin ? "ADMIN" : "SALE"
                 };
 
                 LoginUser? createdUser = await _graphQLClient.ExecuteAsync<LoginUser>(mutation, variables, dataKey: "createUser");
@@ -383,6 +413,17 @@ namespace BIF.ToyStore.ViewModels.Pages
                     .ThenBy(x => x.Username, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
+                string selectedRole = string.IsNullOrWhiteSpace(SelectedRoleFilter)
+                    ? "All Roles"
+                    : SelectedRoleFilter;
+
+                if (!string.Equals(selectedRole, "All Roles", StringComparison.OrdinalIgnoreCase))
+                {
+                    mappedUsers = mappedUsers
+                        .Where(x => MatchesRoleFilter(x, selectedRole))
+                        .ToList();
+                }
+
                 VisibleUsers = new ObservableCollection<UserItemViewModel>(mappedUsers);
 
                 _isLegacyMode = false;
@@ -392,12 +433,13 @@ namespace BIF.ToyStore.ViewModels.Pages
                 Admins = response.Users.Count(x => ParseRole(x.Role) == UserRole.Admin);
                 ActiveSessions = response.GetSaleKpiRanking.Count(x => x.TotalOrders >= 80);
 
+                bool hasRoleFilter = !string.Equals(selectedRole, "All Roles", StringComparison.OrdinalIgnoreCase);
                 ApplyPageInfo(
-                    usersConnection.TotalCount,
-                    usersConnection.PageInfo?.HasNextPage ?? false,
-                    usersConnection.PageInfo?.HasPreviousPage ?? false,
-                    usersConnection.PageInfo?.StartCursor,
-                    usersConnection.PageInfo?.EndCursor);
+                    hasRoleFilter ? mappedUsers.Count : usersConnection.TotalCount,
+                    hasRoleFilter ? false : usersConnection.PageInfo?.HasNextPage ?? false,
+                    hasRoleFilter ? false : usersConnection.PageInfo?.HasPreviousPage ?? false,
+                    hasRoleFilter ? null : usersConnection.PageInfo?.StartCursor,
+                    hasRoleFilter ? null : usersConnection.PageInfo?.EndCursor);
 
                 return true;
             }
@@ -472,6 +514,15 @@ namespace BIF.ToyStore.ViewModels.Pages
                 query = query.Where(u => u.Username.StartsWith(selectedFilter, StringComparison.OrdinalIgnoreCase));
             }
 
+            string selectedRoleFilter = string.IsNullOrWhiteSpace(SelectedRoleFilter)
+                ? "All Roles"
+                : SelectedRoleFilter;
+
+            if (!string.Equals(selectedRoleFilter, "All Roles", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(u => MatchesRoleFilter(u, selectedRoleFilter));
+            }
+
             var result = query
                 .OrderByDescending(u => u.Kpi)
                 .ThenBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
@@ -534,6 +585,28 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 yield return c.ToString();
             }
+        }
+
+        private static IEnumerable<string> BuildRoleFilters()
+        {
+            yield return "All Roles";
+            yield return "Admin";
+            yield return "Sale";
+        }
+
+        private static bool MatchesRoleFilter(UserItemViewModel user, string selectedRole)
+        {
+            if (string.Equals(selectedRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return user.Role == UserRole.Admin;
+            }
+
+            if (string.Equals(selectedRole, "Sale", StringComparison.OrdinalIgnoreCase))
+            {
+                return user.Role == UserRole.Sale;
+            }
+
+            return true;
         }
     }
 

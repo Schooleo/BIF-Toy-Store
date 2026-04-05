@@ -47,7 +47,7 @@ namespace BIF.ToyStore.Tests.Services
         }
 
         [Fact]
-        public async Task SeedAsync_NoAdmin_CreatesDefaultAdmin()
+        public async Task SeedAsync_NoUsers_DoesNotCreateDefaultAccounts()
         {
             const string connectionString = "Data Source=SeederDb2;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -65,14 +65,11 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var admin = await context.Users.SingleAsync(u => u.Username == "admin");
-            Assert.NotEqual("admin123", admin.PasswordHash);
-            Assert.True(PasswordCipher.TryDecrypt(admin.PasswordHash, out var password));
-            Assert.Equal("admin123", password);
+            Assert.Empty(context.Users);
         }
 
         [Fact]
-        public async Task SeedAsync_NoSaleUser_CreatesDefaultSaleUser()
+        public async Task SeedAsync_NoSaleUser_DoesNotCreateDefaultSaleUser()
         {
             const string connectionString = "Data Source=SeederDbSale;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -90,15 +87,11 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
-            Assert.Equal(UserRole.Sale, saleUser.Role);
-            Assert.NotEqual("123456", saleUser.PasswordHash);
-            Assert.True(PasswordCipher.TryDecrypt(saleUser.PasswordHash, out var password));
-            Assert.Equal("123456", password);
+            Assert.DoesNotContain(context.Users, u => u.Username == "sale1");
         }
 
         [Fact]
-        public async Task SeedAsync_ExistingSaleUserWithWrongRole_RepairsToSaleRole()
+        public async Task SeedAsync_ExistingSaleUserWithWrongRole_DoesNotChangeRole()
         {
             const string connectionString = "Data Source=SeederDbSaleRoleFix;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -125,11 +118,11 @@ namespace BIF.ToyStore.Tests.Services
             await DatabaseSeeder.SeedAsync(context);
 
             var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
-            Assert.Equal(UserRole.Sale, saleUser.Role);
+            Assert.Equal(UserRole.Admin, saleUser.Role);
         }
 
         [Fact]
-        public async Task SeedAsync_ExistingSaleUserWithWrongPassword_RepairsExpectedCredentials()
+        public async Task SeedAsync_ExistingSaleUserWithWrongPassword_DoesNotMutatePassword()
         {
             const string connectionString = "Data Source=SeederDbSalePassFix;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -145,10 +138,12 @@ namespace BIF.ToyStore.Tests.Services
             await using var context = new AppDbContext(options);
             await context.Database.EnsureCreatedAsync();
 
+            const string wrongPassword = "not-the-demo-password";
+
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
                 Username = "sale1",
-                PasswordHash = PasswordCipher.Encrypt("not-the-demo-password"),
+                PasswordHash = wrongPassword,
                 Role = UserRole.Sale
             });
             await context.SaveChangesAsync();
@@ -156,12 +151,11 @@ namespace BIF.ToyStore.Tests.Services
             await DatabaseSeeder.SeedAsync(context);
 
             var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
-            Assert.True(PasswordCipher.TryDecrypt(saleUser.PasswordHash, out var repaired));
-            Assert.Equal("123456", repaired);
+            Assert.Equal(wrongPassword, saleUser.PasswordHash);
         }
 
         [Fact]
-        public async Task SeedAsync_ExistingSaleUserLegacyPlainPassword_MigratesToEncrypted()
+        public async Task SeedAsync_ExistingSaleUserLegacyPlainPassword_DoesNotMutatePassword()
         {
             const string connectionString = "Data Source=SeederDbSaleLegacy;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -188,10 +182,7 @@ namespace BIF.ToyStore.Tests.Services
             await DatabaseSeeder.SeedAsync(context);
 
             var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
-            Assert.NotEqual("123456", saleUser.PasswordHash);
-            Assert.True(saleUser.PasswordHash.StartsWith("aes:v1:", StringComparison.Ordinal));
-            Assert.True(PasswordCipher.TryDecrypt(saleUser.PasswordHash, out var decrypted));
-            Assert.Equal("123456", decrypted);
+            Assert.Equal("123456", saleUser.PasswordHash);
         }
 
         [Fact]

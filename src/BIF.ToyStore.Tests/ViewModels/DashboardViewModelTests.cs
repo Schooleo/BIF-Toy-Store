@@ -29,15 +29,16 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                             new DashboardProductNode { Id = 3, Name = "C", StockQuantity = 2, RetailPrice = 12m, Category = new DashboardCategoryNode { Name = "CatC" } }
                         ]
                     },
-                    GetOrders = new DashboardOrderList
+                    GetOrders = new DashboardOrderConnection
                     {
-                        Items =
+                        TotalCount = 2,
+                        Nodes =
                         [
                             new DashboardOrderNode
                             {
                                 Id = 10,
                                 Status = "Paid",
-                                CustomerName = null,
+                                Customer = null,
                                 TotalAmount = 100m,
                                 OrderDate = DateTime.Now.AddMinutes(-5),
                                 OrderDetails = [new DashboardOrderDetailNode { Quantity = 2 }, new DashboardOrderDetailNode { Quantity = 1 }]
@@ -46,7 +47,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                             {
                                 Id = 11,
                                 Status = "New",
-                                CustomerName = "Alice",
+                                Customer = new DashboardOrderCustomerNode { FullName = "Alice" },
                                 TotalAmount = 50m,
                                 OrderDate = DateTime.Now.AddMinutes(-20),
                                 OrderDetails = [new DashboardOrderDetailNode { Quantity = 1 }]
@@ -71,9 +72,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>()))
                 .ReturnsAsync(new DashboardTodayQueryData
                 {
-                    GetOrders = new DashboardOrderList
+                    GetOrders = new DashboardOrderConnection
                     {
-                        Items =
+                        TotalCount = 2,
+                        Nodes =
                         [
                             new DashboardOrderNode { Status = "Paid", TotalAmount = 100m },
                             new DashboardOrderNode { Status = "New", TotalAmount = 50m }
@@ -181,9 +183,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                         TotalCount = 0,
                         Nodes = []
                     },
-                    GetOrders = new DashboardOrderList
+                    GetOrders = new DashboardOrderConnection
                     {
-                        Items = []
+                        TotalCount = 0,
+                        Nodes = []
                     },
                     GetTopBestSellingProducts = [],
                     GetRevenueTrend = []
@@ -196,9 +199,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     It.IsAny<string>()))
                 .ReturnsAsync(new DashboardTodayQueryData
                 {
-                    GetOrders = new DashboardOrderList
+                    GetOrders = new DashboardOrderConnection
                     {
-                        Items = []
+                        TotalCount = 0,
+                        Nodes = []
                     }
                 });
 

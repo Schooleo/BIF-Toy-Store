@@ -13,6 +13,7 @@ namespace BIF.ToyStore.WinUI.Services
     public class CloudinaryProductImageUploadService : IProductImageUploadService
     {
         private const string CloudinaryUrlKey = "CLOUDINARY_URL";
+        private const string RootFolder = "BIF-Toy-Store/products";
         private readonly Lazy<Cloudinary> _cloudinary;
 
         public CloudinaryProductImageUploadService()
@@ -41,6 +42,7 @@ namespace BIF.ToyStore.WinUI.Services
             {
                 File = new FileDescription(filePath),
                 PublicId = CreateProductPublicId(productId),
+                Folder = RootFolder,
                 Overwrite = true,
                 Invalidate = true,
                 UniqueFilename = false,
@@ -204,6 +206,6 @@ namespace BIF.ToyStore.WinUI.Services
             return null;
         }
 
-        private static string CreateProductPublicId(int productId) => $"bif-toy-store/products/product-{productId}-{Guid.NewGuid():N}";
+        private static string CreateProductPublicId(int productId) => $"product-{productId}-{Guid.NewGuid():N}";
     }
 }

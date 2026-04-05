@@ -15,6 +15,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private const double TrendChartHeight = 260;
         private const double TrendChartPadding = 12;
         private const double RevenueProfitBarMaxHeight = 140;
+        private const double RevenueProfitBarMinVisibleHeight = 4;
         private const int TopProductsTake = 8;
 
         private readonly IGraphQLClient _graphQLClient;
@@ -77,6 +78,8 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string EffectiveGroupByDisplay => EffectiveGroupBy.ToString();
 
+        public string SelectedGroupByLabel => SelectedGroupBy?.Label ?? "Day";
+
         public int TotalItemsSold => TimeSeriesPoints.Sum(x => x.Quantity);
 
         public decimal TotalRevenue => TimeSeriesPoints.Sum(x => x.Revenue);
@@ -84,6 +87,10 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal TotalProfit => TimeSeriesPoints.Sum(x => x.Profit);
 
         public string TotalItemsSoldDisplay => TotalItemsSold.ToString("N0", CultureInfo.InvariantCulture);
+
+        public string TotalItemsSoldStateText => TotalItemsSold > 0
+            ? "Sales in this range."
+            : "No sales in this range.";
 
         public string TotalRevenueDisplay => FormatCurrency(TotalRevenue, CurrencySymbol);
 
@@ -182,9 +189,19 @@ namespace BIF.ToyStore.ViewModels.Pages
                         ? 0d
                         : Math.Clamp((double)(point.TotalRevenue / maxSeriesRevenue) * RevenueProfitBarMaxHeight, 0d, RevenueProfitBarMaxHeight);
 
+                    if (point.TotalRevenue > 0m && revenueBarHeight > 0d)
+                    {
+                        revenueBarHeight = Math.Max(RevenueProfitBarMinVisibleHeight, revenueBarHeight);
+                    }
+
                     var profitBarHeight = maxSeriesProfit <= 0m
                         ? 0d
                         : Math.Clamp((double)(point.TotalProfit / maxSeriesProfit) * RevenueProfitBarMaxHeight, 0d, RevenueProfitBarMaxHeight);
+
+                    if (point.TotalProfit > 0m && profitBarHeight > 0d)
+                    {
+                        profitBarHeight = Math.Max(RevenueProfitBarMinVisibleHeight, profitBarHeight);
+                    }
 
                     TimeSeriesPoints.Add(new ReportTimePointViewModel
                     {
@@ -242,6 +259,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 OnPropertyChanged(nameof(TotalRevenue));
                 OnPropertyChanged(nameof(TotalProfit));
                 OnPropertyChanged(nameof(TotalItemsSoldDisplay));
+                OnPropertyChanged(nameof(TotalItemsSoldStateText));
                 OnPropertyChanged(nameof(TotalRevenueDisplay));
                 OnPropertyChanged(nameof(TotalProfitDisplay));
             }
@@ -261,6 +279,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 OnPropertyChanged(nameof(TotalRevenue));
                 OnPropertyChanged(nameof(TotalProfit));
                 OnPropertyChanged(nameof(TotalItemsSoldDisplay));
+                OnPropertyChanged(nameof(TotalItemsSoldStateText));
                 OnPropertyChanged(nameof(TotalRevenueDisplay));
                 OnPropertyChanged(nameof(TotalProfitDisplay));
             }
@@ -369,6 +388,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnEffectiveGroupByChanged(ReportGroupBy value)
         {
             OnPropertyChanged(nameof(EffectiveGroupByDisplay));
+        }
+
+        partial void OnSelectedGroupByChanged(ReportGroupByOption? value)
+        {
+            OnPropertyChanged(nameof(SelectedGroupByLabel));
         }
 
         partial void OnErrorMessageChanged(string value)

@@ -30,11 +30,6 @@
             <Setter Property="CornerRadius" Value="8" />
         </Style>
 
-        <Style x:Key="DetailsComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource AppInputComboBoxStyle}">
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="CornerRadius" Value="8" />
-        </Style>
-
         <Style x:Key="DetailsNumberBoxStyle" TargetType="NumberBox">
             <Setter Property="MinHeight" Value="40" />
             <Setter Property="Padding" Value="10,6" />
@@ -123,6 +118,7 @@
                             <ProgressRing Width="32"
                                           Height="32"
                                           IsActive="{x:Bind IsUploadingImage, Mode=OneWay}"
+                                          Foreground="{ThemeResource FluentPlayPrimaryBrush}"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           Visibility="{x:Bind IsUploadingImage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -172,7 +168,7 @@
 
                         <StackPanel Grid.Column="0" Spacing="6">
                             <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="CATEGORY" />
-                            <Button
+                            <Button x:Name="CategorySelectorButton"
                                 MinHeight="40"
                                 Padding="10,6"
                                 HorizontalAlignment="Stretch"

@@ -38,7 +38,7 @@ namespace BIF.ToyStore.Tests.Services
             Assert.NotNull(config);
             Assert.Equal(1, config.Id);
 
-            var inDb = await _dbContext.AppConfigs.SingleAsync();
+            var inDb = await _dbContext.AppConfigs.SingleAsync(TestContext.Current.CancellationToken);
             Assert.Equal(1, inDb.Id);
         }
 
@@ -53,13 +53,13 @@ namespace BIF.ToyStore.Tests.Services
                 LocalServerPort = 5000,
                 DatabasePath = "ToyStore.db"
             });
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             var first = await _configService.GetConfigAsync();
 
-            var dbConfig = await _dbContext.AppConfigs.SingleAsync();
+            var dbConfig = await _dbContext.AppConfigs.SingleAsync(TestContext.Current.CancellationToken);
             dbConfig.DisplayName = "ChangedInDb";
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             var second = await _configService.GetConfigAsync();
 
@@ -90,12 +90,20 @@ namespace BIF.ToyStore.Tests.Services
         {
             await _configService.GetConfigAsync();
 
-            var updated = await _configService.UpdateStoreSettingsAsync(0.07m, "USD", "Header", "Footer");
+            var updated = await _configService.UpdateStoreSettingsAsync(
+                "Store Name",
+                0.07m,
+                "USD",
+                "Header",
+                "Footer",
+                "Dark");
 
             Assert.Equal(0.07m, updated.TaxRate);
             Assert.Equal("USD", updated.CurrencySymbol);
             Assert.Equal("Header", updated.ReceiptHeader);
             Assert.Equal("Footer", updated.ReceiptFooter);
+            Assert.Equal("Store Name", updated.DisplayName);
+            Assert.Equal("Dark", updated.ThemePreference);
         }
 
         [Fact]
@@ -116,6 +124,7 @@ namespace BIF.ToyStore.Tests.Services
                 DisplayName = "My Store",
                 ReceiptHeader = "Header",
                 ReceiptFooter = "Footer",
+                CurrencySymbol = "USD",
                 ThemePreference = "Dark",
                 EnableLoyaltyPoints = true,
                 TaxRate = 0.075m
@@ -125,6 +134,7 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Equal("My Store", completed.DisplayName);
             Assert.Equal("Header", completed.ReceiptHeader);
             Assert.Equal("Footer", completed.ReceiptFooter);
+            Assert.Equal("USD", completed.CurrencySymbol);
             Assert.Equal("Dark", completed.ThemePreference);
             Assert.True(completed.EnableLoyaltyPoints);
             Assert.Equal(0.075m, completed.TaxRate);

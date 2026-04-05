@@ -1,4 +1,5 @@
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Controls;
 using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -30,7 +31,7 @@ namespace BIF.ToyStore.WinUI.Views
                 XamlRoot,
                 CommonDialogType.Confirmation,
                 title: "Confirm Initial Configuration",
-                message: "Saving will finalize initial setup. You will be redirected to Login. Continue?",
+                message: "Saving will finalize initial setup and create the owner admin account. You will be redirected to Login. Continue?",
                 primaryButtonText: "Confirm",
                 closeButtonText: "Cancel",
                 defaultButton: ContentDialogButton.Primary);
@@ -67,6 +68,31 @@ namespace BIF.ToyStore.WinUI.Views
             }
 
             App.Current.MainWindowInstance?.NavigateToLogin();
+        }
+
+        private void AdminPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is PasswordBox passwordBox)
+            {
+                ViewModel.AdminPassword = passwordBox.Password;
+            }
+        }
+
+        private void ConfirmAdminPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is PasswordBox passwordBox)
+            {
+                ViewModel.ConfirmAdminPassword = passwordBox.Password;
+            }
+        }
+
+        private void CurrencyOption_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuFlyoutItem menuItem && menuItem.Tag is string currency)
+            {
+                ViewModel.SelectedCurrency = currency;
+                CommonFlyout.CloseParentFlyout(menuItem);
+            }
         }
     }
 }

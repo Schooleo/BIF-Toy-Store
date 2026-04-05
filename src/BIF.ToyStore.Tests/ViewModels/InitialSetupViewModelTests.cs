@@ -1,4 +1,5 @@
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
 using Moq;
@@ -29,6 +30,13 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 _graphQlClientMock.Object,
                 _localSettingsServiceMock.Object,
                 _appInfoServiceMock.Object);
+        }
+
+        private void SetValidAdminCredentials()
+        {
+            _viewModel.AdminUsername = "owner";
+            _viewModel.AdminPassword = "owner123";
+            _viewModel.ConfirmAdminPassword = "owner123";
         }
 
         [Fact]
@@ -72,11 +80,59 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.StoreName = "Store";
             _viewModel.TaxRate = 10;
             _viewModel.LocalServerPort = 80;
+            SetValidAdminCredentials();
 
             var result = await _viewModel.SaveConfigurationAsync();
 
             Assert.False(result.IsSuccessful);
             Assert.Equal("Server port must be between 1024 and 65535.", result.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task SaveConfigurationAsync_UnsupportedCurrency_ReturnsValidationError()
+        {
+            _viewModel.StoreName = "Store";
+            _viewModel.TaxRate = 10;
+            _viewModel.LocalServerPort = 5000;
+            _viewModel.SelectedCurrency = "EUR";
+            SetValidAdminCredentials();
+
+            var result = await _viewModel.SaveConfigurationAsync();
+
+            Assert.False(result.IsSuccessful);
+            Assert.Equal("Please select a supported currency.", result.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task SaveConfigurationAsync_EmptyAdminUsername_ReturnsValidationError()
+        {
+            _viewModel.StoreName = "Store";
+            _viewModel.TaxRate = 10;
+            _viewModel.LocalServerPort = 5000;
+            _viewModel.AdminUsername = string.Empty;
+            _viewModel.AdminPassword = "owner123";
+            _viewModel.ConfirmAdminPassword = "owner123";
+
+            var result = await _viewModel.SaveConfigurationAsync();
+
+            Assert.False(result.IsSuccessful);
+            Assert.Equal("Admin username is required.", result.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task SaveConfigurationAsync_AdminPasswordMismatch_ReturnsValidationError()
+        {
+            _viewModel.StoreName = "Store";
+            _viewModel.TaxRate = 10;
+            _viewModel.LocalServerPort = 5000;
+            _viewModel.AdminUsername = "owner";
+            _viewModel.AdminPassword = "owner123";
+            _viewModel.ConfirmAdminPassword = "different";
+
+            var result = await _viewModel.SaveConfigurationAsync();
+
+            Assert.False(result.IsSuccessful);
+            Assert.Equal("Admin passwords do not match.", result.ErrorMessage);
         }
 
         [Fact]
@@ -87,8 +143,19 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.ReceiptFooter = "Footer";
             _viewModel.TaxRate = 10;
             _viewModel.LocalServerPort = 5000;
-            _viewModel.UseDarkTheme = true;
-            _viewModel.EnableLoyaltyPoints = true;
+            _viewModel.SelectedCurrency = "USD";
+            SetValidAdminCredentials();
+
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.Is<string>(s => s.Contains("CreateSetupAdmin")),
+                    It.IsAny<object>(),
+                    "createUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 99,
+                    Username = "owner"
+                });
 
             _graphQlClientMock
                 .Setup(x => x.ExecuteAsync<InitialSetupViewModel.SetupStateView>(
@@ -105,7 +172,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.True(result.IsSuccessful);
             Assert.False(result.RequiresRestart);
             _localSettingsServiceMock.Verify(x => x.SetInt(AppPreferenceKeys.LocalServerPort, 5000), Times.Once);
-            _localSettingsServiceMock.Verify(x => x.SetString("ThemePreference", "Dark"), Times.Once);
+            _graphQlClientMock.Verify(x => x.ExecuteAsync<LoginUser>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "createUser"), Times.Once);
         }
 
         [Fact]
@@ -114,7 +184,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.StoreName = "Store";
             _viewModel.TaxRate = 10;
             _viewModel.LocalServerPort = 5051;
-            _viewModel.UseDarkTheme = false;
+            SetValidAdminCredentials();
+
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.Is<string>(s => s.Contains("CreateSetupAdmin")),
+                    It.IsAny<object>(),
+                    "createUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 100,
+                    Username = "owner"
+                });
 
             _graphQlClientMock
                 .Setup(x => x.ExecuteAsync<InitialSetupViewModel.SetupStateView>(
@@ -131,7 +212,6 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.True(result.IsSuccessful);
             Assert.True(result.RequiresRestart);
             _localSettingsServiceMock.Verify(x => x.SetInt(AppPreferenceKeys.LocalServerPort, 5051), Times.Once);
-            _localSettingsServiceMock.Verify(x => x.SetString("ThemePreference", "Light"), Times.Once);
         }
 
         [Fact]
@@ -140,6 +220,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.StoreName = "Store";
             _viewModel.TaxRate = 10;
             _viewModel.LocalServerPort = 5000;
+            SetValidAdminCredentials();
+
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.IsAny<string>(),
+                    It.IsAny<object>(),
+                    "createUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 111,
+                    Username = "owner"
+                });
 
             _graphQlClientMock
                 .Setup(x => x.ExecuteAsync<InitialSetupViewModel.SetupStateView>(
@@ -148,10 +240,21 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     "completeInitialSetup"))
                 .ThrowsAsync(new Exception("server unavailable"));
 
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<bool>(
+                    It.Is<string>(s => s.Contains("DeleteSetupAdmin")),
+                    It.IsAny<object>(),
+                    "deleteUser"))
+                .ReturnsAsync(true);
+
             var result = await _viewModel.SaveConfigurationAsync();
 
             Assert.False(result.IsSuccessful);
             Assert.Contains("Save failed:", result.ErrorMessage);
+            _graphQlClientMock.Verify(x => x.ExecuteAsync<bool>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "deleteUser"), Times.Once);
         }
 
         [Fact]
@@ -160,6 +263,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.StoreName = "Store";
             _viewModel.TaxRate = 10;
             _viewModel.LocalServerPort = 5000;
+            SetValidAdminCredentials();
+
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<LoginUser>(
+                    It.IsAny<string>(),
+                    It.IsAny<object>(),
+                    "createUser"))
+                .ReturnsAsync(new LoginUser
+                {
+                    Id = 120,
+                    Username = "owner"
+                });
 
             _graphQlClientMock
                 .Setup(x => x.ExecuteAsync<InitialSetupViewModel.SetupStateView>(
@@ -171,10 +286,21 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     IsInitialSetupCompleted = false
                 });
 
+            _graphQlClientMock
+                .Setup(x => x.ExecuteAsync<bool>(
+                    It.Is<string>(s => s.Contains("DeleteSetupAdmin")),
+                    It.IsAny<object>(),
+                    "deleteUser"))
+                .ReturnsAsync(true);
+
             var result = await _viewModel.SaveConfigurationAsync();
 
             Assert.False(result.IsSuccessful);
             Assert.Equal("Server did not confirm setup completion.", result.ErrorMessage);
+            _graphQlClientMock.Verify(x => x.ExecuteAsync<bool>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "deleteUser"), Times.Once);
         }
 
         [Fact]
@@ -190,8 +316,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     DisplayName = "Setup Store",
                     ReceiptHeader = "Header",
                     ReceiptFooter = "Footer",
-                    ThemePreference = "Dark",
-                    EnableLoyaltyPoints = false,
+                    CurrencySymbol = "USD",
                     TaxRate = 0.08m
                 });
 
@@ -200,9 +325,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal("Setup Store", _viewModel.StoreName);
             Assert.Equal("Header", _viewModel.ReceiptHeader);
             Assert.Equal("Footer", _viewModel.ReceiptFooter);
-            Assert.Equal("Dark", _viewModel.ThemePreference);
-            Assert.True(_viewModel.UseDarkTheme);
-            Assert.False(_viewModel.EnableLoyaltyPoints);
+            Assert.Equal("USD", _viewModel.SelectedCurrency);
             Assert.Equal(8.0, _viewModel.TaxRate);
         }
 

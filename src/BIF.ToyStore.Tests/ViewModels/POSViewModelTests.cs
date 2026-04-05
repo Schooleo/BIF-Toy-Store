@@ -55,6 +55,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             };
 
             // Setup mock responses based on dataKey since LoadAsync fires two queries
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<PosAppConfigNode>(
+                It.Is<string>(q => q.Contains("GetPosConfig")),
+                It.IsAny<object>(),
+                "appConfig")).ReturnsAsync(new PosAppConfigNode
+                {
+                    CurrencySymbol = "VND",
+                    TaxRate = 0.08m
+                });
+
             _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoryConnection>(
                 It.Is<string>(q => q.Contains("GetCategories")),
                 It.IsAny<object>(),
@@ -90,7 +99,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void AddToCart_WhenNewItem_AddsToCartAndCalculatesTotals()
         {
             // Arrange
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 100m, StockQuantity = 10 });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 100m, StockQuantity = 10 }, "VND");
 
             // Act
             _viewModel.AddToCartCommand.Execute(productMock);
@@ -110,7 +119,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void AddToCart_WhenExistingItem_IncreasesQuantity()
         {
             // Arrange
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 50m, StockQuantity = 10 });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 50m, StockQuantity = 10 }, "VND");
 
             // Act
             _viewModel.AddToCartCommand.Execute(productMock); // qty 1
@@ -127,7 +136,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public void DecreaseQuantity_WhenQuantityIsOne_RemovesItemFromCart()
         {
             // Arrange
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 50m, StockQuantity = 10 });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 50m, StockQuantity = 10 }, "VND");
             _viewModel.AddToCartCommand.Execute(productMock);
             var cartItem = _viewModel.CartItems.First();
 
@@ -143,7 +152,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task ProcessPayment_WhenCartHasItems_CallsMutationAndClearsCart()
         {
             // Arrange
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 100m, StockQuantity = 10 });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 100m, StockQuantity = 10 }, "VND");
             _viewModel.AddToCartCommand.Execute(productMock);
 
             // Mock successful order creation
@@ -158,6 +167,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 It.Is<string>(q => q.Contains("CreateOrder")),
                 It.IsAny<object>(),
                 "createOrder")).ReturnsAsync(orderResult);
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<OrderStatusUpdateResponse>(
+                It.Is<string>(q => q.Contains("MarkOrderPaid") || q.Contains("updateOrder")),
+                It.IsAny<object>(),
+                "updateOrder")).ReturnsAsync(new OrderStatusUpdateResponse
+                {
+                    Id = 999,
+                    Status = "Paid"
+                });
 
             // Mock refetching products after successful payment
             _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductConnectionSimple>(
@@ -180,6 +198,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Verify mutation and refresh queries were called
             _graphQLClientMock.Verify(x => x.ExecuteAsync<OrderResult>(
                 It.IsAny<string>(), It.IsAny<object>(), "createOrder"), Times.Once);
+            _graphQLClientMock.Verify(x => x.ExecuteAsync<OrderStatusUpdateResponse>(
+                It.IsAny<string>(), It.IsAny<object>(), "updateOrder"), Times.Once);
         }
 
         [Fact]
@@ -211,13 +231,22 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.Receive(message);
             
             // To assert the SaleId is used, we add an item and process payment
-            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 10m, StockQuantity = 100 });
+            var productMock = new ProductItemViewModel(new Product { Id = 1, Name = "Toy", RetailPrice = 10m, StockQuantity = 100 }, "VND");
             _viewModel.AddToCartCommand.Execute(productMock);
 
             _graphQLClientMock.Setup(x => x.ExecuteAsync<OrderResult>(
                 It.IsAny<string>(),
                 It.Is<object>(args => SerializeAndCheckSaleId(args, 42)),
                 "createOrder")).ReturnsAsync(new OrderResult());
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<OrderStatusUpdateResponse>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "updateOrder")).ReturnsAsync(new OrderStatusUpdateResponse
+                {
+                    Id = 1,
+                    Status = "Paid"
+                });
 
             await _viewModel.ProcessPaymentCommand.ExecuteAsync(null);
 
@@ -232,6 +261,46 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var json = System.Text.Json.JsonSerializer.Serialize(args);
             return json.Contains($"\"saleId\":{expectedSaleId}");
+        }
+
+        [Fact]
+        public async Task LoadAsync_UsesConfiguredCurrencySymbolAndTaxRate()
+        {
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<PosAppConfigNode>(
+                It.Is<string>(q => q.Contains("GetPosConfig")),
+                It.IsAny<object>(),
+                "appConfig")).ReturnsAsync(new PosAppConfigNode
+                {
+                    CurrencySymbol = "$",
+                    TaxRate = 0.12m
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoryConnection>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "categories")).ReturnsAsync(new CategoryConnection
+                {
+                    Nodes = new List<Category>()
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductConnectionSimple>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "products")).ReturnsAsync(new ProductConnectionSimple
+                {
+                    Nodes = new List<Product>
+                    {
+                        new Product { Id = 1, Name = "Toy", RetailPrice = 100m, StockQuantity = 10, Category = new Category { Name = "Misc" } }
+                    }
+                });
+
+            await _viewModel.LoadAsync();
+            _viewModel.AddToCartCommand.Execute(_viewModel.FilteredProducts.First());
+
+            Assert.Equal("$", _viewModel.CurrencySymbol);
+            Assert.Equal(12m, _viewModel.Tax);
+            Assert.Equal("Tax (12%)", _viewModel.TaxLabel);
+            Assert.Equal("$100.00", _viewModel.SubtotalDisplay);
         }
     }
 }

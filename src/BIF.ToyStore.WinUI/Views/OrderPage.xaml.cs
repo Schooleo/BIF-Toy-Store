@@ -1,5 +1,6 @@
 using System;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Controls;
 using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -22,7 +23,22 @@ namespace BIF.ToyStore.WinUI.Views
             };
         }
 
-        private void EmployeeFilter_Changed(object sender, SelectionChangedEventArgs e)
+        private void Filter_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            ApplyFilter();
+
+            if (sender is DependencyObject source)
+            {
+                CommonFlyout.CloseParentFlyout(source);
+            }
+        }
+
+        private void Filter_Changed(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
+        {
+            ApplyFilter();
+        }
+
+        private void ApplyFilter()
         {
             if (ViewModel.ApplyFilterCommand.CanExecute(null))
             {

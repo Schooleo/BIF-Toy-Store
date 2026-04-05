@@ -35,6 +35,7 @@ namespace BIF.ToyStore.Tests.Services
                     DisplayName = "Configured Store",
                     ReceiptHeader = "Header",
                     ReceiptFooter = "Footer",
+                    CurrencySymbol = "USD",
                     ThemePreference = "Dark",
                     EnableLoyaltyPoints = true,
                     TaxRate = 0.05m,
@@ -50,16 +51,19 @@ namespace BIF.ToyStore.Tests.Services
                 DisplayName = "Configured Store",
                 ReceiptHeader = "Header",
                 ReceiptFooter = "Footer",
+                CurrencySymbol = "USD",
                 ThemePreference = "Dark",
                 EnableLoyaltyPoints = true,
                 TaxRate = 0.05m
             }, configServiceMock.Object);
 
             Assert.Equal("Configured Store", result.DisplayName);
+            Assert.Equal("USD", result.CurrencySymbol);
             Assert.True(result.IsInitialSetupCompleted);
 
             configServiceMock.Verify(x => x.CompleteInitialSetupAsync(It.Is<InitialSetupConfiguration>(cfg =>
                 cfg.DisplayName == "Configured Store"
+                && cfg.CurrencySymbol == "USD"
                 && cfg.ThemePreference == "Dark"
                 && cfg.TaxRate == 0.05m)), Times.Once);
         }
@@ -69,7 +73,7 @@ namespace BIF.ToyStore.Tests.Services
         {
             var configServiceMock = new Mock<IConfigService>();
             configServiceMock
-                .Setup(x => x.UpdateStoreSettingsAsync(0.08m, "USD", "Hdr", "Ftr"))
+                .Setup(x => x.UpdateStoreSettingsAsync("Configured Store", 0.08m, "USD", "Hdr", "Ftr", "Dark"))
                 .ReturnsAsync(new AppConfig
                 {
                     Id = 1,
@@ -89,16 +93,20 @@ namespace BIF.ToyStore.Tests.Services
 
             var result = await mutation.UpdateStoreSettings(new UpdateStoreSettingsInput
             {
+                DisplayName = "Configured Store",
                 TaxRate = 0.08m,
                 CurrencySymbol = "USD",
                 ReceiptHeader = "Hdr",
-                ReceiptFooter = "Ftr"
+                ReceiptFooter = "Ftr",
+                ThemePreference = "Dark"
             }, configServiceMock.Object);
 
+            Assert.Equal("Configured Store", result.DisplayName);
             Assert.Equal(0.08m, result.TaxRate);
             Assert.Equal("USD", result.CurrencySymbol);
             Assert.Equal("Hdr", result.ReceiptHeader);
             Assert.Equal("Ftr", result.ReceiptFooter);
+            Assert.Equal("Dark", result.ThemePreference);
         }
     }
 }

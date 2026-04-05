@@ -211,6 +211,9 @@ namespace BIF.ToyStore.WinUI.Controls
             {
                 Product.CategoryId = category.Id;
                 Product.Category = category;
+
+                var flyout = CategorySelectorButton.Flyout;
+                flyout?.Hide();
             }
             else if (Product is not null)
             {

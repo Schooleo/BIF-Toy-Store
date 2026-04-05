@@ -10,6 +10,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public string DisplayName { get; set; } = string.Empty;
         public string ReceiptHeader { get; set; } = string.Empty;
         public string ReceiptFooter { get; set; } = string.Empty;
+        public string CurrencySymbol { get; set; } = "VND";
         public string ThemePreference { get; set; } = "System";
         public bool EnableLoyaltyPoints { get; set; }
         public decimal TaxRate { get; set; }
@@ -30,10 +31,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
     public class UpdateStoreSettingsInput
     {
+        public string DisplayName { get; set; } = string.Empty;
         public decimal TaxRate { get; set; }
         public string CurrencySymbol { get; set; } = "VND";
         public string ReceiptHeader { get; set; } = string.Empty;
         public string ReceiptFooter { get; set; } = string.Empty;
+        public string ThemePreference { get; set; } = "System";
     }
 
     public class AppConfigPayload

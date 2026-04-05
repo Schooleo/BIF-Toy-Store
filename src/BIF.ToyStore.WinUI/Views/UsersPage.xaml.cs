@@ -1,8 +1,12 @@
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Controls;
 using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using System;
 using System.Threading.Tasks;
 using Windows.Foundation;
 
@@ -11,6 +15,7 @@ namespace BIF.ToyStore.WinUI.Views
     public sealed partial class UsersPage : Page
     {
         private UserItemViewModel? _editingUser;
+        private string _createUserRoleTag = "SALE";
 
         public UserManagementViewModel ViewModel { get; }
 
@@ -47,6 +52,26 @@ namespace BIF.ToyStore.WinUI.Views
             }
 
             await ViewModel.ApplyFilterCommand.ExecuteAsync(null);
+
+            if (sender is ListView { SelectedItem: not null })
+            {
+                CommonFlyout.HideAttachedFlyout(NameFilterButton);
+            }
+        }
+
+        private async void RoleFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || !ViewModel.ApplyFilterCommand.CanExecute(null))
+            {
+                return;
+            }
+
+            await ViewModel.ApplyFilterCommand.ExecuteAsync(null);
+
+            if (sender is ListView { SelectedItem: not null })
+            {
+                CommonFlyout.HideAttachedFlyout(RoleFilterButton);
+            }
         }
 
         private async void AddNewUserButton_Click(object sender, RoutedEventArgs e)
@@ -55,6 +80,8 @@ namespace BIF.ToyStore.WinUI.Views
             ViewModel.ErrorMessage = string.Empty;
             CreateUsernameTextBox.Text = string.Empty;
             CreatePasswordBox.Password = string.Empty;
+            _createUserRoleTag = "SALE";
+            CreateRoleTextBlock.Text = "Sale";
 
             await ShowCreateUserDialogAsync();
         }
@@ -63,11 +90,14 @@ namespace BIF.ToyStore.WinUI.Views
         {
             string username = CreateUsernameTextBox.Text.Trim();
             string password = CreatePasswordBox.Password;
+            var selectedRole = string.Equals(_createUserRoleTag, "ADMIN", StringComparison.OrdinalIgnoreCase)
+                ? UserRole.Admin
+                : UserRole.Sale;
 
             var deferral = args.GetDeferral();
             try
             {
-                bool created = await ViewModel.CreateUserAsync(username, password);
+                bool created = await ViewModel.CreateUserAsync(username, password, selectedRole);
                 args.Cancel = !created;
             }
             finally
@@ -82,6 +112,8 @@ namespace BIF.ToyStore.WinUI.Views
             {
                 return;
             }
+
+            ClearUsersGridSelection();
 
             var result = await CommonDialog.ShowAsync(
                 XamlRoot,
@@ -106,6 +138,8 @@ namespace BIF.ToyStore.WinUI.Views
             {
                 return;
             }
+
+            ClearUsersGridSelection();
 
             _editingUser = user;
             UpdateUserDialog.XamlRoot = XamlRoot;
@@ -161,6 +195,75 @@ namespace BIF.ToyStore.WinUI.Views
                     _editingUser = null;
                 }
             }
+        }
+
+        private void CreateRoleOption_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuFlyoutItem item)
+            {
+                return;
+            }
+
+            _createUserRoleTag = item.Tag as string ?? "SALE";
+            CreateRoleTextBlock.Text = item.Text;
+        }
+
+        private void TogglePasswordButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { CommandParameter: UserItemViewModel user })
+            {
+                return;
+            }
+
+            if (ViewModel.TogglePasswordCommand.CanExecute(user))
+            {
+                ViewModel.TogglePasswordCommand.Execute(user);
+            }
+
+            ClearUsersGridSelection();
+        }
+
+        private void UsersDataGrid_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            if (sender is CommunityToolkit.WinUI.UI.Controls.DataGrid dataGrid)
+            {
+                dataGrid.SelectedItem = null;
+            }
+
+            if (IsFromButton(e.OriginalSource as DependencyObject))
+            {
+                return;
+            }
+
+            e.Handled = true;
+        }
+
+        private void UsersDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is CommunityToolkit.WinUI.UI.Controls.DataGrid dataGrid && dataGrid.SelectedItem != null)
+            {
+                dataGrid.SelectedItem = null;
+            }
+        }
+
+        private static bool IsFromButton(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is Button)
+                {
+                    return true;
+                }
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
+        }
+
+        private void ClearUsersGridSelection()
+        {
+            UsersDataGrid.SelectedItem = null;
         }
 
         private Task<ContentDialogResult> ShowCreateUserDialogAsync()

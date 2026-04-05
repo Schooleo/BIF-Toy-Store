@@ -5,10 +5,6 @@ using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System;
-using System.IO;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -27,6 +23,15 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private ObservableCollection<Category> _categories = [];
+
+        [ObservableProperty]
+        private ObservableCollection<Category> _categoryFilterOptions = [];
+
+        private static readonly Category AllCategoriesOption = new()
+        {
+            Id = 0,
+            Name = "All Categories"
+        };
 
         // Filter properties
         [ObservableProperty]
@@ -71,6 +76,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
+        public string SelectedCategoryLabel => SelectedCategory?.Name ?? "All Categories";
+        public string SelectedSortLabel => SelectedSort?.Name ?? "Newest";
 
         // Computed property for total count label (notifies when TotalCount changes)
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
@@ -88,6 +95,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             Title = "Product Management";
             
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
+            SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
         }
 
         public void SetWindowHandle(nint windowHandle)
@@ -99,11 +107,27 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
         partial void OnEditErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasEditErrorMessage));
 
+        partial void OnSelectedCategoryChanged(Category? value) => OnPropertyChanged(nameof(SelectedCategoryLabel));
+
+        partial void OnSelectedSortChanged(SortOption? value) => OnPropertyChanged(nameof(SelectedSortLabel));
+
         [RelayCommand]
         public async Task LoadCategoriesAsync()
         {
             var categories = await _productService.GetCategoriesAsync();
+            var previousCategoryId = SelectedCategory?.Id ?? 0;
+
             Categories = new ObservableCollection<Category>(categories);
+
+            CategoryFilterOptions.Clear();
+            CategoryFilterOptions.Add(AllCategoriesOption);
+
+            foreach (var category in categories)
+            {
+                CategoryFilterOptions.Add(category);
+            }
+
+            SelectedCategory = CategoryFilterOptions.FirstOrDefault(c => c.Id == previousCategoryId) ?? AllCategoriesOption;
         }
 
         [RelayCommand]
@@ -124,7 +148,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     AfterCursor = AfterCursor,
                     BeforeCursor = BeforeCursor,
                     SearchText = SearchText,
-                    CategoryId = SelectedCategory?.Id,
+                    CategoryId = SelectedCategory is { Id: > 0 } ? SelectedCategory.Id : null,
                     MinRetailPrice = MinPrice > 0 ? (decimal)MinPrice : null,
                     MaxRetailPrice = MaxPrice < 1000 ? (decimal)MaxPrice : null,
                     SortValue = SelectedSort?.Value
@@ -156,9 +180,10 @@ namespace BIF.ToyStore.ViewModels.Pages
         public async Task ClearFilterAsync()
         {
             SearchText = string.Empty;
-            SelectedCategory = null;
+            SelectedCategory = CategoryFilterOptions.FirstOrDefault(c => c.Id == 0) ?? AllCategoriesOption;
             MinPrice = 0;
             MaxPrice = 1000;
+            SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
             BeforeCursor = null;
             AfterCursor = null;
             await LoadPageAsync(null);

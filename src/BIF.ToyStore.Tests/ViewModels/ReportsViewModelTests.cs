@@ -88,6 +88,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.True(vm.HasTimeSeriesData);
             Assert.True(vm.HasTopProducts);
             Assert.Equal("VND", vm.CurrencySymbol);
+            Assert.All(vm.TimeSeriesPoints, p => Assert.True(p.RevenueBarHeight > 0));
+            Assert.All(vm.TimeSeriesPoints, p => Assert.True(p.ProfitBarHeight > 0));
             Assert.NotEqual("M 0,0", vm.TrendPathData);
             Assert.NotEqual("M 0,0 Z", vm.TrendAreaData);
             Assert.True(vm.TrendAxisMax >= 10);

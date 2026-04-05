@@ -56,6 +56,9 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.DisplayName = setupConfiguration.DisplayName;
             config.ReceiptHeader = setupConfiguration.ReceiptHeader;
             config.ReceiptFooter = setupConfiguration.ReceiptFooter;
+            config.CurrencySymbol = string.IsNullOrWhiteSpace(setupConfiguration.CurrencySymbol)
+                ? "VND"
+                : setupConfiguration.CurrencySymbol.Trim();
             config.ThemePreference = setupConfiguration.ThemePreference;
             config.EnableLoyaltyPoints = setupConfiguration.EnableLoyaltyPoints;
             config.TaxRate = setupConfiguration.TaxRate;
@@ -96,16 +99,24 @@ namespace BIF.ToyStore.Infrastructure.Services
             return CloneConfig(cachedCopy);
         }
 
-        public async Task<AppConfig> UpdateStoreSettingsAsync(decimal taxRate, string currencySymbol, string receiptHeader, string receiptFooter)
+        public async Task<AppConfig> UpdateStoreSettingsAsync(
+            string displayName,
+            decimal taxRate,
+            string currencySymbol,
+            string receiptHeader,
+            string receiptFooter,
+            string themePreference)
         {
             var config = await _dbContext.AppConfigs.SingleOrDefaultAsync(c => c.Id == 1)
                 ?? new AppConfig { Id = 1 };
 
             config.Id = 1;
+            config.DisplayName = string.IsNullOrWhiteSpace(displayName) ? config.DisplayName : displayName.Trim();
             config.TaxRate = taxRate;
             config.CurrencySymbol = string.IsNullOrWhiteSpace(currencySymbol) ? "VND" : currencySymbol.Trim();
             config.ReceiptHeader = receiptHeader ?? string.Empty;
             config.ReceiptFooter = receiptFooter ?? string.Empty;
+            config.ThemePreference = string.IsNullOrWhiteSpace(themePreference) ? "System" : themePreference.Trim();
 
             if (_dbContext.Entry(config).State == EntityState.Detached)
             {

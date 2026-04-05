@@ -3,10 +3,7 @@ using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -54,6 +51,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private bool hasRetailPriceError;
 
         public ObservableCollection<Category> Categories { get; }
+        public string SelectedCategoryDisplay => SelectedCategory?.Name ?? "Select a category";
 
         private bool _isEditMode;
         private int _editingProductId;
@@ -68,6 +66,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             _windowHandle = windowHandle;
             Categories = [];
             Title = "Add New Product";
+        }
+
+        partial void OnSelectedCategoryChanged(Category? value)
+        {
+            OnPropertyChanged(nameof(SelectedCategoryDisplay));
         }
 
         partial void OnUploadErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasUploadError));

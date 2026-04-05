@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.WinUI.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -79,5 +80,14 @@ namespace BIF.ToyStore.WinUI.Views.Dialogs
             // Get product from ViewModel
             ResultProduct = ViewModel.GetProduct();
         }
+
+        private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ListView { SelectedItem: not null })
+            {
+                CommonFlyout.HideAttachedFlyout(CategorySelectorButton);
+            }
+        }
+
     }
 }
