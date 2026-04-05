@@ -41,9 +41,10 @@ namespace BIF.ToyStore.Tests.GraphQL
         public async Task updateProduct_existingId_callsRepositoryUpdateAsync()
         {
             var mockRepo = new Mock<IProductRepository>();
-            var existingProduct = new Product { Id = 1, Name = "Old Name", RetailPrice = 10.00m };
+            var updatedProduct = new Product { Id = 1, Name = "New Name", RetailPrice = 20.00m };
 
-            mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(existingProduct);
+            mockRepo.Setup(x => x.UpdateDetailsAsync(It.IsAny<Product>()))
+                .ReturnsAsync(updatedProduct);
 
             var input = new UpdateProductInput
             {
@@ -60,14 +61,15 @@ namespace BIF.ToyStore.Tests.GraphQL
 
             Assert.Equal("New Name", result.Name);
             Assert.Equal(20.00m, result.RetailPrice);
-            mockRepo.Verify(x => x.UpdateAsync(It.Is<Product>(p => p.Id == 1 && p.Name == "New Name")), Times.Once);
+            mockRepo.Verify(x => x.UpdateDetailsAsync(It.Is<Product>(p => p.Id == 1 && p.Name == "New Name")), Times.Once);
         }
 
         [Fact]
         public async Task updateProduct_nonExistingId_throwsException()
         {
             var mockRepo = new Mock<IProductRepository>();
-            mockRepo.Setup(x => x.GetByIdAsync(99)).ReturnsAsync((Product)null);
+            mockRepo.Setup(x => x.UpdateDetailsAsync(It.IsAny<Product>()))
+                .ThrowsAsync(new InvalidOperationException("Product not found."));
 
             var input = new UpdateProductInput { Id = 99, Name = "Ghost Product" };
             var mutation = new Mutations();
@@ -75,13 +77,14 @@ namespace BIF.ToyStore.Tests.GraphQL
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mutation.UpdateProduct(input, mockRepo.Object));
 
             Assert.Equal("Product not found.", exception.Message);
-            mockRepo.Verify(x => x.UpdateAsync(It.IsAny<Product>()), Times.Never);
+            mockRepo.Verify(x => x.UpdateDetailsAsync(It.Is<Product>(p => p.Id == 99)), Times.Once);
         }
 
         [Fact]
         public async Task deleteProduct_validId_callsRepositorySoftDeleteAsync()
         {
             var mockRepo = new Mock<IProductRepository>();
+            mockRepo.Setup(x => x.SoftDeleteAsync(1)).ReturnsAsync(true);
             var mutation = new Mutations();
 
             var result = await mutation.DeleteProduct(1, mockRepo.Object);

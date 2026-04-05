@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
+using System.Text.Json.Serialization;
 
 namespace BIF.ToyStore.Infrastructure.GraphQL
 {
@@ -178,15 +179,21 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
     public class CreateProductInput
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("categoryId")]
         public int CategoryId { get; set; }
+        [JsonPropertyName("retailPrice")]
         public decimal RetailPrice { get; set; }
+        [JsonPropertyName("importPrice")]
         public decimal ImportPrice { get; set; }
+        [JsonPropertyName("stockQuantity")]
         public int StockQuantity { get; set; }
     }
 
     public class UpdateProductInput : CreateProductInput
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
     }
 
@@ -198,11 +205,13 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
     public class CreateCategoryInput
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
     }
 
     public class UpdateCategoryInput : CreateCategoryInput
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
     }
 

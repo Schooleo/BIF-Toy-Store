@@ -6,15 +6,15 @@
     xmlns:controls2="using:BIF.ToyStore.WinUI.Controls"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:controls1="using:CommunityToolkit.WinUI.Controls"
-    xmlns:custom="using:BIF.ToyStore.WinUI.Controls"
     xmlns:converters="using:BIF.ToyStore.WinUI.Converters"
+    xmlns:custom="using:BIF.ToyStore.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:BIF.ToyStore.WinUI.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:BIF.ToyStore.Core.Models"
     x:Name="RootPage"
-    RequestedTheme="Light"
     Background="{ThemeResource FluentPlaySurfaceBrush}"
+    RequestedTheme="Light"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -22,24 +22,48 @@
         <converters:StockFormatConverter x:Key="StockFormatConverter" />
         <SolidColorBrush x:Key="ProductsSurfaceCardBrush" Color="{StaticResource FluentPlaySurfaceContainerLowestColor}" />
         <SolidColorBrush x:Key="ProductsDangerBrush" Color="{StaticResource FluentPlayErrorColor}" />
+
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlaySurfaceContainerHighColor}" />
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlaySurfaceVariantColor}" />
+        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+
         <SolidColorBrush x:Key="SliderTrackValueFill" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
         <SolidColorBrush x:Key="SliderTrackFill" Color="{StaticResource FluentPlayOutlineVariantColor}" />
         <SolidColorBrush x:Key="SliderThumbBackground" Color="{StaticResource FluentPlayPrimaryColor}" />
-        <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush" Color="{StaticResource FluentPlayPrimaryFixedColor}" />
-        <SolidColorBrush x:Key="DataGridRowSelectedForegroundBrush" Color="{StaticResource FluentPlayOnSurfaceColor}" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+
+        <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryFixedColor}" />
+        <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource FluentPlayPrimaryContainerColor}" />
+        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+        <SolidColorBrush x:Key="ListViewItemForegroundSelectedPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+
+        <SolidColorBrush x:Key="GridViewItemBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryFixedColor}" />
+        <SolidColorBrush x:Key="GridViewItemBackgroundSelected" Color="{StaticResource FluentPlayPrimaryContainerColor}" />
+        <SolidColorBrush x:Key="GridViewItemBackgroundSelectedPointerOver" Color="{StaticResource FluentPlayPrimaryColor}" />
+        <SolidColorBrush x:Key="GridViewItemForegroundSelected" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+        <SolidColorBrush x:Key="GridViewItemForegroundSelectedPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+
+        <SolidColorBrush x:Key="GridViewItemPointerOverBackground" Color="{StaticResource FluentPlayPrimaryFixedColor}" />
+        <SolidColorBrush x:Key="GridViewItemSelectedBackground" Color="{StaticResource FluentPlayPrimaryContainerColor}" />
+
     </Page.Resources>
 
     <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
         <ScrollViewer
-            VerticalScrollBarVisibility="Auto"
-            VerticalScrollMode="Auto"
             HorizontalScrollBarVisibility="Disabled"
-            HorizontalScrollMode="Disabled">
+            HorizontalScrollMode="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
             <Grid
-                Padding="32"
-                RowSpacing="24"
                 MaxWidth="1280"
-                HorizontalAlignment="Stretch">
+                Padding="32"
+                HorizontalAlignment="Stretch"
+                RowSpacing="24">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -48,133 +72,237 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-            <!--  Title Area  -->
+                <!--  Title Area  -->
                 <Grid Grid.Row="0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel Spacing="4">
-                    <TextBlock
-                        FontSize="30"
-                        FontWeight="ExtraBold"
-                        Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
-                        Text="Inventory Management" />
+                        <TextBlock
+                            FontSize="30"
+                            FontWeight="ExtraBold"
+                            Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                            Text="Inventory Management" />
                         <TextBlock
                             FontSize="16"
                             Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
                             Text="{x:Bind ViewModel.TotalCountLabel, Mode=OneWay}" />
-                    <TextBlock
-                        Foreground="{ThemeResource SystemFillColorSuccessBrush}"
-                        Text="{x:Bind ViewModel.ImportSuccessMessage, Mode=OneWay}"
-                        TextWrapping="Wrap"
-                        Visibility="{x:Bind ViewModel.HasImportSuccessMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                    <TextBlock
-                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                        Text="{x:Bind ViewModel.ImportErrorMessage, Mode=OneWay}"
-                        TextWrapping="Wrap"
-                        Visibility="{x:Bind ViewModel.HasImportErrorMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                </StackPanel>
+                        <TextBlock
+                            Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                            Text="{x:Bind ViewModel.ImportSuccessMessage, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind ViewModel.HasImportSuccessMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <TextBlock
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            Text="{x:Bind ViewModel.ImportErrorMessage, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind ViewModel.HasImportErrorMessage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    </StackPanel>
 
                     <StackPanel
                         Grid.Column="1"
+                        VerticalAlignment="Center"
                         Orientation="Horizontal"
-                        Spacing="12"
-                        VerticalAlignment="Center">
-                    <Button
-                        Background="{ThemeResource ProductsSurfaceCardBrush}"
-                        BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
-                        Command="{x:Bind ViewModel.ImportExcelCommand}"
-                        Content="Import Excel"
-                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
-                    <Button
-                        Background="{ThemeResource FluentPlayPrimaryBrush}"
-                        Click="AddProduct_Click"
-                        Content="ADD NEW PRODUCT"
-                        FontWeight="Bold"
-                        Foreground="{ThemeResource FluentPlayOnPrimaryBrush}" />
-                </StackPanel>
-            </Grid>
+                        Spacing="12">
+                        <Button
+                            Background="{ThemeResource ProductsSurfaceCardBrush}"
+                            BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                            Command="{x:Bind ViewModel.ImportExcelCommand}"
+                            Content="Import Excel"
+                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                        <Button
+                            Background="{ThemeResource FluentPlayPrimaryBrush}"
+                            Click="AddProduct_Click"
+                            Content="ADD NEW PRODUCT"
+                            FontWeight="Bold"
+                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </Grid>
 
-            <!--  Filters Area  -->
+                <!--  Filters Area  -->
                 <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel
                         Grid.Column="0"
                         Orientation="Horizontal"
                         Spacing="24">
 
-                    <StackPanel VerticalAlignment="Top" Spacing="6">
+                        <StackPanel VerticalAlignment="Top" Spacing="6">
                             <TextBlock
+                                CharacterSpacing="120"
                                 FontSize="11"
                                 FontWeight="Bold"
-                                CharacterSpacing="120"
                                 Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
                                 Text="SEARCH INVENTORY" />
-                        <TextBox
-                            Width="240"
-                            HorizontalAlignment="Left"
-                            KeyDown="SearchBox_KeyDown"
-                            PlaceholderText="Enter product name..."
-                            Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
+                            <TextBox
+                                Width="240"
+                                HorizontalAlignment="Left"
+                                TextChanged="SearchBox_TextChanged"
+                                PlaceholderText="Enter product name..."
+                                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                    <StackPanel VerticalAlignment="Top" Spacing="6">
+                        <StackPanel VerticalAlignment="Top" Spacing="6">
                             <TextBlock
+                                CharacterSpacing="120"
                                 FontSize="11"
                                 FontWeight="Bold"
-                                CharacterSpacing="120"
                                 Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
                                 Text="CATEGORY" />
-                        <ComboBox
-                            Width="160"
-                            DisplayMemberPath="Name"
-                            ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                            MaxDropDownHeight="300"
-                            PlaceholderText="All Categories"
-                            SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
-                            SelectionChanged="Filter_Changed" />
-                    </StackPanel>
+                            <Button
+                                Padding="12,7"
+                                Background="White"
+                                BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon
+                                        Width="14"
+                                        Height="14"
+                                        Data="M0 3H16V5H0V3ZM2 7H14V9H2V7ZM5 11H11V13H5V11Z"
+                                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                        Text="Category" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout>
+                                        <StackPanel MinWidth="160" Spacing="4">
+                                            <TextBlock
+                                                Margin="0,0,0,6"
+                                                CharacterSpacing="100"
+                                                FontSize="10"
+                                                FontWeight="Bold"
+                                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                                Text="FILTER BY CATEGORY" />
+                                            <Button
+                                                Padding="8,6"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderBrush="Transparent"
+                                                Click="ClearCategoryFilter_Click"
+                                                Content="All Categories"
+                                                FontWeight="SemiBold" />
+                                            <ListView
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
+                                                SelectionChanged="Filter_Changed"
+                                                SelectionMode="Single">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="MinHeight" Value="32" />
+                                                        <Setter Property="Padding" Value="8,4" />
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:Category">
+                                                        <TextBlock Text="{x:Bind Name}" />
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
 
-                    <StackPanel VerticalAlignment="Top" Spacing="6">
+                        <StackPanel VerticalAlignment="Top" Spacing="6">
                             <TextBlock
+                                CharacterSpacing="120"
                                 FontSize="11"
                                 FontWeight="Bold"
-                                CharacterSpacing="120"
                                 Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
                                 Text="SORT BY" />
-                        <ComboBox
-                            Width="160"
-                            DisplayMemberPath="Name"
-                            ItemsSource="{x:Bind ViewModel.SortOptions}"
-                            MaxDropDownHeight="300"
-                            PlaceholderText="Newest"
-                            SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}"
-                            SelectionChanged="Filter_Changed" />
-                    </StackPanel>
+                            <Button
+                                Padding="12,7"
+                                Background="White"
+                                BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon
+                                        Width="14"
+                                        Height="14"
+                                        Data="M3 18H7V16H3V18ZM0 2V4H16V2H0ZM1 11H15V9H1V11Z"
+                                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                        Text="Sort" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout>
+                                        <StackPanel MinWidth="180" Spacing="4">
+                                            <TextBlock
+                                                Margin="0,0,0,6"
+                                                CharacterSpacing="100"
+                                                FontSize="10"
+                                                FontWeight="Bold"
+                                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                                Text="SORT BY" />
+                                            <ListView
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneWay}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}"
+                                                SelectionChanged="Filter_Changed"
+                                                SelectionMode="Single">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="MinHeight" Value="32" />
+                                                        <Setter Property="Padding" Value="8,4" />
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Name}" />
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
 
-                    <StackPanel VerticalAlignment="Top" Spacing="6">
+                        <StackPanel VerticalAlignment="Top" Spacing="6">
                             <TextBlock
+                                CharacterSpacing="120"
                                 FontSize="11"
                                 FontWeight="Bold"
-                                CharacterSpacing="120"
                                 Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
                                 Text="PRICE RANGE" />
-                        <controls1:RangeSelector
-                            Width="200"
-                            Margin="8,4,8,0"
-                            VerticalAlignment="Center"
-                            Maximum="1000"
-                            Minimum="0"
-                            PointerReleased="Filter_Changed"
-                            RangeEnd="{x:Bind ViewModel.MaxPrice, Mode=TwoWay}"
-                            RangeStart="{x:Bind ViewModel.MinPrice, Mode=TwoWay}"
-                            StepFrequency="10" />
+                            <controls1:RangeSelector
+                                Width="200"
+                                Margin="8,4,8,0"
+                                VerticalAlignment="Center"
+                                Maximum="1000"
+                                Minimum="0"
+                                PointerReleased="Filter_Changed"
+                                RangeEnd="{x:Bind ViewModel.MaxPrice, Mode=TwoWay}"
+                                RangeStart="{x:Bind ViewModel.MinPrice, Mode=TwoWay}"
+                                StepFrequency="10" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
 
                     <Button
                         Grid.Column="1"
@@ -185,110 +313,159 @@
                         Foreground="{ThemeResource FluentPlayPrimaryBrush}" />
                 </Grid>
 
-            <!--  DataGrid  -->
-            <controls:DataGrid
-                Grid.Row="2"
-                AutoGenerateColumns="False"
-                Background="{ThemeResource ProductsSurfaceCardBrush}"
-                BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                BorderThickness="1"
-                CanUserSortColumns="True"
-                CornerRadius="12"
-                GridLinesVisibility="Horizontal"
-                HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                ItemsSource="{x:Bind ViewModel.Products, Mode=OneWay}"
-                RowHeight="72">
-                <controls:DataGrid.Columns>
-                    <controls:DataGridTemplateColumn Width="2*" Header="PRODUCT">
-                        <controls:DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:Product">
-                                <Grid Padding="16,12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
+                <!--  DataGrid  -->
+                <controls:DataGrid
+                    x:Name="ProductsDataGrid"
+                    Grid.Row="2"
+                    AutoGenerateColumns="False"
+                    Background="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"
+                    BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                    BorderThickness="1"
+                    IsReadOnly="True"
+                    IsTabStop="False"
+                    CanUserReorderColumns="False"
+                    CanUserResizeColumns="False"
+                    CanUserSortColumns="False"
+                    CornerRadius="12"
+                    GridLinesVisibility="Horizontal"
+                    HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                    ItemsSource="{x:Bind ViewModel.Products, Mode=OneWay}"
+                    PointerPressed="ProductsDataGrid_PointerPressed"
+                    RowHeight="72"
+                    SelectionChanged="ProductsDataGrid_SelectionChanged"
+                    SelectionMode="Single"
+                    UseSystemFocusVisuals="False">
+
+                    <controls:DataGrid.Resources>
+                        <Style TargetType="controls:DataGridCell">
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="UseSystemFocusVisuals" Value="False" />
+                            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                            <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+                            <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+                            <Setter Property="IsTabStop" Value="False" />
+                        </Style>
+                    </controls:DataGrid.Resources>
+
+                    <controls:DataGrid.Columns>
+                        <!--  COLUMN: PRODUCT  -->
+                        <controls:DataGridTemplateColumn Width="2*" Header="PRODUCT">
+                            <controls:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="models:Product">
+                                    <Grid Padding="16,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" /> 
+                                        </Grid.ColumnDefinitions>
+                                        <Border
+                                            Width="40"
+                                            Height="40"
+                                            Margin="0,0,12,0"
+                                            Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                                            CornerRadius="8" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind Name}" />
+                                            <TextBlock FontSize="10" Opacity="0.7">
+                                                <Run Text="SKU: TOY-" /><Run Text="{x:Bind Id}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </controls:DataGridTemplateColumn.CellTemplate>
+                        </controls:DataGridTemplateColumn>
+
+                        <!--  COLUMN: CATEGORY  -->
+                        <controls:DataGridTemplateColumn Width="*" Header="CATEGORY">
+                            <controls:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="models:Product">
                                     <Border
-                                        Width="40"
-                                        Height="40"
-                                        Margin="0,0,12,0"
+                                        Margin="16,0"
+                                        Padding="8,4"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
                                         Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                                        CornerRadius="8" />
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        CornerRadius="4">
                                         <TextBlock
-                                            FontSize="14"
-                                            FontWeight="SemiBold"
+                                            FontSize="10"
+                                            FontWeight="Bold"
                                             Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
-                                            Text="{x:Bind Name}" />
-                                        <TextBlock FontSize="10" Foreground="{ThemeResource FluentPlayOutlineVariantBrush}">
-                                            <Run Text="SKU: TOY-" /><Run Text="{x:Bind Id}" />
-                                        </TextBlock>
+                                            Text="{x:Bind Category.Name}" />
+                                    </Border>
+                                </DataTemplate>
+                            </controls:DataGridTemplateColumn.CellTemplate>
+                        </controls:DataGridTemplateColumn>
+
+                        <!--  COLUMN: RETAIL  -->
+                        <controls:DataGridTextColumn
+                            Width="*"
+                            Binding="{Binding RetailPrice}"
+                            Header="RETAIL" />
+
+                        <!--  COLUMN: STOCK  -->
+                        <controls:DataGridTemplateColumn Width="*" Header="STOCK">
+                            <controls:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="models:Product">
+                                    <StackPanel
+                                        Padding="16,0"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
+                                            Fill="{ThemeResource FluentPlayPrimaryBrush}" />
+                                        <TextBlock FontWeight="Medium" Text="{x:Bind StockQuantity, Converter={StaticResource StockFormatConverter}}" />
                                     </StackPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </controls:DataGridTemplateColumn.CellTemplate>
-                    </controls:DataGridTemplateColumn>
+                                </DataTemplate>
+                            </controls:DataGridTemplateColumn.CellTemplate>
+                        </controls:DataGridTemplateColumn>
 
-                    <controls:DataGridTemplateColumn Width="*" Header="CATEGORY">
-                        <controls:DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:Product">
-                                <Border
-                                    Margin="16,0"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                                    CornerRadius="4">
-                                    <TextBlock
-                                        FontSize="10"
-                                        FontWeight="Bold"
-                                        Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
-                                        Text="{x:Bind Category.Name}" />
-                                </Border>
-                            </DataTemplate>
-                        </controls:DataGridTemplateColumn.CellTemplate>
-                    </controls:DataGridTemplateColumn>
-
-                    <controls:DataGridTextColumn
-                        Width="*"
-                        Binding="{Binding RetailPrice}"
-                        Header="RETAIL" />
-
-                    <controls:DataGridTemplateColumn Width="*" Header="STOCK">
-                        <controls:DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:Product">
-                                <StackPanel
-                                    Padding="16,0"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <Ellipse
-                                        Width="8"
-                                        Height="8"
-                                        Fill="{ThemeResource FluentPlayPrimaryBrush}" />
-                                    <TextBlock FontWeight="Medium" Text="{x:Bind StockQuantity, Converter={StaticResource StockFormatConverter}}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </controls:DataGridTemplateColumn.CellTemplate>
-                    </controls:DataGridTemplateColumn>
-
-                    <controls:DataGridTemplateColumn Width="100" Header="ACTIONS">
-                        <controls:DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:Product">
-                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0,0,16,0">
-                                    <Button Background="Transparent" BorderBrush="Transparent" Padding="4" Tag="{x:Bind}" Click="EditProduct_Click"
+                        <!--  COLUMN: ACTIONS  -->
+                        <controls:DataGridTemplateColumn Width="100" Header="ACTIONS">
+                            <controls:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="models:Product">
+                                    <StackPanel
+                                        Padding="0,0,16,0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                        <Button
+                                            Padding="4"
+                                            Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            Click="EditProduct_Click"
+                                            Tag="{x:Bind}"
                                             ToolTipService.ToolTip="Edit Product">
-                                        <FontIcon Glyph="&#xE70F;" FontSize="14" Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}" />
-                                    </Button>
-                                    <Button Background="Transparent" BorderBrush="Transparent" Padding="4" Tag="{x:Bind}" Click="DeleteProduct_Click"
+                                            <FontIcon
+                                                FontSize="14"
+                                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                                Glyph="&#xE70F;" />
+                                        </Button>
+                                        <Button
+                                            Padding="4"
+                                            Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            Click="DeleteProduct_Click"
+                                            Tag="{x:Bind}"
                                             ToolTipService.ToolTip="Delete Product">
-                                        <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource ProductsDangerBrush}" />
-                                    </Button>
-                                </StackPanel>
-                            </DataTemplate>
-                        </controls:DataGridTemplateColumn.CellTemplate>
-                    </controls:DataGridTemplateColumn>
-                </controls:DataGrid.Columns>
-            </controls:DataGrid>
+                                            <!--  Lưu ý: ProductsDangerBrush phải được định nghĩa trong resource của bạn  -->
+                                            <FontIcon
+                                                FontSize="14"
+                                                Foreground="{ThemeResource FluentPlayErrorColor}"
+                                                Glyph="&#xE74D;" />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </controls:DataGridTemplateColumn.CellTemplate>
+                        </controls:DataGridTemplateColumn>
+                    </controls:DataGrid.Columns>
+                </controls:DataGrid>
 
             <!--  Pagination  -->
             <custom:PaginationControl
@@ -303,5 +480,19 @@
             <controls2:AppFooter Grid.Row="4" Margin="0,8,0,0" />
             </Grid>
         </ScrollViewer>
+
+        <Grid
+            Background="#66000000"
+            Visibility="{x:Bind ViewModel.IsEditingProduct, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <custom:ProductDetailsForm
+                Margin="0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Product="{x:Bind ViewModel.EditingProduct, Mode=OneWay}"
+                Categories="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                SaveCommand="{x:Bind ViewModel.SaveProductEditCommand, Mode=OneWay}"
+                CancelCommand="{x:Bind ViewModel.CancelProductEditCommand, Mode=OneWay}"
+                EditErrorMessage="{x:Bind ViewModel.EditErrorMessage, Mode=TwoWay}" />
+        </Grid>
     </Grid>
 </Page>

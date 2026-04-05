@@ -74,6 +74,12 @@ namespace BIF.ToyStore.WinUI.Views
             NavigateContent(typeof(ProductsPage));
         }
 
+        public void NavigateToCategories()
+        {
+            ShellSidebar.ActiveTab = "Categories";
+            NavigateContent(typeof(CategoriesPage));
+        }
+
         public void NavigateToSettings()
         {
             if (!_isAdmin)

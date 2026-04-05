@@ -169,6 +169,14 @@ namespace BIF.ToyStore.WinUI
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Products");
         }
 
+        public void NavigateToCategories()
+        {
+            var shell = EnsureShell();
+            shell.SetAdminMode(IsCurrentUserAdmin);
+            shell.NavigateToCategories();
+            _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Categories");
+        }
+
         public void NavigateToSettings()
         {
             if (!IsCurrentUserAdmin)
@@ -212,6 +220,12 @@ namespace BIF.ToyStore.WinUI
             if (route == "Products")
             {
                 NavigateToProducts();
+                return;
+            }
+
+            if (route == "Categories")
+            {
+                NavigateToCategories();
                 return;
             }
 

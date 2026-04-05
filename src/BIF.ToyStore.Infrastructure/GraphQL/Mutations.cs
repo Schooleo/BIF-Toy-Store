@@ -195,25 +195,22 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<Product> UpdateProduct(UpdateProductInput input, [Service] IProductRepository repo)
         {
-            var product = await repo.GetByIdAsync(input.Id);
-            if (product is null)
+            var product = new Product
             {
-                throw new InvalidOperationException("Product not found.");
-            }
-            product.Name = input.Name;
-            product.CategoryId = input.CategoryId;
-            product.RetailPrice = input.RetailPrice;
-            product.ImportPrice = input.ImportPrice;
-            product.StockQuantity = input.StockQuantity;
-            
-            await repo.UpdateAsync(product);
-            return product;
+                Id = input.Id,
+                Name = input.Name,
+                CategoryId = input.CategoryId,
+                RetailPrice = input.RetailPrice,
+                ImportPrice = input.ImportPrice,
+                StockQuantity = input.StockQuantity
+            };
+
+            return await repo.UpdateDetailsAsync(product);
         }
 
         public async Task<bool> DeleteProduct(int id, [Service] IProductRepository repo)
         {
-            await repo.SoftDeleteAsync(id);
-            return true;
+            return await repo.SoftDeleteAsync(id);
         }
 
         public async Task<ImportProductsPayload> ImportProducts(IFile file, [Service] IProductRepository repo)
@@ -273,33 +270,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<Category> UpdateCategory(UpdateCategoryInput input, [Service] ICategoryRepository repo)
         {
-            var category = await repo.GetByIdAsync(input.Id);
-            if (category is null)
-            {
-                throw new InvalidOperationException("Category not found.");
-            }
-            
-            category.Name = input.Name;
-            await repo.UpdateAsync(category);
-            return category;
+            return await repo.UpdateNameAsync(input.Id, input.Name);
         }
 
         public async Task<bool> DeleteCategory(int id, [Service] ICategoryRepository repo)
         {
-            if (id == AppConstants.OtherCategoryId)
-            {
-                throw new InvalidOperationException("Cannot delete the default 'Other' category.");
-            }
-
-            var category = await repo.GetByIdAsync(id);
-            if (category is null)
-            {
-                throw new InvalidOperationException("Category not found.");
-            }
-            
-            category.IsDeleted = true;
-            await repo.UpdateAsync(category);
-            return true;
+            return await repo.SoftDeleteAsync(id);
         }
 
         public async Task<Category> RestoreCategory(int id, [Service] ICategoryRepository repo)

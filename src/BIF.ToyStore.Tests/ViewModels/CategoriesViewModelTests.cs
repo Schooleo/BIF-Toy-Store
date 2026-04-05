@@ -1,25 +1,23 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
-using BIF.ToyStore.Infrastructure.GraphQL;
 using BIF.ToyStore.ViewModels.Pages;
 using Moq;
 using Xunit;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
     public class CategoriesViewModelTests
     {
-        private readonly Mock<IGraphQLClient> _graphQLClientMock;
+        private readonly Mock<ICategoryService> _categoryServiceMock;
         private readonly CategoriesViewModel _viewModel;
 
         public CategoriesViewModelTests()
         {
-            _graphQLClientMock = new Mock<IGraphQLClient>();
-            _viewModel = new CategoriesViewModel(_graphQLClientMock.Object);
+            _categoryServiceMock = new Mock<ICategoryService>();
+            _viewModel = new CategoriesViewModel(_categoryServiceMock.Object);
         }
 
         // ─── Constructor defaults ────────────────────────────────────────────────
@@ -36,17 +34,14 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task LoadCategoriesAsync_ValidResponse_UpdatesCollectionAndPagingInfo()
         {
             // Arrange
-            var fakeResponse = new CategoriesViewModel.CategoryConnection
+            var fakeResponse = new CategoryListResult
             {
                 TotalCount = 10,
-                PageInfo = new CategoriesViewModel.PageInfo
-                {
-                    HasNextPage = false,
-                    HasPreviousPage = false,
-                    StartCursor = "c1",
-                    EndCursor = "c10"
-                },
-                Nodes = new List<Category>
+                HasNextPage = false,
+                HasPreviousPage = false,
+                StartCursor = "c1",
+                EndCursor = "c10",
+                Items = new List<Category>
                 {
                     new Category { Id = 1, Name = "Other" },
                     new Category { Id = 2, Name = "Lego" },
@@ -54,11 +49,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 }
             };
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "categories"
-            )).ReturnsAsync(fakeResponse);
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(fakeResponse);
 
             // Act
             await _viewModel.LoadCategoriesAsync();
@@ -76,11 +69,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task LoadCategoriesAsync_WhenCompleted_IsBusyResetToFalse()
         {
             // Arrange
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "categories"
-            )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
 
             // Act
             await _viewModel.LoadCategoriesAsync();
@@ -98,22 +89,17 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.AfterCursor = "some_cursor";
             _viewModel.SearchText = "Lego";
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
-                "categories"
-            )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
 
             // Act
             await _viewModel.ApplyFilterCommand.ExecuteAsync(null);
 
             // Assert
             Assert.Null(_viewModel.AfterCursor);
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
-                "categories"
-            ), Times.Once);
+            _categoryServiceMock.Verify(x => x.GetCategoriesAsync(
+                It.Is<CategoryListQuery>(q => q.SearchText == "Lego")), Times.Once);
         }
 
         [Fact]
@@ -122,11 +108,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Arrange
             _viewModel.SearchText = "Lego";
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "categories"
-            )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
 
             // Act
             await _viewModel.ClearFilterCommand.ExecuteAsync(null);
@@ -144,38 +128,26 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             await _viewModel.DeleteCategoryAsync(AppConstants.OtherCategoryId);
 
             // Assert – GraphQL must never be called
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<bool>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                It.IsAny<string>()
-            ), Times.Never);
+            _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
         public async Task DeleteCategoryAsync_ValidId_CallsGraphQLAndReloads()
         {
             // Arrange
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<bool>(
-                It.Is<string>(q => q.Contains("deleteCategory")),
-                It.IsAny<object>(),
-                "deleteCategory"
-            )).ReturnsAsync(true);
+            _categoryServiceMock
+                .Setup(x => x.DeleteCategoryAsync(5))
+                .ReturnsAsync(true);
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "categories"
-            )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
 
             // Act
             await _viewModel.DeleteCategoryAsync(5);
 
             // Assert
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<bool>(
-                It.Is<string>(q => q.Contains("deleteCategory")),
-                It.IsAny<object>(),
-                "deleteCategory"
-            ), Times.Once);
+            _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(5), Times.Once);
         }
 
         // ─── RestoreCategoryAsync ────────────────────────────────────────────────
@@ -184,27 +156,19 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task RestoreCategoryAsync_ValidId_CallsGraphQLAndReloads()
         {
             // Arrange
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<Category>(
-                It.Is<string>(q => q.Contains("restoreCategory")),
-                It.IsAny<object>(),
-                "restoreCategory"
-            )).ReturnsAsync(new Category { Id = 5, Name = "Restored" });
+            _categoryServiceMock
+                .Setup(x => x.RestoreCategoryAsync(5))
+                .ReturnsAsync(new Category { Id = 5, Name = "Restored" });
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoriesViewModel.CategoryConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "categories"
-            )).ReturnsAsync(new CategoriesViewModel.CategoryConnection { Nodes = new List<Category>() });
+            _categoryServiceMock
+                .Setup(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()))
+                .ReturnsAsync(new CategoryListResult { Items = new List<Category>() });
 
             // Act
             await _viewModel.RestoreCategoryAsync(5);
 
             // Assert
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<Category>(
-                It.Is<string>(q => q.Contains("restoreCategory")),
-                It.IsAny<object>(),
-                "restoreCategory"
-            ), Times.Once);
+            _categoryServiceMock.Verify(x => x.RestoreCategoryAsync(5), Times.Once);
         }
     }
 }

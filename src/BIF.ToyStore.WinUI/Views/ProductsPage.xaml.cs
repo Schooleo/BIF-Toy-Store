@@ -1,21 +1,30 @@
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.WinUI.Services;
+using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System;
 using WinRT.Interop;
+using Microsoft.UI.Dispatching;
+
 namespace BIF.ToyStore.WinUI.Views
 {
     public sealed partial class ProductsPage : Page
     {
         public ProductsViewModel ViewModel { get; }
+        private DispatcherQueueTimer _searchDebounceTimer;
 
         public ProductsPage()
         {
             ViewModel = App.Current.Services.GetRequiredService<ProductsViewModel>();
             InitializeComponent();
+            
+            _searchDebounceTimer = DispatcherQueue.CreateTimer();
+            _searchDebounceTimer.Interval = TimeSpan.FromMilliseconds(400);
+            _searchDebounceTimer.Tick += SearchDebounceTimer_Tick;
             
             Loaded += async (s, e) =>
             {
@@ -54,15 +63,60 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private void SearchBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (e.Key == Windows.System.VirtualKey.Enter)
+            _searchDebounceTimer.Stop();
+            _searchDebounceTimer.Start();
+        }
+
+        private void SearchDebounceTimer_Tick(DispatcherQueueTimer sender, object args)
+        {
+            _searchDebounceTimer.Stop();
+            ApplyFilter();
+        }
+
+        private void ClearCategoryFilter_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel.SelectedCategory = null;
+            ApplyFilter();
+        }
+
+        private void ProductsDataGrid_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            if (IsFromButton(e.OriginalSource as DependencyObject))
             {
-                if (ViewModel.ApplyFilterCommand.CanExecute(null))
-                {
-                    ViewModel.ApplyFilterCommand.Execute(null);
-                }
+                return;
             }
+
+            e.Handled = true;
+
+            if (sender is DataGrid dataGrid)
+            {
+                dataGrid.SelectedItem = null;
+            }
+        }
+
+        private void ProductsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is DataGrid dataGrid && dataGrid.SelectedItem != null)
+            {
+                dataGrid.SelectedItem = null;
+            }
+        }
+
+        private static bool IsFromButton(DependencyObject source)
+        {
+            while (source != null)
+            {
+                if (source is Button)
+                {
+                    return true;
+                }
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
         }
 
         private async void AddProduct_Click(object sender, RoutedEventArgs e)
@@ -75,7 +129,7 @@ namespace BIF.ToyStore.WinUI.Views
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
             {
-                var input = new BIF.ToyStore.Infrastructure.GraphQL.CreateProductInput
+                var input = new Product
                 {
                     Name = dialog.ResultProduct.Name,
                     CategoryId = dialog.ResultProduct.CategoryId,
@@ -87,30 +141,11 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private async void EditProduct_Click(object sender, RoutedEventArgs e)
+        private void EditProduct_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            if (button?.Tag is Product product)
+            if (sender is Button { Tag: Product product } && ViewModel.OpenEditPanelCommand.CanExecute(product))
             {
-                var dialog = new Dialogs.AddProductForm(ViewModel.Categories, product)
-                {
-                    XamlRoot = this.XamlRoot
-                };
-                
-                var result = await dialog.ShowAsync();
-                if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
-                {
-                    var input = new BIF.ToyStore.Infrastructure.GraphQL.UpdateProductInput
-                    {
-                        Id = dialog.ResultProduct.Id,
-                        Name = dialog.ResultProduct.Name,
-                        CategoryId = dialog.ResultProduct.CategoryId,
-                        ImportPrice = dialog.ResultProduct.ImportPrice,
-                        RetailPrice = dialog.ResultProduct.RetailPrice,
-                        StockQuantity = dialog.ResultProduct.StockQuantity
-                    };
-                    await ViewModel.UpdateProductAsync(input);
-                }
+                ViewModel.OpenEditPanelCommand.Execute(product);
             }
         }
 

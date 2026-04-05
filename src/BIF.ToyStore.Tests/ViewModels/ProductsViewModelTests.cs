@@ -6,20 +6,19 @@ using Moq;
 using Xunit;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
     public class ProductsViewModelTests
     {
-        private readonly Mock<IGraphQLClient> _graphQLClientMock;
+        private readonly Mock<IProductService> _productServiceMock;
         private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
         private readonly Mock<IExcelFilePickerService> _excelFilePickerServiceMock;
         private readonly ProductsViewModel _viewModel;
 
         public ProductsViewModelTests()
         {
-            _graphQLClientMock = new Mock<IGraphQLClient>();
+            _productServiceMock = new Mock<IProductService>();
             _localSettingsServiceMock = new Mock<ILocalSettingsService>();
             _excelFilePickerServiceMock = new Mock<IExcelFilePickerService>();
 
@@ -29,7 +28,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 .Returns(20);
 
             _viewModel = new ProductsViewModel(
-                _graphQLClientMock.Object,
+                _productServiceMock.Object,
                 _localSettingsServiceMock.Object,
                 _excelFilePickerServiceMock.Object);
         }
@@ -38,28 +37,23 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task LoadProductsAsync_ValidResponse_UpdatesCollectionAndPagingInfo()
         {
             // Arrange
-            var fakeResponse = new ProductsViewModel.ProductConnection
+            var fakeResponse = new ProductListResult
             {
                 TotalCount = 45,
-                PageInfo = new ProductsViewModel.PageInfo
-                {
-                    HasNextPage = true,
-                    HasPreviousPage = false,
-                    StartCursor = "cursor1",
-                    EndCursor = "cursor20"
-                },
-                Nodes = new List<Product>
+                HasNextPage = true,
+                HasPreviousPage = false,
+                StartCursor = "cursor1",
+                EndCursor = "cursor20",
+                Items = new List<Product>
                 {
                     new Product { Id = 1, Name = "Test Product 1" },
                     new Product { Id = 2, Name = "Test Product 2" }
                 }
             };
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "products"
-            )).ReturnsAsync(fakeResponse);
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(fakeResponse);
 
             // Act
             await _viewModel.LoadProductsAsync();
@@ -80,22 +74,17 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.AfterCursor = "some_cursor";
             _viewModel.SearchText = "Lego";
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
-                It.IsAny<string>(),
-                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
-                "products"
-            )).ReturnsAsync(new ProductsViewModel.ProductConnection { Nodes = new List<Product>() });
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(new ProductListResult { Items = new List<Product>() });
 
             // Act
             await _viewModel.ApplyFilterCommand.ExecuteAsync(null);
 
             // Assert
             Assert.Null(_viewModel.AfterCursor);
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
-                It.IsAny<string>(),
-                It.Is<object>(variables => JsonSerializer.Serialize(variables).Contains("\"contains\":\"Lego\"")),
-                "products"
-            ), Times.Once);
+            _productServiceMock.Verify(x => x.GetProductsAsync(
+                It.Is<ProductListQuery>(q => q.SearchText == "Lego")), Times.Once);
         }
 
         [Fact]
@@ -106,11 +95,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _viewModel.MinPrice = 100;
             _viewModel.SelectedCategory = new Category { Id = 1, Name = "Other" };
 
-            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "products"
-            )).ReturnsAsync(new ProductsViewModel.ProductConnection { Nodes = new List<Product>() });
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(new ProductListResult { Items = new List<Product>() });
 
             // Act
             await _viewModel.ClearFilterCommand.ExecuteAsync(null);
@@ -119,11 +106,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Empty(_viewModel.SearchText);
             Assert.Equal(0, _viewModel.MinPrice);
             Assert.Null(_viewModel.SelectedCategory);
-            _graphQLClientMock.Verify(x => x.ExecuteAsync<ProductsViewModel.ProductConnection>(
-                It.IsAny<string>(),
-                It.IsAny<object>(),
-                "products"
-            ), Times.Once);
+            _productServiceMock.Verify(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()), Times.Once);
         }
     }
 }
