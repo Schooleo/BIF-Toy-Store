@@ -1,4 +1,5 @@
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,13 +22,16 @@ namespace BIF.ToyStore.ViewModels.Pages
         private string _receiptFooter = "Thank you for your purchase!";
 
         [ObservableProperty]
-        private string _themePreference = "System";
+        private string _selectedCurrency = "VND";
 
         [ObservableProperty]
-        private bool _useDarkTheme;
+        private string _adminUsername = string.Empty;
 
         [ObservableProperty]
-        private bool _enableLoyaltyPoints = true;
+        private string _adminPassword = string.Empty;
+
+        [ObservableProperty]
+        private string _confirmAdminPassword = string.Empty;
 
         [ObservableProperty]
         private double _taxRate = 10.0;
@@ -40,6 +44,8 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _appVersion = string.Empty;
+
+        public IReadOnlyList<string> CurrencyOptions { get; } = ["VND", "USD"];
 
         public InitialSetupViewModel(
             IGraphQLClient graphQLClient,
@@ -61,8 +67,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     displayName
                     receiptHeader
                     receiptFooter
-                    themePreference
-                    enableLoyaltyPoints
+                    currencySymbol
                     taxRate
                 }
             }";
@@ -78,9 +83,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                 StoreName = config.DisplayName;
                 ReceiptHeader = config.ReceiptHeader;
                 ReceiptFooter = config.ReceiptFooter;
-                ThemePreference = string.IsNullOrWhiteSpace(config.ThemePreference) ? "System" : config.ThemePreference;
-                UseDarkTheme = string.Equals(ThemePreference, "Dark", StringComparison.OrdinalIgnoreCase);
-                EnableLoyaltyPoints = config.EnableLoyaltyPoints;
+                SelectedCurrency = CurrencyOptions.Contains(config.CurrencySymbol)
+                    ? config.CurrencySymbol
+                    : "VND";
                 TaxRate = (double)(config.TaxRate * 100m);
             }
             catch (Exception ex)
@@ -104,6 +109,26 @@ namespace BIF.ToyStore.ViewModels.Pages
                 return SetupSaveResult.Fail("Tax rate must be between 0 and 100.");
             }
 
+            if (string.IsNullOrWhiteSpace(AdminUsername))
+            {
+                return SetupSaveResult.Fail("Admin username is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(AdminPassword))
+            {
+                return SetupSaveResult.Fail("Admin password is required.");
+            }
+
+            if (AdminPassword != ConfirmAdminPassword)
+            {
+                return SetupSaveResult.Fail("Admin passwords do not match.");
+            }
+
+            if (!CurrencyOptions.Contains(SelectedCurrency))
+            {
+                return SetupSaveResult.Fail("Please select a supported currency.");
+            }
+
             var nextPort = (int)Math.Round(LocalServerPort);
             if (nextPort is < 1024 or > 65535)
             {
@@ -116,6 +141,12 @@ namespace BIF.ToyStore.ViewModels.Pages
                 }
             }";
 
+            const string createAdminMutation = @"mutation CreateSetupAdmin($user: String!, $pass: String!, $role: UserRole!) {
+                createUser(username: $user, password: $pass, role: $role) {
+                    id
+                }
+            }";
+
             var variables = new
             {
                 input = new
@@ -123,29 +154,75 @@ namespace BIF.ToyStore.ViewModels.Pages
                     displayName = StoreName,
                     receiptHeader = ReceiptHeader,
                     receiptFooter = ReceiptFooter,
-                    themePreference = UseDarkTheme ? "Dark" : "Light",
-                    enableLoyaltyPoints = EnableLoyaltyPoints,
+                    currencySymbol = SelectedCurrency,
+                    themePreference = "System",
+                    enableLoyaltyPoints = false,
                     taxRate = decimal.Round((decimal)TaxRate / 100m, 4)
                 }
             };
 
+            int? createdAdminUserId = null;
+
             try
             {
+                var createdAdmin = await _graphQLClient.ExecuteAsync<LoginUser>(
+                    createAdminMutation,
+                    new
+                    {
+                        user = AdminUsername.Trim(),
+                        pass = AdminPassword,
+                        role = "ADMIN"
+                    },
+                    dataKey: "createUser");
+
+                if (createdAdmin is null)
+                {
+                    return SetupSaveResult.Fail("Unable to create admin account.");
+                }
+
+                createdAdminUserId = createdAdmin.Id;
+
                 var result = await _graphQLClient.ExecuteAsync<SetupStateView>(mutation, variables, dataKey: "completeInitialSetup");
                 if (result is null || !result.IsInitialSetupCompleted)
                 {
+                    if (createdAdminUserId.HasValue)
+                    {
+                        await TryRollbackCreatedAdminAsync(createdAdminUserId.Value);
+                    }
+
                     return SetupSaveResult.Fail("Server did not confirm setup completion.");
                 }
 
                 var previousPort = _localSettingsService.GetInt(AppPreferenceKeys.LocalServerPort, 5000);
                 _localSettingsService.SetInt(AppPreferenceKeys.LocalServerPort, nextPort);
-                _localSettingsService.SetString("ThemePreference", UseDarkTheme ? "Dark" : "Light");
+                _localSettingsService.SetString(AppPreferenceKeys.StoreName, StoreName);
 
                 return SetupSaveResult.Success(previousPort != nextPort);
             }
             catch (Exception ex)
             {
+                if (createdAdminUserId.HasValue)
+                {
+                    await TryRollbackCreatedAdminAsync(createdAdminUserId.Value);
+                }
+
                 return SetupSaveResult.Fail("Save failed: " + ex.Message);
+            }
+        }
+
+        private async Task TryRollbackCreatedAdminAsync(int userId)
+        {
+            const string deleteMutation = @"mutation DeleteSetupAdmin($id: Int!) {
+                deleteUser(id: $id)
+            }";
+
+            try
+            {
+                await _graphQLClient.ExecuteAsync<bool>(deleteMutation, new { id = userId }, dataKey: "deleteUser");
+            }
+            catch
+            {
+                // Best-effort rollback only.
             }
         }
 
@@ -167,8 +244,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             public string DisplayName { get; set; } = string.Empty;
             public string ReceiptHeader { get; set; } = string.Empty;
             public string ReceiptFooter { get; set; } = string.Empty;
-            public string ThemePreference { get; set; } = "System";
-            public bool EnableLoyaltyPoints { get; set; }
+            public string CurrencySymbol { get; set; } = "VND";
             public decimal TaxRate { get; set; }
         }
 

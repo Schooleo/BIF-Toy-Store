@@ -1,17 +1,14 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Messages;
 using BIF.ToyStore.ViewModels.Utils;
-using BIF.ToyStore.Infrastructure.GraphQL;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Globalization;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -30,13 +27,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         private ObservableCollection<CartItemViewModel> _cartItems = new();
 
         [ObservableProperty]
-        private ObservableCollection<string> _categories = new() { "All" };
+        private ObservableCollection<string> _categories = new() { "All Categories" };
 
         [ObservableProperty]
-        private string _selectedCategory = "All";
+        private string _selectedCategory = "All Categories";
 
         [ObservableProperty]
-        private string _selectedSort = "Default";
+        private string _selectedSort = "Newest";
 
         // ── Totals ────────────────────────────────────────────────────────────
         [ObservableProperty]
@@ -48,14 +45,21 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private decimal _totalDue;
 
-        public string SubtotalDisplay => $"${Subtotal:F2}";
-        public string TaxDisplay => $"${Tax:F2}";
-        public string TotalDueDisplay => $"${TotalDue:F2}";
+        [ObservableProperty]
+        private decimal _configuredTaxRate = 0.08m;
+
+        [ObservableProperty]
+        private string _currencySymbol = "VND";
+
+        public string SubtotalDisplay => FormatCurrency(Subtotal);
+        public string TaxDisplay => FormatCurrency(Tax);
+        public string TotalDueDisplay => FormatCurrency(TotalDue);
+        public string TaxLabel => $"Tax ({ConfiguredTaxRate * 100m:0.##}%)";
 
         // ── Sort options ──────────────────────────────────────────────────────
         public ObservableCollection<string> SortOptions { get; } = new()
         {
-            "Default", "Price: Low to High", "Price: High to Low", "Name A–Z", "Stock: High to Low"
+            "Newest", "Price: Low to High", "Price: High to Low", "Stock: Low to High", "Name: A-Z"
         };
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -70,8 +74,6 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         // ── Current sale's user id (set on login) ─────────────────────────────
         private int _currentSaleId;
-
-        private const decimal TaxRate = 0.08m;
 
         // ─────────────────────────────────────────────────────────────────────
         public POSViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService, IMessenger messenger)
@@ -98,6 +100,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             ErrorMessage = string.Empty;
             try
             {
+                await LoadStoreConfigAsync();
                 await Task.WhenAll(LoadCategoriesAsync(), LoadProductsAsync());
             }
             catch (Exception ex)
@@ -108,6 +111,26 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 IsBusy = false;
             }
+        }
+
+        private async Task LoadStoreConfigAsync()
+        {
+            const string query = @"
+                query GetPosConfig {
+                    appConfig {
+                        currencySymbol
+                        taxRate
+                    }
+                }";
+
+            var config = await _graphQLClient.ExecuteAsync<PosAppConfigNode>(query, dataKey: "appConfig");
+            if (config is null)
+            {
+                return;
+            }
+
+            CurrencySymbol = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "VND" : config.CurrencySymbol;
+            ConfiguredTaxRate = config.TaxRate >= 0 ? config.TaxRate : 0m;
         }
 
         // ── Data loading ──────────────────────────────────────────────────────
@@ -128,13 +151,13 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 var prevCat = SelectedCategory;
                 Categories.Clear();
-                Categories.Add("All");
+                Categories.Add("All Categories");
                 foreach (var c in result.Nodes)
                 {
                     Categories.Add(c.Name);
                 }
                 
-                SelectedCategory = Categories.Contains(prevCat) ? prevCat : "All";
+                SelectedCategory = Categories.Contains(prevCat) ? prevCat : "All Categories";
             }
         }
 
@@ -151,15 +174,16 @@ namespace BIF.ToyStore.ViewModels.Pages
                             id
                             name
                             categoryId
-                            category {
-                                id
-                                name
-                            }
-                            retailPrice
-                            stockQuantity
-                        }
-                    }
-                }";
+                             category {
+                                 id
+                                 name
+                             }
+                             retailPrice
+                             stockQuantity
+                             imageUrl
+                         }
+                     }
+                 }";
 
             _allProducts.Clear();
             bool hasNext = true;
@@ -174,7 +198,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 if (result?.Nodes != null)
                 {
-                    _allProducts.AddRange(result.Nodes.Select(p => new ProductItemViewModel(p)));
+                    _allProducts.AddRange(result.Nodes.Select(p => new ProductItemViewModel(p, CurrencySymbol)));
                 }
 
                 if (result?.PageInfo != null && result.PageInfo.HasNextPage && !string.IsNullOrEmpty(result.PageInfo.EndCursor))
@@ -197,20 +221,21 @@ namespace BIF.ToyStore.ViewModels.Pages
         private void ApplyFilterAndSort()
         {
             IEnumerable<ProductItemViewModel> query = _allProducts;
-            string currentCategory = string.IsNullOrWhiteSpace(SelectedCategory) ? "All" : SelectedCategory;
+            string currentCategory = string.IsNullOrWhiteSpace(SelectedCategory) ? "All Categories" : SelectedCategory;
 
-            if (!string.Equals(currentCategory, "All", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(currentCategory, "All Categories", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(p => p.CategoryName == currentCategory);
             }
 
             query = SelectedSort switch
             {
+                "Newest" => query.OrderByDescending(p => p.Id),
                 "Price: Low to High" => query.OrderBy(p => p.Price),
                 "Price: High to Low" => query.OrderByDescending(p => p.Price),
-                "Name A–Z" => query.OrderBy(p => p.Name),
-                "Stock: High to Low" => query.OrderByDescending(p => p.StockQuantity),
-                _ => query
+                "Stock: Low to High" => query.OrderBy(p => p.StockQuantity),
+                "Name: A-Z" => query.OrderBy(p => p.Name),
+                _ => query.OrderByDescending(p => p.Id)
             };
 
             FilteredProducts.Clear();
@@ -298,9 +323,20 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         private async Task ProcessPayment()
         {
+            await CreateOrderAsync(markAsPaid: true);
+        }
+
+        [RelayCommand]
+        private async Task HoldOrder()
+        {
+            await CreateOrderAsync(markAsPaid: false);
+        }
+
+        private async Task CreateOrderAsync(bool markAsPaid)
+        {
             if (CartItems.Count == 0)
             {
-                ErrorMessage = "Cart is empty. Add products before processing payment.";
+                ErrorMessage = "Cart is empty. Add products before creating an order.";
                 return;
             }
 
@@ -351,11 +387,44 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 if (result != null)
                 {
-                    SuccessMessage = $"Order #{result.Id} created — Total: ${result.TotalAmount:F2}";
+                    string finalizedStatus = result.Status;
+
+                    if (markAsPaid)
+                    {
+                        const string updateOrderMutation = @"
+                            mutation MarkOrderPaid($input: UpdateOrderInput!) {
+                                updateOrder(input: $input) {
+                                    id
+                                    status
+                                }
+                            }";
+
+                        var updateResult = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(
+                            updateOrderMutation,
+                            new
+                            {
+                                input = new
+                                {
+                                    id = result.Id,
+                                    status = OrderStatus.Paid.ToString().ToUpperInvariant(),
+                                    customerId = (int?)null
+                                }
+                            },
+                            dataKey: "updateOrder");
+
+                        finalizedStatus = updateResult?.Status ?? result.Status;
+                    }
+                    else if (string.IsNullOrWhiteSpace(finalizedStatus))
+                    {
+                        finalizedStatus = OrderStatus.New.ToString();
+                    }
+
+                    string actionLabel = markAsPaid ? "recorded" : "held";
+                    SuccessMessage = $"Order #{result.Id} {actionLabel} as {finalizedStatus} — Total: {FormatCurrency(result.TotalAmount)}";
                     CartItems.Clear();
                     RecalculateTotals();
 
-                    // Refresh stock counts after order
+                    // Refresh stock counts after creating the order.
                     await LoadProductsAsync();
                 }
                 else
@@ -365,7 +434,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Payment failed: {ex.Message}";
+                ErrorMessage = markAsPaid
+                    ? $"Payment failed: {ex.Message}"
+                    : $"Hold order failed: {ex.Message}";
             }
             finally
             {
@@ -373,27 +444,40 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
-        [RelayCommand]
-        private void HoldOrder()
-        {
-            // TODO: save held order to local state
-        }
-
-        [RelayCommand]
-        private void AddNote()
-        {
-            // TODO: open note dialog
-        }
-
         // ── Helpers ───────────────────────────────────────────────────────────
         private void RecalculateTotals()
         {
             Subtotal = CartItems.Sum(c => c.LineTotal);
-            Tax = Math.Round(Subtotal * TaxRate, 2);
+            Tax = Math.Round(Subtotal * ConfiguredTaxRate, 2);
             TotalDue = Subtotal + Tax;
             OnPropertyChanged(nameof(SubtotalDisplay));
             OnPropertyChanged(nameof(TaxDisplay));
             OnPropertyChanged(nameof(TotalDueDisplay));
+        }
+
+        partial void OnConfiguredTaxRateChanged(decimal value)
+        {
+            OnPropertyChanged(nameof(TaxLabel));
+            RecalculateTotals();
+        }
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            foreach (var product in _allProducts)
+            {
+                product.CurrencySymbol = value;
+            }
+
+            OnPropertyChanged(nameof(SubtotalDisplay));
+            OnPropertyChanged(nameof(TaxDisplay));
+            OnPropertyChanged(nameof(TotalDueDisplay));
+        }
+
+        private string FormatCurrency(decimal amount)
+        {
+            var number = amount.ToString("N2", CultureInfo.InvariantCulture);
+            var spacing = CurrencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(CurrencySymbol, spacing, number);
         }
 
         partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
@@ -409,12 +493,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal Price { get; }
         public int StockQuantity { get; }
         public string CategoryName { get; }
+        public string? ImageUrl { get; }
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanAddToCart))]
         private int _cartQuantity;
 
-        public string PriceDisplay => $"${Price:F2}";
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(PriceDisplay))]
+        private string _currencySymbol = "VND";
+
+        public string PriceDisplay => FormatCurrency(Price, CurrencySymbol);
         public string StockDisplay => StockQuantity == 0 ? "Out of stock" : $"{StockQuantity} in stock";
         
         public bool IsOutOfStock => StockQuantity == 0;
@@ -424,14 +513,23 @@ namespace BIF.ToyStore.ViewModels.Pages
         
         public bool CanAddToCart => StockQuantity > 0 && CartQuantity < StockQuantity;
 
-        public ProductItemViewModel(Product p)
+        public ProductItemViewModel(Product p, string currencySymbol)
         {
             Id = p.Id;
             Name = p.Name;
             Price = p.RetailPrice;
             StockQuantity = p.StockQuantity;
             CategoryName = p.Category?.Name ?? string.Empty;
+            ImageUrl = p.ImageUrl;
+            CurrencySymbol = currencySymbol;
             CartQuantity = 0;
+        }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.InvariantCulture);
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
         }
     }
 
@@ -476,5 +574,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
+    }
+
+    public sealed class PosAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "VND";
+        public decimal TaxRate { get; set; } = 0.08m;
     }
 }

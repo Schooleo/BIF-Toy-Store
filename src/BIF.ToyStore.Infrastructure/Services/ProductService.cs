@@ -60,6 +60,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 							retailPrice
 							importPrice
 							stockQuantity
+							imageUrl
 						}
 					}
 				}";
@@ -160,6 +161,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 						retailPrice
 						importPrice
 						stockQuantity
+						imageUrl
 					}
 				}";
 
@@ -169,7 +171,8 @@ namespace BIF.ToyStore.Infrastructure.Services
 				categoryId = product.CategoryId,
 				retailPrice = product.RetailPrice,
 				importPrice = product.ImportPrice,
-				stockQuantity = product.StockQuantity
+				stockQuantity = product.StockQuantity,
+				imageUrl = product.ImageUrl
 			};
 
 			return await _graphQLClient.ExecuteAsync<Product>(
@@ -190,6 +193,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 						retailPrice
 						importPrice
 						stockQuantity
+						imageUrl
 					}
 				}";
 
@@ -200,7 +204,8 @@ namespace BIF.ToyStore.Infrastructure.Services
 				categoryId = product.CategoryId,
 				retailPrice = product.RetailPrice,
 				importPrice = product.ImportPrice,
-				stockQuantity = product.StockQuantity
+				stockQuantity = product.StockQuantity,
+				imageUrl = product.ImageUrl
 			};
 
 			return await _graphQLClient.ExecuteAsync<Product>(

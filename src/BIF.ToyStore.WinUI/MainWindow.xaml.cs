@@ -6,6 +6,9 @@ using BIF.ToyStore.WinUI.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Threading.Tasks;
 
@@ -71,6 +74,66 @@ namespace BIF.ToyStore.WinUI
             _credentialVaultService = App.Current.Services.GetRequiredService<ICredentialVaultService>();
             _scopeFactory = App.Current.Services.GetRequiredService<IServiceScopeFactory>();
             WeakReferenceMessenger.Default.Register(this);
+
+            WindowRoot.AddHandler(
+                UIElement.PointerPressedEvent,
+                new PointerEventHandler(WindowRoot_PointerPressed),
+                true);
+        }
+
+        private void WindowRoot_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source || IsTextInputElement(source))
+            {
+                return;
+            }
+
+            if (FindAncestor<SettingsPage>(source) is not null)
+            {
+                return;
+            }
+
+            if (FocusManager.GetFocusedElement(rootFrame.XamlRoot) is not DependencyObject focused
+                || !IsTextInputElement(focused))
+            {
+                return;
+            }
+
+            FocusSink.Focus(FocusState.Programmatic);
+        }
+
+        private static bool IsTextInputElement(DependencyObject? element)
+        {
+            while (element is not null)
+            {
+                if (element is TextBox
+                    || element is PasswordBox
+                    || element is AutoSuggestBox
+                    || element is NumberBox
+                    || element is RichEditBox)
+                {
+                    return true;
+                }
+
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            return false;
+        }
+
+        private static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+        {
+            while (element is not null)
+            {
+                if (element is T typed)
+                {
+                    return typed;
+                }
+
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            return null;
         }
 
         public void NavigateToInitialSetup()
@@ -189,6 +252,14 @@ namespace BIF.ToyStore.WinUI
             shell.SetAdminMode(IsCurrentUserAdmin);
             shell.NavigateToSettings();
             _localSettingsService.SetString(AppPreferenceKeys.LastActiveRoute, "Settings");
+        }
+
+        public void RefreshShellStoreName()
+        {
+            if (rootFrame.Content is AppShellPage shell)
+            {
+                shell.RefreshStoreName();
+            }
         }
 
         public void Receive(LoginSucceededMessage message)

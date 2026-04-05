@@ -73,7 +73,7 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private static bool IsFromButton(DependencyObject source)
+        private static bool IsFromButton(DependencyObject? source)
         {
             while (source != null)
             {

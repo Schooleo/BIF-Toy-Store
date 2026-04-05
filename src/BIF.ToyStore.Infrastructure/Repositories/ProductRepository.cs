@@ -30,6 +30,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
             existing.RetailPrice = product.RetailPrice;
             existing.ImportPrice = product.ImportPrice;
             existing.StockQuantity = product.StockQuantity;
+            existing.ImageUrl = product.ImageUrl;
 
             await _dbContext.SaveChangesAsync();
 
@@ -72,6 +73,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     RetailPrice = p.RetailPrice,
                     ImportPrice = p.ImportPrice,
                     StockQuantity = p.StockQuantity,
+                    ImageUrl = p.ImageUrl,
                     IsDeleted = p.IsDeleted
                 })
                 .AsNoTracking();

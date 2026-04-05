@@ -15,6 +15,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private const int RecentOrdersTake = 3;
         private const int BestSellerTake = 5;
         private const int RevenueTrendDays = 26;
+        private const int DashboardTodayBatchSize = 50;
         private const int CriticalStockThreshold = 0;
         private const int WarningStockThreshold = 3;
 
@@ -189,7 +190,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         private async Task LoadLowStockAndRecentOrdersAsync()
         {
-            const string query = @"query DashboardMain($lowStockTake: Int!, $recentOrdersPageSize: Int!, $bestSellerTake: Int!, $revenueDays: Int!) {
+            const string query = @"query DashboardMain($lowStockTake: Int!, $recentOrdersTake: Int!, $bestSellerTake: Int!, $revenueDays: Int!) {
                 products(first: $lowStockTake, order: { stockQuantity: ASC }) {
                     totalCount
                     nodes {
@@ -202,13 +203,15 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }
                 }
-                getOrders: orders(page: 1, pageSize: $recentOrdersPageSize) {
-                    items {
+                getOrders: orders(first: $recentOrdersTake) {
+                    nodes {
                         id
                         orderDate
                         status
                         totalAmount
-                        customerName
+                        customer {
+                            fullName
+                        }
                         orderDetails {
                             quantity
                         }
@@ -234,7 +237,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             var variables = new
             {
                 lowStockTake = LowStockTake,
-                recentOrdersPageSize = RecentOrdersTake,
+                recentOrdersTake = RecentOrdersTake,
                 bestSellerTake = BestSellerTake,
                 revenueDays = RevenueTrendDays
             };
@@ -270,7 +273,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             TotalProducts = payload.Products.TotalCount;
 
             RecentOrders.Clear();
-            foreach (var order in payload.GetOrders.Items.Take(RecentOrdersTake))
+            foreach (var order in payload.GetOrders.Nodes.Take(RecentOrdersTake))
             {
                 int itemCount = order.OrderDetails.Sum(x => x.Quantity);
 
@@ -278,9 +281,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                 {
                     Id = order.Id,
                     Status = order.Status,
-                    CustomerName = string.IsNullOrWhiteSpace(order.CustomerName)
+                    CustomerName = string.IsNullOrWhiteSpace(order.Customer?.FullName)
                         ? "Walk-in Customer"
-                        : order.CustomerName,
+                        : order.Customer.FullName,
                     ItemCount = itemCount,
                     TotalAmount = order.TotalAmount,
                     CurrencySymbol = CurrencySymbol,
@@ -327,26 +330,54 @@ namespace BIF.ToyStore.ViewModels.Pages
             var todayStart = DateTime.Today;
             var todayEnd = todayStart.AddDays(1).AddTicks(-1);
 
-            const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime) {
-                getOrders: orders(page: 1, pageSize: 200, fromDate: $fromDate, toDate: $toDate) {
-                    items {
+            const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime, $first: Int!, $after: String) {
+                getOrders: orders(first: $first, after: $after, fromDate: $fromDate, toDate: $toDate) {
+                    totalCount
+                    pageInfo {
+                        hasNextPage
+                        endCursor
+                    }
+                    nodes {
                         status
                         totalAmount
                     }
                 }
             }";
 
-            var variables = new
+            var allTodayOrders = new List<DashboardOrderNode>();
+            int? totalCount = null;
+            string? afterCursor = null;
+
+            while (true)
             {
-                fromDate = todayStart,
-                toDate = todayEnd
-            };
+                var variables = new
+                {
+                    fromDate = todayStart,
+                    toDate = todayEnd,
+                    first = DashboardTodayBatchSize,
+                    after = afterCursor
+                };
 
-            var payload = await _graphQLClient.ExecuteAsync<DashboardTodayQueryData>(todayQuery, variables)
-                ?? new DashboardTodayQueryData();
+                var payload = await _graphQLClient.ExecuteAsync<DashboardTodayQueryData>(todayQuery, variables)
+                    ?? new DashboardTodayQueryData();
 
-            OrdersToday = payload.GetOrders.Items.Count;
-            TodayRevenue = payload.GetOrders.Items
+                totalCount ??= payload.GetOrders.TotalCount;
+                allTodayOrders.AddRange(payload.GetOrders.Nodes);
+
+                if (payload.GetOrders.PageInfo?.HasNextPage == true
+                    && !string.IsNullOrWhiteSpace(payload.GetOrders.PageInfo.EndCursor))
+                {
+                    afterCursor = payload.GetOrders.PageInfo.EndCursor;
+                    continue;
+                }
+
+                break;
+            }
+
+            OrdersToday = totalCount.GetValueOrDefault() > 0
+                ? totalCount.Value
+                : allTodayOrders.Count;
+            TodayRevenue = allTodayOrders
                 .Where(x => string.Equals(x.Status, OrderStatus.Paid.ToString(), StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.TotalAmount);
         }
@@ -526,7 +557,7 @@ namespace BIF.ToyStore.ViewModels.Pages
     public sealed class DashboardMainQueryData
     {
         public DashboardProductConnection Products { get; set; } = new();
-        public DashboardOrderList GetOrders { get; set; } = new();
+        public DashboardOrderConnection GetOrders { get; set; } = new();
         public List<DashboardBestSellingProductNode> GetTopBestSellingProducts { get; set; } = new();
         public List<DashboardRevenuePointNode> GetRevenueTrend { get; set; } = new();
         public DashboardAppConfigNode? AppConfig { get; set; }
@@ -539,7 +570,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
     public sealed class DashboardTodayQueryData
     {
-        public DashboardOrderList GetOrders { get; set; } = new();
+        public DashboardOrderConnection GetOrders { get; set; } = new();
     }
 
     public sealed class DashboardProductConnection
@@ -562,9 +593,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string Name { get; set; } = string.Empty;
     }
 
-    public sealed class DashboardOrderList
+    public sealed class DashboardOrderConnection
     {
-        public List<DashboardOrderNode> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public DashboardOrderPageInfo? PageInfo { get; set; }
+        public List<DashboardOrderNode> Nodes { get; set; } = new();
+    }
+
+    public sealed class DashboardOrderPageInfo
+    {
+        public bool HasNextPage { get; set; }
+        public string? EndCursor { get; set; }
     }
 
     public sealed class DashboardOrderNode
@@ -573,8 +612,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         public DateTime OrderDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
-        public string? CustomerName { get; set; }
+        public DashboardOrderCustomerNode? Customer { get; set; }
         public List<DashboardOrderDetailNode> OrderDetails { get; set; } = new();
+    }
+
+    public sealed class DashboardOrderCustomerNode
+    {
+        public string? FullName { get; set; }
     }
 
     public sealed class DashboardOrderDetailNode

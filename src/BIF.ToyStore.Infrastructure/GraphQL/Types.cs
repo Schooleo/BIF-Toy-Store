@@ -10,6 +10,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public string DisplayName { get; set; } = string.Empty;
         public string ReceiptHeader { get; set; } = string.Empty;
         public string ReceiptFooter { get; set; } = string.Empty;
+        public string CurrencySymbol { get; set; } = "VND";
         public string ThemePreference { get; set; } = "System";
         public bool EnableLoyaltyPoints { get; set; }
         public decimal TaxRate { get; set; }
@@ -30,10 +31,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
     public class UpdateStoreSettingsInput
     {
+        public string DisplayName { get; set; } = string.Empty;
         public decimal TaxRate { get; set; }
         public string CurrencySymbol { get; set; } = "VND";
         public string ReceiptHeader { get; set; } = string.Empty;
         public string ReceiptFooter { get; set; } = string.Empty;
+        public string ThemePreference { get; set; } = "System";
     }
 
     public class AppConfigPayload
@@ -94,6 +97,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public int Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public decimal RetailPrice { get; init; }
+        public string? ImageUrl { get; init; }
 
         public static ProductPayload FromProduct(Product product)
         {
@@ -101,7 +105,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             {
                 Id = product.Id,
                 Name = product.Name,
-                RetailPrice = product.RetailPrice
+                RetailPrice = product.RetailPrice,
+                ImageUrl = product.ImageUrl
             };
         }
     }
@@ -189,6 +194,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public decimal ImportPrice { get; set; }
         [JsonPropertyName("stockQuantity")]
         public int StockQuantity { get; set; }
+        [JsonPropertyName("imageUrl")]
+        public string? ImageUrl { get; set; }
     }
 
     public class UpdateProductInput : CreateProductInput

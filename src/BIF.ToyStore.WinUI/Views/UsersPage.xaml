@@ -8,12 +8,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pages="using:BIF.ToyStore.ViewModels.Pages"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.UI.Controls"
     x:Name="RootPage"
     RequestedTheme="Light"
     mc:Ignorable="d">
 
     <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Page.Resources>
 
     <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
@@ -21,325 +22,423 @@
                       VerticalScrollMode="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       HorizontalScrollMode="Disabled">
-            <Grid Padding="32" RowSpacing="24" HorizontalAlignment="Stretch">
+            <Grid Padding="32"
+                  RowSpacing="24"
+                  HorizontalAlignment="Stretch"
+                  MaxWidth="1280">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Grid>
+                <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" Spacing="4">
+                    <StackPanel Grid.Column="0"
+                                Spacing="4">
                         <TextBlock Text="Staff Directory"
                                    FontSize="30"
                                    FontWeight="ExtraBold"
-                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
+                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
                         <TextBlock Text="Manage workshop access and administrative roles."
                                    FontSize="16"
-                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                     </StackPanel>
 
                     <Button Grid.Column="1"
-                            Content="Add New User"
-                            Style="{StaticResource PrimaryActionButtonStyle}"
-                            Padding="16,10"
+                            Background="{ThemeResource FluentPlayPrimaryBrush}"
+                            Content="ADD NEW USER"
+                            FontWeight="Bold"
+                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}"
                             Click="AddNewUserButton_Click"
                             VerticalAlignment="Center">
                         <Button.Resources>
-                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
-                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
-                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource FluentPlayOnPrimaryColor}" />
-                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource FluentPlayOnPrimaryColor}" />
-                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
-                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
+                                             Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed"
+                                             Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver"
+                                             Color="{StaticResource FluentPlayOnPrimaryColor}"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPressed"
+                                             Color="{StaticResource FluentPlayOnPrimaryColor}"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver"
+                                             Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed"
+                                             Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
                         </Button.Resources>
                     </Button>
                 </Grid>
 
-                <Grid Grid.Row="1" ColumnSpacing="24">
+                <Grid Grid.Row="1"
+                      ColumnSpacing="24">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0"
-                            Background="White"
-                            CornerRadius="12"
-                            Padding="24"
-                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="12">
-                            <TextBlock Text="TOTAL STAFF" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.TotalStaff, Mode=OneWay}" FontSize="36" FontWeight="ExtraBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            <TextBlock Text="Directory overview" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayPrimaryBrush}" />
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                Spacing="12"
+                                VerticalAlignment="Bottom">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="FILTER BY NAME"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       CharacterSpacing="120"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                            <Button x:Name="NameFilterButton"
+                                    MinWidth="170"
+                                    HorizontalContentAlignment="Left"
+                                    Background="White"
+                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,7">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8">
+                                    <PathIcon Width="14"
+                                              Height="14"
+                                              Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                              Data="M0 3H16V5H0V3ZM2 7H14V9H2V7ZM5 11H11V13H5V11Z"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedNameFilter, Mode=OneWay}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout Placement="BottomEdgeAlignedRight">
+                                        <StackPanel Spacing="4"
+                                                    MinWidth="170">
+                                            <TextBlock Text="FILTER BY NAME"
+                                                       FontSize="10"
+                                                       FontWeight="Bold"
+                                                       CharacterSpacing="100"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                       Margin="0,0,0,6"/>
+                                            <ListView ItemsSource="{x:Bind ViewModel.NameFilters, Mode=OneWay}"
+                                                      SelectedItem="{x:Bind ViewModel.SelectedNameFilter, Mode=TwoWay}"
+                                                      SelectionMode="Single"
+                                                      SelectionChanged="NameFilter_SelectionChanged"
+                                                      BorderThickness="0"
+                                                      Background="Transparent">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="Padding"
+                                                                Value="8,4"/>
+                                                        <Setter Property="MinHeight"
+                                                                Value="32"/>
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                            </ListView>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
                         </StackPanel>
-                    </Border>
 
-                    <Border Grid.Column="1"
-                            Background="White"
-                            CornerRadius="12"
-                            Padding="24"
-                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="12">
-                            <TextBlock Text="ADMINS" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.Admins, Mode=OneWay}" FontSize="36" FontWeight="ExtraBold" Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            <TextBlock Text="Full system access" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="FILTER BY ROLE"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       CharacterSpacing="120"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                            <Button x:Name="RoleFilterButton"
+                                    MinWidth="170"
+                                    HorizontalContentAlignment="Left"
+                                    Background="White"
+                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,7">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8">
+                                    <FontIcon Glyph="&#xE13D;"
+                                              Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedRoleFilter, Mode=OneWay}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout Placement="BottomEdgeAlignedLeft">
+                                        <StackPanel Spacing="4"
+                                                    MinWidth="170">
+                                            <TextBlock Text="FILTER BY ROLE"
+                                                       FontSize="10"
+                                                       FontWeight="Bold"
+                                                       CharacterSpacing="100"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                       Margin="0,0,0,6"/>
+                                            <ListView ItemsSource="{x:Bind ViewModel.RoleFilters, Mode=OneWay}"
+                                                      SelectedItem="{x:Bind ViewModel.SelectedRoleFilter, Mode=TwoWay}"
+                                                      SelectionMode="Single"
+                                                      SelectionChanged="RoleFilter_SelectionChanged"
+                                                      BorderThickness="0"
+                                                      Background="Transparent">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="Padding"
+                                                                Value="8,4"/>
+                                                        <Setter Property="MinHeight"
+                                                                Value="32"/>
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                            </ListView>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
                         </StackPanel>
-                    </Border>
 
+                        <Button VerticalAlignment="Bottom"
+                                Background="Transparent"
+                                Content="Reset Filters"
+                                Foreground="{ThemeResource FluentPlayPrimaryBrush}"
+                                Command="{x:Bind ViewModel.ClearFilterCommand}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="24"
+                                VerticalAlignment="Bottom">
+                        <StackPanel Spacing="2"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="TOTAL STAFF"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       CharacterSpacing="120"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.TotalStaff, Mode=OneWay}"
+                                       FontSize="22"
+                                       FontWeight="ExtraBold"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="2"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="ADMINS"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       CharacterSpacing="120"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.Admins, Mode=OneWay}"
+                                       FontSize="22"
+                                       FontWeight="ExtraBold"
+                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
 
-                <Border Grid.Row="2"
-                        Background="White"
-                        CornerRadius="12"
-                        BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                        BorderThickness="1"
-                        Padding="24">
-                    <Grid RowSpacing="14">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <toolkit:DataGrid x:Name="UsersDataGrid"
+                                  Grid.Row="2"
+                                  AutoGenerateColumns="False"
+                                  Background="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"
+                                  BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                                  BorderThickness="1"
+                                  IsTabStop="False"
+                                  CanUserSortColumns="False"
+                                  CanUserReorderColumns="False"
+                                  CanUserResizeColumns="False"
+                                  CornerRadius="12"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                                  IsReadOnly="True"
+                                  RowHeight="72"
+                                  SelectionMode="Single"
+                                  PointerPressed="UsersDataGrid_PointerPressed"
+                                  SelectionChanged="UsersDataGrid_SelectionChanged"
+                                  UseSystemFocusVisuals="False"
+                                  ItemsSource="{x:Bind ViewModel.VisibleUsers, Mode=OneWay}">
+                            <toolkit:DataGrid.Resources>
+                            <Style TargetType="toolkit:DataGridCell">
+                                <Setter Property="BorderBrush"
+                                    Value="Transparent"/>
+                                <Setter Property="BorderThickness"
+                                    Value="0"/>
+                                <Setter Property="UseSystemFocusVisuals"
+                                    Value="False"/>
+                                <Setter Property="FocusVisualPrimaryBrush"
+                                    Value="Transparent"/>
+                                <Setter Property="FocusVisualSecondaryBrush"
+                                    Value="Transparent"/>
+                                <Setter Property="FocusVisualPrimaryThickness"
+                                    Value="0"/>
+                                <Setter Property="FocusVisualSecondaryThickness"
+                                    Value="0"/>
+                                <Setter Property="IsTabStop"
+                                    Value="False"/>
+                            </Style>
+                            </toolkit:DataGrid.Resources>
 
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0"
-                                   Text="Filter by name (A-Z)"
-                                   VerticalAlignment="Center"
-                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                   FontWeight="SemiBold" />
-
-                        <Button Grid.Column="1"
-                                Background="White"
-                                BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="12,7"
-                                HorizontalAlignment="Right">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <PathIcon Width="14" Height="14"
-                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                          Data="M0 3H16V5H0V3ZM2 7H14V9H2V7ZM5 11H11V13H5V11Z" />
-                                <TextBlock Text="{x:Bind ViewModel.SelectedNameFilter, Mode=OneWay}"
-                                           FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}" />
-                            </StackPanel>
-                            <Button.Flyout>
-                                <Flyout>
-                                    <StackPanel Spacing="4" MinWidth="180">
-                                        <TextBlock Text="FILTER BY NAME"
-                                                   FontSize="10"
-                                                   FontWeight="Bold"
-                                                   CharacterSpacing="100"
-                                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                                   Margin="0,0,0,6" />
-                                        <ListView ItemsSource="{x:Bind ViewModel.NameFilters, Mode=OneWay}"
-                                                  SelectedItem="{x:Bind ViewModel.SelectedNameFilter, Mode=TwoWay}"
-                                                  SelectionMode="Single"
-                                                  SelectionChanged="NameFilter_SelectionChanged"
-                                                  BorderThickness="0"
-                                                  Background="Transparent">
-                                            <ListView.ItemContainerStyle>
-                                                <Style TargetType="ListViewItem">
-                                                    <Setter Property="Padding" Value="8,4" />
-                                                    <Setter Property="MinHeight" Value="32" />
-                                                </Style>
-                                            </ListView.ItemContainerStyle>
-                                        </ListView>
-                                    </StackPanel>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
-
-                    <Border Grid.Row="1"
-                            Background="White"
-                            CornerRadius="12"
-                            BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                            BorderThickness="1">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0" Padding="20,12" Background="{StaticResource FluentPlaySurfaceContainerLowBrush}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="3.8*" />
-                                    <ColumnDefinition Width="1.6*" />
-                                    <ColumnDefinition Width="2.8*" />
-                                    <ColumnDefinition Width="1.2*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Column="0" Text="USERNAME" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                                <TextBlock Grid.Column="1" Text="ROLE" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                                <TextBlock Grid.Column="2" Text="PASSWORD" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" />
-                                <TextBlock Grid.Column="3" Text="ACTIONS" FontSize="11" FontWeight="Bold" CharacterSpacing="120" Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}" HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <Grid Grid.Row="1" Padding="16,8,16,0" RowSpacing="8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="3.8*" />
-                                    <ColumnDefinition Width="1.6*" />
-                                    <ColumnDefinition Width="2.8*" />
-                                    <ColumnDefinition Width="1.2*" />
-                                </Grid.ColumnDefinitions>
-
-                                <ListView Grid.Row="0"
-                                          Grid.ColumnSpan="4"
-                                          ItemsSource="{x:Bind ViewModel.VisibleUsers, Mode=OneWay}"
-                                          Background="Transparent"
-                                          BorderThickness="0"
-                                          SelectionMode="None"
-                                          IsItemClickEnabled="False"
-                                          HorizontalContentAlignment="Stretch">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="pages:UserItemViewModel">
-                                            <Grid Padding="8,10" BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}" BorderThickness="0,0,0,1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="3.8*" />
-                                                <ColumnDefinition Width="1.6*" />
-                                                <ColumnDefinition Width="2.8*" />
-                                                <ColumnDefinition Width="1.2*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <Grid Grid.Column="0" VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid Width="32" Height="32">
-                                                    <Border Width="32"
-                                                            Height="32"
-                                                            CornerRadius="16"
-                                                            Background="{StaticResource FluentPlayPrimaryFixedColor}"
-                                                            Visibility="{x:Bind IsAdmin, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <TextBlock Text="{x:Bind Initials, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource FluentPlayOnPrimaryFixedVariantColor}" FontWeight="Bold" />
-                                                    </Border>
-                                                    <Border Width="32"
-                                                            Height="32"
-                                                            CornerRadius="16"
-                                                            Background="#FFF2C2"
-                                                            Visibility="{x:Bind IsSale, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <TextBlock Text="{x:Bind Initials, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#A97400" FontWeight="Bold" />
-                                                    </Border>
-                                                </Grid>
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{x:Bind Username, Mode=OneWay}"
-                                                           FontSize="16"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
+                    <toolkit:DataGrid.Columns>
+                        <toolkit:DataGridTemplateColumn Width="*"
+                                                        Header="USERNAME">
+                            <toolkit:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="pages:UserItemViewModel">
+                                    <Grid Padding="16,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Width="32"
+                                              Height="32">
+                                            <Border Width="32"
+                                                    Height="32"
+                                                    CornerRadius="16"
+                                                    Background="{StaticResource FluentPlayPrimaryFixedColor}"
+                                                    Visibility="{x:Bind IsAdmin, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind Initials, Mode=OneWay}"
+                                                           HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"
-                                                           HorizontalAlignment="Left"
-                                                           TextAlignment="Left"
-                                                           Margin="10,0,0,0" />
-                                            </Grid>
+                                                           Foreground="{StaticResource FluentPlayOnPrimaryFixedVariantColor}"
+                                                           FontWeight="Bold"/>
+                                            </Border>
+                                            <Border Width="32"
+                                                    Height="32"
+                                                    CornerRadius="16"
+                                                    Background="#FFF2C2"
+                                                    Visibility="{x:Bind IsSale, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{x:Bind Initials, Mode=OneWay}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="#A97400"
+                                                           FontWeight="Bold"/>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{x:Bind Username, Mode=OneWay}"
+                                                   Margin="10,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </toolkit:DataGridTemplateColumn.CellTemplate>
+                        </toolkit:DataGridTemplateColumn>
 
-                                            <Grid Grid.Column="1">
-                                                <Border Background="{StaticResource FluentPlayPrimaryFixedColor}"
-                                                        CornerRadius="999"
-                                                        Padding="10,4"
-                                                        HorizontalAlignment="Left"
-                                                        VerticalAlignment="Top"
-                                                        Margin="0,4,0,0"
-                                                        Visibility="{x:Bind IsAdmin, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <TextBlock Text="{x:Bind RoleLabel, Mode=OneWay}" Foreground="{StaticResource FluentPlayPrimaryBrush}" FontSize="10" FontWeight="Bold" CharacterSpacing="90" />
-                                                </Border>
-                                                <Border Background="#FFF2C2"
-                                                        CornerRadius="999"
-                                                        Padding="10,4"
-                                                        HorizontalAlignment="Left"
-                                                        VerticalAlignment="Top"
-                                                        Margin="0,4,0,0"
-                                                        Visibility="{x:Bind IsSale, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <TextBlock Text="{x:Bind RoleLabel, Mode=OneWay}" Foreground="#A97400" FontSize="10" FontWeight="Bold" CharacterSpacing="90" />
-                                                </Border>
-                                            </Grid>
+                        <toolkit:DataGridTemplateColumn Width="*"
+                                                        Header="ROLE">
+                            <toolkit:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="pages:UserItemViewModel">
+                                    <Grid VerticalAlignment="Center">
+                                        <Border Background="{StaticResource FluentPlayPrimaryFixedColor}"
+                                                CornerRadius="6"
+                                                Padding="10,4"
+                                                HorizontalAlignment="Left"
+                                                Visibility="{x:Bind IsAdmin, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="{x:Bind RoleLabel, Mode=OneWay}"
+                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}"
+                                                       FontSize="10"
+                                                       FontWeight="Bold"
+                                                       CharacterSpacing="90"/>
+                                        </Border>
+                                        <Border Background="#FFF2C2"
+                                                CornerRadius="6"
+                                                Padding="10,4"
+                                                HorizontalAlignment="Left"
+                                                Visibility="{x:Bind IsSale, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="{x:Bind RoleLabel, Mode=OneWay}"
+                                                       Foreground="#A97400"
+                                                       FontSize="10"
+                                                       FontWeight="Bold"
+                                                       CharacterSpacing="90"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </toolkit:DataGridTemplateColumn.CellTemplate>
+                        </toolkit:DataGridTemplateColumn>
 
-                                            <Grid Grid.Column="2" VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
+                        <toolkit:DataGridTemplateColumn Width="*"
+                                                        Header="PASSWORD">
+                            <toolkit:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="pages:UserItemViewModel">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6"
+                                                HorizontalAlignment="Left"
+                                                Padding="12,0"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Width="88"
+                                                   Text="{x:Bind PasswordDisplay, Mode=OneWay}"
+                                                   FontSize="14"
+                                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Button
+                                            Padding="4"
+                                            Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            BorderThickness="0"
+                                            IsTabStop="False"
+                                            UseSystemFocusVisuals="False"
+                                            ToolTipService.ToolTip="Show/Hide password"
+                                            Click="TogglePasswordButton_Click"
+                                            CommandParameter="{Binding}">
+                                            <SymbolIcon Symbol="View"
+                                                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </toolkit:DataGridTemplateColumn.CellTemplate>
+                        </toolkit:DataGridTemplateColumn>
 
-                                                <ScrollViewer Grid.Column="0"
-                                                              HorizontalScrollMode="Enabled"
-                                                              HorizontalScrollBarVisibility="Auto"
-                                                              VerticalScrollMode="Disabled"
-                                                              VerticalScrollBarVisibility="Hidden"
-                                                              ZoomMode="Disabled"
-                                                              Margin="0,0,8,0">
-                                                    <TextBlock Text="{x:Bind PasswordDisplay, Mode=OneWay}"
-                                                               FontSize="14"
-                                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                                               TextWrapping="NoWrap" />
-                                                </ScrollViewer>
-                                                <Button Command="{Binding ViewModel.TogglePasswordCommand, ElementName=RootPage}"
-                                                        Grid.Column="1"
-                                                        CommandParameter="{Binding}"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Padding="0"
-                                                        ToolTipService.ToolTip="Show/Hide password">
-                                                    <SymbolIcon Symbol="View" />
-                                                </Button>
-                                            </Grid>
+                        <toolkit:DataGridTemplateColumn Width="100"
+                                                        Header="ACTIONS">
+                            <toolkit:DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="pages:UserItemViewModel">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="8"
+                                                Padding="0,0,16,0"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Right">
+                                        <Button Background="Transparent"
+                                                Padding="4"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="0"
+                                            IsTabStop="False"
+                                            UseSystemFocusVisuals="False"
+                                                Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                                Click="UpdateUserButton_Click"
+                                                CommandParameter="{Binding}">
+                                            <FontIcon Glyph="&#xE70F;"
+                                                      FontSize="14"
+                                                      Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
+                                        </Button>
+                                        <Button Background="Transparent"
+                                                Padding="4"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="0"
+                                            IsTabStop="False"
+                                            UseSystemFocusVisuals="False"
+                                                Foreground="{ThemeResource FluentPlayErrorColor}"
+                                                Click="DeleteUserButton_Click"
+                                                CommandParameter="{Binding}">
+                                            <FontIcon Glyph="&#xE74D;"
+                                                      FontSize="14"
+                                                      Foreground="{ThemeResource FluentPlayErrorColor}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </toolkit:DataGridTemplateColumn.CellTemplate>
+                        </toolkit:DataGridTemplateColumn>
+                    </toolkit:DataGrid.Columns>
+                </toolkit:DataGrid>
 
-                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                                                <Button Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Padding="0"
-                                                        Foreground="{StaticResource FluentPlayPrimaryBrush}"
-                                                        Click="UpdateUserButton_Click"
-                                                        CommandParameter="{Binding}">
-                                                    <SymbolIcon Symbol="Edit" />
-                                                </Button>
-                                                <Button Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Padding="0"
-                                                        Foreground="{StaticResource FluentPlayPrimaryBrush}"
-                                                        Click="DeleteUserButton_Click"
-                                                        CommandParameter="{Binding}">
-                                                    <SymbolIcon Symbol="Delete" />
-                                                </Button>
-                                            </StackPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                            </Grid>
-                        </Grid>
-                    </Border>
-                </Grid>
-                </Border>
+                <controls:PaginationControl Grid.Row="3"
+                                            Margin="0,8,0,0"
+                                            FirstPageCommand="{x:Bind ViewModel.FirstPageCommand, Mode=OneWay}"
+                                            LastPageCommand="{x:Bind ViewModel.LastPageCommand, Mode=OneWay}"
+                                            NextPageCommand="{x:Bind ViewModel.NextPageCommand, Mode=OneWay}"
+                                            PreviousPageCommand="{x:Bind ViewModel.PreviousPageCommand, Mode=OneWay}"
+                                            TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
 
-                <controls:PaginationControl
-                    Grid.Row="3"
-                    Margin="0,8,0,0"
-                    FirstPageCommand="{x:Bind ViewModel.FirstPageCommand, Mode=OneWay}"
-                    LastPageCommand="{x:Bind ViewModel.LastPageCommand, Mode=OneWay}"
-                    NextPageCommand="{x:Bind ViewModel.NextPageCommand, Mode=OneWay}"
-                    PreviousPageCommand="{x:Bind ViewModel.PreviousPageCommand, Mode=OneWay}"
-                    TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}" />
-
-                <controls:AppFooter Grid.Row="4" Margin="0,8,0,0" />
+                <controls:AppFooter Grid.Row="4"
+                                    Margin="0,8,0,0"/>
             </Grid>
         </ScrollViewer>
 
@@ -352,14 +451,49 @@
             <StackPanel Spacing="12">
                 <TextBox x:Name="CreateUsernameTextBox"
                          Header="Username"
-                         PlaceholderText="Enter username" />
+                         PlaceholderText="Enter username"/>
                 <PasswordBox x:Name="CreatePasswordBox"
                              Header="Password"
-                             PlaceholderText="Enter password" />
+                             PlaceholderText="Enter password"/>
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Role"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
+                    <Button x:Name="CreateRoleButton"
+                            Height="36"
+                            Padding="12,0"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="{StaticResource LoginCardBrush}"
+                            BorderBrush="{StaticResource LoginDividerBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <FontIcon Glyph="&#xE13D;"
+                                      Foreground="{StaticResource LoginTextBrush}"/>
+                            <TextBlock x:Name="CreateRoleTextBlock"
+                                       Text="Sale"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource LoginTextBrush}"/>
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuFlyoutItem Text="Sale"
+                                                Tag="SALE"
+                                                Click="CreateRoleOption_Click"/>
+                                <MenuFlyoutItem Text="Admin"
+                                                Tag="ADMIN"
+                                                Click="CreateRoleOption_Click"/>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
                 <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                            TextWrapping="WrapWholeWords">
                     <TextBlock.Foreground>
-                        <SolidColorBrush Color="{StaticResource FluentPlayErrorColor}" />
+                        <SolidColorBrush Color="{StaticResource FluentPlayErrorColor}"/>
                     </TextBlock.Foreground>
                 </TextBlock>
             </StackPanel>
@@ -374,14 +508,14 @@
             <StackPanel Spacing="12">
                 <TextBox x:Name="UpdateUsernameTextBox"
                          Header="Username"
-                         PlaceholderText="Enter username" />
+                         PlaceholderText="Enter username"/>
                 <PasswordBox x:Name="UpdatePasswordBox"
                              Header="Password"
-                             PlaceholderText="Enter password" />
+                             PlaceholderText="Enter password"/>
                 <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                            TextWrapping="WrapWholeWords">
                     <TextBlock.Foreground>
-                        <SolidColorBrush Color="{StaticResource FluentPlayErrorColor}" />
+                        <SolidColorBrush Color="{StaticResource FluentPlayErrorColor}"/>
                     </TextBlock.Foreground>
                 </TextBlock>
             </StackPanel>

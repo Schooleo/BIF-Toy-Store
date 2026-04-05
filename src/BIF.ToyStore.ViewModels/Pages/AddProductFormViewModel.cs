@@ -1,17 +1,17 @@
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class AddProductFormViewModel : BaseViewModel
     {
+        private readonly IImageFilePickerService _imageFilePickerService;
+        private readonly nint _windowHandle;
+
         [ObservableProperty]
         private string? name = string.Empty;
 
@@ -27,6 +27,16 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private int stockQuantity;
 
+        [ObservableProperty]
+        private string? imageUrl;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(UploadImageCommand))]
+        private bool isUploadingImage;
+
+        [ObservableProperty]
+        private string uploadErrorMessage = string.Empty;
+
         // Error flag properties (use boolean instead of Visibility)
         [ObservableProperty]
         private bool hasNameError;
@@ -41,15 +51,29 @@ namespace BIF.ToyStore.ViewModels.Pages
         private bool hasRetailPriceError;
 
         public ObservableCollection<Category> Categories { get; }
+        public string SelectedCategoryDisplay => SelectedCategory?.Name ?? "Select a category";
 
         private bool _isEditMode;
         private int _editingProductId;
 
-        public AddProductFormViewModel()
+        public bool HasUploadError => !string.IsNullOrWhiteSpace(UploadErrorMessage);
+
+        public AddProductFormViewModel(
+            IImageFilePickerService imageFilePickerService,
+            nint windowHandle)
         {
+            _imageFilePickerService = imageFilePickerService;
+            _windowHandle = windowHandle;
             Categories = [];
             Title = "Add New Product";
         }
+
+        partial void OnSelectedCategoryChanged(Category? value)
+        {
+            OnPropertyChanged(nameof(SelectedCategoryDisplay));
+        }
+
+        partial void OnUploadErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasUploadError));
 
         public void InitializeWithCategories(IEnumerable<Category> categories)
         {
@@ -73,6 +97,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             ImportPrice = existingProduct.ImportPrice;
             RetailPrice = existingProduct.RetailPrice;
             StockQuantity = existingProduct.StockQuantity;
+            ImageUrl = existingProduct.ImageUrl;
         }
 
         public bool Validate()
@@ -135,8 +160,44 @@ namespace BIF.ToyStore.ViewModels.Pages
                 CategoryId = SelectedCategory?.Id ?? 0,
                 ImportPrice = ImportPrice,
                 RetailPrice = RetailPrice,
-                StockQuantity = StockQuantity
+                StockQuantity = StockQuantity,
+                ImageUrl = ImageUrl
             };
+        }
+
+        private bool CanUploadImage() => !IsUploadingImage;
+
+        [RelayCommand(CanExecute = nameof(CanUploadImage))]
+        private async Task UploadImageAsync()
+        {
+            UploadErrorMessage = string.Empty;
+
+            if (_windowHandle == 0)
+            {
+                UploadErrorMessage = "Cannot open image picker because the window is not ready.";
+                return;
+            }
+
+            try
+            {
+                IsUploadingImage = true;
+
+                var selectedFilePath = await _imageFilePickerService.PickImageFilePathAsync(_windowHandle);
+                if (string.IsNullOrWhiteSpace(selectedFilePath))
+                {
+                    return;
+                }
+
+                ImageUrl = selectedFilePath;
+            }
+            catch (Exception ex)
+            {
+                UploadErrorMessage = $"Image selection failed: {ex.Message}";
+            }
+            finally
+            {
+                IsUploadingImage = false;
+            }
         }
 
         public void ResetForm()
@@ -146,6 +207,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             ImportPrice = 0;
             RetailPrice = 0;
             StockQuantity = 0;
+            ImageUrl = null;
+            UploadErrorMessage = string.Empty;
+            IsUploadingImage = false;
 
             HasNameError = false;
             HasCategoryError = false;

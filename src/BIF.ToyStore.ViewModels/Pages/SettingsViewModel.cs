@@ -4,14 +4,14 @@ using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Data.Sqlite;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class SettingsViewModel : BaseViewModel
     {
+        private const int MaxStoreNameLength = 18;
+
         private readonly IGraphQLClient _graphQLClient;
         private readonly ILocalSettingsService _localSettingsService;
 
@@ -30,6 +30,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _selectedCurrency = "VND";
+
+        [ObservableProperty]
+        private string _storeName = string.Empty;
+
+        [ObservableProperty]
+        private string _selectedThemePreference = "System";
 
         [ObservableProperty]
         private string _receiptHeader = string.Empty;
@@ -53,6 +59,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         private string _lastBackupStatus = "NO BACKUP RECORDED";
 
         public IReadOnlyList<string> CurrencyOptions { get; } = ["VND", "USD"];
+
+        public IReadOnlyList<string> ThemePreferenceOptions { get; } = ["System", "Light", "Dark"];
 
         public IReadOnlyList<int> ItemsPerPageOptions { get; } = [5, 10, 15, 20];
 
@@ -214,9 +222,27 @@ namespace BIF.ToyStore.ViewModels.Pages
                 return false;
             }
 
+            if (string.IsNullOrWhiteSpace(StoreName))
+            {
+                ErrorMessage = "Store name is required.";
+                return false;
+            }
+
+            if (StoreName.Trim().Length > MaxStoreNameLength)
+            {
+                ErrorMessage = $"Store name must be {MaxStoreNameLength} characters or fewer.";
+                return false;
+            }
+
             if (!CurrencyOptions.Contains(SelectedCurrency))
             {
                 ErrorMessage = "Please select a supported currency.";
+                return false;
+            }
+
+            if (!ThemePreferenceOptions.Contains(SelectedThemePreference))
+            {
+                ErrorMessage = "Please select a supported theme preference.";
                 return false;
             }
 
@@ -284,10 +310,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             const string query = @"query GetStoreSettings {
                 appConfig {
+                    displayName
                     taxRate
                     currencySymbol
                     receiptHeader
                     receiptFooter
+                    themePreference
                     databasePath
                 }
             }";
@@ -299,9 +327,14 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
 
             TaxRate = (double)(config.TaxRate * 100m);
+            StoreName = NormalizeStoreName(config.DisplayName);
+            _localSettingsService.SetString(AppPreferenceKeys.StoreName, StoreName);
             SelectedCurrency = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "VND" : config.CurrencySymbol;
             ReceiptHeader = config.ReceiptHeader;
             ReceiptFooter = config.ReceiptFooter;
+            SelectedThemePreference = ThemePreferenceOptions.Contains(config.ThemePreference)
+                ? config.ThemePreference
+                : "System";
             _databasePath = string.IsNullOrWhiteSpace(config.DatabasePath) ? "ToyStore.db" : config.DatabasePath;
         }
 
@@ -309,10 +342,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             const string mutation = @"mutation UpdateStoreSettings($input: UpdateStoreSettingsInput!) {
                 updateStoreSettings(input: $input) {
+                    displayName
                     taxRate
                     currencySymbol
                     receiptHeader
                     receiptFooter
+                    themePreference
                     databasePath
                 }
             }";
@@ -321,10 +356,12 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 input = new
                 {
+                    displayName = NormalizeStoreName(StoreName),
                     taxRate = decimal.Round((decimal)TaxRate / 100m, 4),
                     currencySymbol = SelectedCurrency,
                     receiptHeader = ReceiptHeader,
-                    receiptFooter = ReceiptFooter
+                    receiptFooter = ReceiptFooter,
+                    themePreference = SelectedThemePreference
                 }
             };
 
@@ -337,6 +374,20 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 _databasePath = string.IsNullOrWhiteSpace(updated.DatabasePath) ? _databasePath : updated.DatabasePath;
             }
+
+            StoreName = NormalizeStoreName(StoreName);
+            _localSettingsService.SetString(AppPreferenceKeys.StoreName, StoreName);
+        }
+
+        private static string NormalizeStoreName(string? value)
+        {
+            var normalized = string.IsNullOrWhiteSpace(value)
+                ? "BIF Toy Store"
+                : value.Trim();
+
+            return normalized.Length > MaxStoreNameLength
+                ? normalized[..MaxStoreNameLength]
+                : normalized;
         }
 
         private static string ResolveDatabasePath(string configuredPath)
@@ -512,10 +563,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         private sealed class StoreSettingsView
         {
+            public string DisplayName { get; set; } = string.Empty;
             public decimal TaxRate { get; set; }
             public string CurrencySymbol { get; set; } = "VND";
             public string ReceiptHeader { get; set; } = string.Empty;
             public string ReceiptFooter { get; set; } = string.Empty;
+            public string ThemePreference { get; set; } = "System";
             public string DatabasePath { get; set; } = "ToyStore.db";
         }
     }

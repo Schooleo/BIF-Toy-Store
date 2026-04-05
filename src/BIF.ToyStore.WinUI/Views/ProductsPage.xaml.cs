@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.WinUI.Controls;
 using BIF.ToyStore.WinUI.Services;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,9 +41,26 @@ namespace BIF.ToyStore.WinUI.Views
             };
         }
 
-        private void Filter_Changed(object sender, SelectionChangedEventArgs e)
+        private void CategoryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (sender is not ListView listView || listView.SelectedItem is null)
+            {
+                return;
+            }
+
             ApplyFilter();
+            CommonFlyout.HideAttachedFlyout(CategoryFilterButton);
+        }
+
+        private void SortFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListView listView || listView.SelectedItem is null)
+            {
+                return;
+            }
+
+            ApplyFilter();
+            CommonFlyout.HideAttachedFlyout(SortFilterButton);
         }
 
         private void Filter_Changed(object sender, Microsoft.UI.Xaml.Controls.NumberBoxValueChangedEventArgs e)
@@ -75,12 +93,6 @@ namespace BIF.ToyStore.WinUI.Views
             ApplyFilter();
         }
 
-        private void ClearCategoryFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ViewModel.SelectedCategory = null;
-            ApplyFilter();
-        }
-
         private void ProductsDataGrid_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
             if (IsFromButton(e.OriginalSource as DependencyObject))
@@ -104,7 +116,7 @@ namespace BIF.ToyStore.WinUI.Views
             }
         }
 
-        private static bool IsFromButton(DependencyObject source)
+        private static bool IsFromButton(DependencyObject? source)
         {
             while (source != null)
             {
@@ -129,15 +141,30 @@ namespace BIF.ToyStore.WinUI.Views
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary && dialog.ResultProduct != null)
             {
-                var input = new Product
+                try
                 {
-                    Name = dialog.ResultProduct.Name,
-                    CategoryId = dialog.ResultProduct.CategoryId,
-                    ImportPrice = dialog.ResultProduct.ImportPrice,
-                    RetailPrice = dialog.ResultProduct.RetailPrice,
-                    StockQuantity = dialog.ResultProduct.StockQuantity
-                };
-                await ViewModel.CreateProductAsync(input);
+                    var input = new Product
+                    {
+                        Name = dialog.ResultProduct.Name,
+                        CategoryId = dialog.ResultProduct.CategoryId,
+                        ImportPrice = dialog.ResultProduct.ImportPrice,
+                        RetailPrice = dialog.ResultProduct.RetailPrice,
+                        StockQuantity = dialog.ResultProduct.StockQuantity,
+                        ImageUrl = dialog.ResultProduct.ImageUrl
+                    };
+
+                    await ViewModel.CreateProductAsync(input);
+                }
+                catch (Exception ex)
+                {
+                    await CommonDialog.ShowAsync(
+                        XamlRoot,
+                        CommonDialogType.Error,
+                        title: "Unable to add product",
+                        message: ex.Message,
+                        primaryButtonText: "OK",
+                        closeButtonText: null);
+                }
             }
         }
 

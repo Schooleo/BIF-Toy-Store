@@ -121,10 +121,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             [Service] IConfigService configService)
         {
             var updatedConfig = await configService.UpdateStoreSettingsAsync(
+                input.DisplayName,
                 input.TaxRate,
                 input.CurrencySymbol,
                 input.ReceiptHeader,
-                input.ReceiptFooter);
+                input.ReceiptFooter,
+                input.ThemePreference);
 
             return AppConfigPayload.FromConfig(updatedConfig);
         }
@@ -138,6 +140,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 DisplayName = input.DisplayName,
                 ReceiptHeader = input.ReceiptHeader,
                 ReceiptFooter = input.ReceiptFooter,
+                CurrencySymbol = input.CurrencySymbol,
                 ThemePreference = input.ThemePreference,
                 EnableLoyaltyPoints = input.EnableLoyaltyPoints,
                 TaxRate = input.TaxRate
@@ -188,7 +191,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 CategoryId = input.CategoryId,
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
-                StockQuantity = input.StockQuantity
+                StockQuantity = input.StockQuantity,
+                ImageUrl = input.ImageUrl
             };
             return await repo.AddAsync(product);
         }
@@ -202,7 +206,8 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 CategoryId = input.CategoryId,
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
-                StockQuantity = input.StockQuantity
+                StockQuantity = input.StockQuantity,
+                ImageUrl = input.ImageUrl
             };
 
             return await repo.UpdateDetailsAsync(product);
