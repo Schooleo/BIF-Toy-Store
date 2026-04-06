@@ -15,6 +15,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly ILocalSettingsService _localSettingsService;
         private readonly bool _isAdminUser;
         private readonly string _currentUsername;
+        private readonly int _currentUserId;
+        private readonly string _currentUserRole;
         private int? _currentEmployeeId;
 
         // ── Bound collections ─────────────────────────────────────────────────
@@ -69,9 +71,10 @@ namespace BIF.ToyStore.ViewModels.Pages
             Title = "Order Management";
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
 
+            _currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
+            _currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
             _currentUsername = _localSettingsService.GetString("LastUsername", string.Empty);
-            var roleValue = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
-            _isAdminUser = Enum.TryParse<UserRole>(roleValue, true, out var role) && role == UserRole.Admin;
+            _isAdminUser = Enum.TryParse<UserRole>(_currentUserRole, true, out var role) && role == UserRole.Admin;
             IsEmployeeFilterVisible = _isAdminUser;
         }
 
@@ -186,8 +189,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string query = @"
-                    query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int) {
-                        orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId) {
+                    query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int, $currentUserId: Int, $currentUserRole: String) {
+                        orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             totalCount
                             pageInfo {
                                 hasNextPage
@@ -247,7 +250,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                     before = beforeVar,
                     fromDate = FromDate?.LocalDateTime.Date,
                     toDate = ToDate?.LocalDateTime.Date.AddDays(1).AddTicks(-1),
-                    employeeId = _isAdminUser ? SelectedEmployee?.Id : _currentEmployeeId
+                    employeeId = _isAdminUser ? SelectedEmployee?.Id : _currentEmployeeId,
+                    currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                    currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
                 };
 
                 var payload = await _graphQLClient.ExecuteAsync<OrderConnectionResponse>(query, variables, dataKey: "orders")
@@ -288,8 +293,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string query = @"
-                    query GetOrderById($id: Int!) {
-                        getOrderById: orderById(id: $id) {
+                    query GetOrderById($id: Int!, $currentUserId: Int, $currentUserRole: String) {
+                        getOrderById: orderById(id: $id, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             orderDate
                             status
@@ -308,7 +313,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }";
 
-                var result = await _graphQLClient.ExecuteAsync<GetOrderByIdResponse>(query, new { id = order.Id });
+                var result = await _graphQLClient.ExecuteAsync<GetOrderByIdResponse>(
+                    query,
+                    new
+                    {
+                        id = order.Id,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    });
                 if (result?.GetOrderById is { } detail)
                 {
                     SelectedOrder = OrderDetailsViewModel.FromPayload(detail);
@@ -345,15 +357,23 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation UpdateOrder($input: UpdateOrderInput!) {
-                        updateOrder(input: $input) {
+                    mutation UpdateOrder($input: UpdateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                        updateOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             status
                         }
                     }";
 
                 var input = new { id = SelectedOrder.Id, status = status.ToString().ToUpperInvariant(), customerId = (int?)null };
-                var updated = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(mutation, new { input }, dataKey: "updateOrder");
+                var updated = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(
+                    mutation,
+                    new
+                    {
+                        input,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    },
+                    dataKey: "updateOrder");
                 var updatedStatus = updated?.Status ?? status.ToString();
 
                 StatusMessage = $"Order #{SelectedOrder.Id} status updated to {updatedStatus}.";
@@ -386,11 +406,19 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation DeleteOrder($id: Int!) {
-                        deleteOrder(id: $id)
+                    mutation DeleteOrder($id: Int!, $currentUserId: Int, $currentUserRole: String) {
+                        deleteOrder(id: $id, currentUserId: $currentUserId, currentUserRole: $currentUserRole)
                     }";
 
-                await _graphQLClient.ExecuteAsync<bool>(mutation, new { id = orderId }, dataKey: "deleteOrder");
+                await _graphQLClient.ExecuteAsync<bool>(
+                    mutation,
+                    new
+                    {
+                        id = orderId,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    },
+                    dataKey: "deleteOrder");
 
                 StatusMessage = $"Order #{orderId} has been deleted.";
                 IsDetailsPanelOpen = false;

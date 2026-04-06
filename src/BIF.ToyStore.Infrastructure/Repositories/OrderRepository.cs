@@ -263,6 +263,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     product.Id,
                     product.Name,
                     product.RetailPrice,
+                    product.ImageUrl,
                     CategoryName = category != null ? category.Name : "Unknown"
                 }
                 into g
@@ -273,6 +274,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     ProductName = g.Key.Name,
                     CategoryName = g.Key.CategoryName,
                     RetailPrice = g.Key.RetailPrice,
+                    ImageUrl = g.Key.ImageUrl,
                     UnitsSold = g.Sum(x => x.detail.Quantity)
                 })
                 .Take(safeTake)

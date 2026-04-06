@@ -74,6 +74,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         // ── Current sale's user id (set on login) ─────────────────────────────
         private int _currentSaleId;
+        private string _currentUserRole;
 
         // ─────────────────────────────────────────────────────────────────────
         public POSViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService, IMessenger messenger)
@@ -83,6 +84,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             _messenger = messenger;
             Title = "Point of Sale";
             _currentSaleId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
+            _currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
 
             _messenger.Register(this);
         }
@@ -90,7 +92,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         public void Receive(LoginSucceededMessage message)
         {
             _currentSaleId = message.Value.Id;
+            _currentUserRole = message.Value.Role.ToString();
             _localSettingsService.SetInt(AppPreferenceKeys.CurrentUserId, _currentSaleId);
+            _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole);
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -347,8 +351,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation CreateOrder($input: CreateOrderInput!) {
-                        createOrder(input: $input) {
+                    mutation CreateOrder($input: CreateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                        createOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             totalAmount
                             status
@@ -382,7 +386,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 var result = await _graphQLClient.ExecuteAsync<OrderResult>(
                     mutation,
-                    new { input },
+                    new
+                    {
+                        input,
+                        currentUserId = _currentSaleId,
+                        currentUserRole = _currentUserRole
+                    },
                     dataKey: "createOrder");
 
                 if (result != null)
@@ -392,8 +401,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                     if (markAsPaid)
                     {
                         const string updateOrderMutation = @"
-                            mutation MarkOrderPaid($input: UpdateOrderInput!) {
-                                updateOrder(input: $input) {
+                            mutation MarkOrderPaid($input: UpdateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                                updateOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                                     id
                                     status
                                 }
@@ -408,7 +417,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                                     id = result.Id,
                                     status = OrderStatus.Paid.ToString().ToUpperInvariant(),
                                     customerId = (int?)null
-                                }
+                                },
+                                currentUserId = _currentSaleId,
+                                currentUserRole = _currentUserRole
                             },
                             dataKey: "updateOrder");
 

@@ -20,39 +20,51 @@
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:OrderStatusTagBrushConverter x:Key="OrderStatusTagBrushConverter"/>
         <SolidColorBrush x:Key="ProductsSurfaceCardBrush"
-                Color="{StaticResource FluentPlaySurfaceContainerLowestColor}"/>
+                         Color="{StaticResource FluentPlaySurfaceContainerLowestColor}"/>
         <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush"
-                Color="Transparent"/>
+                         Color="Transparent"/>
         <SolidColorBrush x:Key="DataGridRowSelectedForegroundBrush"
-                Color="{StaticResource FluentPlayOnSurfaceColor}"/>
+                         Color="{StaticResource FluentPlayOnSurfaceColor}"/>
 
         <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
-                Color="{StaticResource FluentPlaySurfaceContainerHighColor}"/>
+                         Color="{StaticResource FluentPlaySurfaceContainerHighColor}"/>
         <SolidColorBrush x:Key="ButtonBackgroundPressed"
-                Color="{StaticResource FluentPlaySurfaceVariantColor}"/>
+                         Color="{StaticResource FluentPlaySurfaceVariantColor}"/>
         <SolidColorBrush x:Key="ButtonForegroundPointerOver"
-                Color="{StaticResource FluentPlayOnSurfaceColor}"/>
+                         Color="{StaticResource FluentPlayOnSurfaceColor}"/>
         <SolidColorBrush x:Key="ButtonForegroundPressed"
-                Color="{StaticResource FluentPlayOnSurfaceColor}"/>
+                         Color="{StaticResource FluentPlayOnSurfaceColor}"/>
 
         <Style x:Key="OrderCalendarDatePickerStyle"
                TargetType="CalendarDatePicker">
-            <Setter Property="Foreground" Value="{ThemeResource CalendarDatePickerTextForeground}"/>
-            <Setter Property="Background" Value="{ThemeResource CalendarDatePickerBackground}"/>
-            <Setter Property="BorderBrush" Value="{ThemeResource CalendarDatePickerBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Foreground"
+                    Value="{ThemeResource CalendarDatePickerTextForeground}"/>
+            <Setter Property="Background"
+                    Value="{ThemeResource CalendarDatePickerBackground}"/>
+            <Setter Property="BorderBrush"
+                    Value="{ThemeResource CalendarDatePickerBorderBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="8"/>
+            <Setter Property="Padding"
+                    Value="12,8"/>
+            <Setter Property="HorizontalAlignment"
+                    Value="Stretch"/>
         </Style>
 
         <Style x:Key="FilterFlyoutPresenterStyle"
                TargetType="FlyoutPresenter">
-            <Setter Property="Background" Value="{ThemeResource FluentPlaySurfaceContainerLowestBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource FluentPlayOutlineVariantBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background"
+                    Value="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"/>
+            <Setter Property="BorderBrush"
+                    Value="{ThemeResource FluentPlayOutlineVariantBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="8"/>
+            <Setter Property="Padding"
+                    Value="8"/>
         </Style>
     </Page.Resources>
 
@@ -84,7 +96,7 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0"
-                            Spacing="4">
+                                Spacing="4">
                         <TextBlock Text="Order Management"
                                    FontSize="30"
                                    FontWeight="ExtraBold"
@@ -95,9 +107,9 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            Spacing="12"
-                            VerticalAlignment="Bottom">
+                                Orientation="Horizontal"
+                                Spacing="12"
+                                VerticalAlignment="Bottom">
                         <Button x:Name="ExportButton"
                                 Click="ExportButton_Click"
                                 VerticalAlignment="Center"
@@ -105,11 +117,11 @@
                                 BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                                 Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}">
                             <StackPanel Orientation="Horizontal"
-                                    Spacing="8">
+                                        Spacing="8">
                                 <SymbolIcon Symbol="Save"
-                                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
+                                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
                                 <TextBlock Text="Export Report"
-                                        FontWeight="SemiBold"/>
+                                           FontWeight="SemiBold"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -117,7 +129,7 @@
 
                 <!-- Date Filter Row -->
                 <Grid Grid.Row="1"
-                        ColumnSpacing="24">
+                      ColumnSpacing="24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -171,8 +183,10 @@
                                                   SelectionMode="Single">
                                             <ListView.ItemContainerStyle>
                                                 <Style TargetType="ListViewItem">
-                                                    <Setter Property="MinHeight" Value="32" />
-                                                    <Setter Property="Padding" Value="8,4" />
+                                                    <Setter Property="MinHeight"
+                                                            Value="32"/>
+                                                    <Setter Property="Padding"
+                                                            Value="8,4"/>
                                                 </Style>
                                             </ListView.ItemContainerStyle>
                                             <ListView.ItemTemplate>
@@ -195,11 +209,12 @@
                                    Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
                                    Margin="0,0,0,4"/>
                         <CalendarDatePicker x:Name="FromDatePicker"
-                                            Width="200"  Height="40"
+                                            Width="200"
+                                Height="40"
                                             Style="{StaticResource OrderCalendarDatePickerStyle}"
                                             DateChanged="Filter_Changed"
                                             Date="{x:Bind ViewModel.FromDate, Mode=TwoWay}"
-                                            PlaceholderText="Select a starting date" />
+                                            PlaceholderText="Select a starting date"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2">
@@ -210,11 +225,12 @@
                                    Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
                                    Margin="0,0,0,4"/>
                         <CalendarDatePicker x:Name="ToDatePicker"
-                                            Width="200" Height="40"
+                                            Width="200"
+                                Height="40"
                                             Style="{StaticResource OrderCalendarDatePickerStyle}"
                                             DateChanged="Filter_Changed"
                                             Date="{x:Bind ViewModel.ToDate, Mode=TwoWay}"
-                                            PlaceholderText="Select an ending date" />
+                                            PlaceholderText="Select an ending date"/>
                     </StackPanel>
 
                     <Button Grid.Column="3"
@@ -228,37 +244,56 @@
 
                 <!-- Order List -->
                 <Grid Grid.Row="2">
-                    <!-- Loading Indicator -->
-                    <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
-                                  Width="40"
-                            Height="40"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  Visibility="{x:Bind ViewModel.IsBusy, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}"/>
-
                     <controls:DataGrid
                         x:Name="OrdersDataGrid"
                         AutoGenerateColumns="False"
-                        Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
-                        BorderBrush="#1AC0C7D4"
+                        Background="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"
+                        BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
                         BorderThickness="1"
+                        IsReadOnly="True"
+                        IsTabStop="False"
+                        CanUserReorderColumns="False"
+                        CanUserResizeColumns="False"
                         CanUserSortColumns="False"
                         CornerRadius="12"
                         GridLinesVisibility="Horizontal"
-                        HorizontalGridLinesBrush="#1AC0C7D4"
+                        HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
                         ItemsSource="{x:Bind ViewModel.Orders, Mode=OneWay}"
-                        RowHeight="68"
+                        RowHeight="72"
+                        SelectionMode="Single"
                         SelectionChanged="OrdersDataGrid_SelectionChanged"
                         Tapped="OrdersDataGrid_Tapped"
-                        Visibility="{x:Bind ViewModel.IsBusy, Converter={StaticResource InverseBoolToVisibilityConverter}, Mode=OneWay}">
+                        UseSystemFocusVisuals="False">
+
+                        <controls:DataGrid.Resources>
+                            <Style TargetType="controls:DataGridCell">
+                                <Setter Property="BorderBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                                <Setter Property="UseSystemFocusVisuals"
+                                        Value="False"/>
+                                <Setter Property="FocusVisualPrimaryBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="FocusVisualSecondaryBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="FocusVisualPrimaryThickness"
+                                        Value="0"/>
+                                <Setter Property="FocusVisualSecondaryThickness"
+                                        Value="0"/>
+                                <Setter Property="IsTabStop"
+                                        Value="False"/>
+                            </Style>
+                        </controls:DataGrid.Resources>
+
                         <controls:DataGrid.Columns>
                             <controls:DataGridTemplateColumn Width="2*"
-                                    Header="ORDER">
+                                                             Header="ORDER">
                                 <controls:DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate x:DataType="vm:OrderItemViewModel">
                                         <StackPanel Padding="16,8"
-                                                Spacing="2"
-                                                VerticalAlignment="Center">
+                                                    Spacing="2"
+                                                    VerticalAlignment="Center">
                                             <HyperlinkButton Content="{x:Bind IdDisplay}"
                                                              Tag="{x:Bind}"
                                                              Click="ViewOrder_Click"
@@ -285,7 +320,7 @@
                                 Header="TOTAL"/>
 
                             <controls:DataGridTemplateColumn Width="*"
-                                    Header="STATUS">
+                                                             Header="STATUS">
                                 <controls:DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate x:DataType="vm:OrderItemViewModel">
                                         <Border Margin="16,0"
@@ -304,7 +339,7 @@
                             </controls:DataGridTemplateColumn>
 
                             <controls:DataGridTemplateColumn Width="120"
-                                    Header="ACTIONS">
+                                                             Header="ACTIONS">
                                 <controls:DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate x:DataType="vm:OrderItemViewModel">
                                         <StackPanel Orientation="Horizontal"
@@ -362,7 +397,7 @@
                                              TotalItems="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
 
                 <controls2:AppFooter Grid.Row="4"
-                        Margin="0,8,0,0"/>
+                                     Margin="0,8,0,0"/>
             </Grid>
         </ScrollViewer>
 
@@ -401,9 +436,9 @@
 
                 <!-- Sidebar Header -->
                 <Grid Grid.Row="0"
-                        Padding="24,20"
-                        BorderBrush="#1AC0C7D4"
-                        BorderThickness="0,0,0,1">
+                      Padding="24,20"
+                      BorderBrush="#1AC0C7D4"
+                      BorderThickness="0,0,0,1">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -433,8 +468,8 @@
 
                 <!-- Scrollable Body -->
                 <ScrollViewer Grid.Row="1"
-                        Padding="24,20"
-                        VerticalScrollBarVisibility="Auto">
+                              Padding="24,20"
+                              VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="16"
                                 DataContext="{x:Bind ViewModel.SelectedOrder, Mode=OneWay}">
 
@@ -445,7 +480,7 @@
                                 BorderBrush="#1AC0C7D4"
                                 BorderThickness="1">
                             <Grid ColumnSpacing="12"
-                                    RowSpacing="12">
+                                  RowSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
@@ -456,24 +491,24 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Column="0"
-                                        Grid.Row="0">
+                                            Grid.Row="0">
                                     <TextBlock Text="ORDER ID"
-                                            FontSize="10"
-                                            CharacterSpacing="40"
-                                            Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                               FontSize="10"
+                                               CharacterSpacing="40"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <TextBlock Text="{x:Bind ViewModel.SelectedOrder.IdDisplay, Mode=OneWay}"
                                                FontSize="16"
-                                            FontWeight="Bold"
+                                               FontWeight="Bold"
                                                Foreground="{StaticResource FluentPlayPrimaryBrush}"
                                                Margin="0,2,0,0"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1"
-                                        Grid.Row="0">
+                                            Grid.Row="0">
                                     <TextBlock Text="STATUS"
-                                            FontSize="10"
-                                            CharacterSpacing="40"
-                                            Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                               FontSize="10"
+                                               CharacterSpacing="40"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <Border CornerRadius="20"
                                             Padding="10,4"
                                             Margin="0,4,0,0"
@@ -487,24 +522,24 @@
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="0"
-                                        Grid.Row="1">
+                                            Grid.Row="1">
                                     <TextBlock Text="EMPLOYEE"
-                                            FontSize="10"
-                                            CharacterSpacing="40"
-                                            Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                               FontSize="10"
+                                               CharacterSpacing="40"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <TextBlock Text="{x:Bind ViewModel.SelectedOrder.EmployeeDisplay, Mode=OneWay}"
                                                FontSize="14"
-                                            FontWeight="SemiBold"
+                                               FontWeight="SemiBold"
                                                Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
                                                Margin="0,2,0,0"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1"
-                                        Grid.Row="1">
+                                            Grid.Row="1">
                                     <TextBlock Text="DATE"
-                                            FontSize="10"
-                                            CharacterSpacing="40"
-                                            Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                               FontSize="10"
+                                               CharacterSpacing="40"
+                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <TextBlock Text="{x:Bind ViewModel.SelectedOrder.DateDisplay, Mode=OneWay}"
                                                FontSize="14"
                                                Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
@@ -520,7 +555,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
-                                    Text="Total"
+                                       Text="Total"
                                        FontSize="16"
                                        FontWeight="Bold"
                                        Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
@@ -603,7 +638,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <StackPanel Grid.Column="0"
-                                                    Spacing="2">
+                                                        Spacing="2">
                                                 <TextBlock Text="{x:Bind ProductName}"
                                                            FontSize="14"
                                                            FontWeight="SemiBold"
@@ -648,14 +683,14 @@
                             Padding="12,10"
                             Click="DeleteOrder_Click">
                         <StackPanel Orientation="Horizontal"
-                                Spacing="8">
+                                    Spacing="8">
                             <PathIcon Width="16"
-                                    Height="16"
+                                      Height="16"
                                       Foreground="{StaticResource FluentPlayErrorColor}"
                                       Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                             <TextBlock Text="Delete Order"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"/>
+                                       FontSize="14"
+                                       FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </Border>

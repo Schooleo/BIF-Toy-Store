@@ -10,6 +10,28 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task LoadAsync_ValidGraphQlPayload_MapsDashboardData()
         {
             var graphQlClient = new Mock<IGraphQLClient>();
+            var today = DateTime.Today;
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var reportSeries = new List<DashboardReportTimeSeriesNode>
+            {
+                new DashboardReportTimeSeriesNode
+                {
+                    PeriodStart = monthStart,
+                    PeriodLabel = monthStart.ToString("dd MMM"),
+                    TotalRevenue = 120m
+                }
+            };
+
+            if (today.Day > 1)
+            {
+                var secondDay = monthStart.AddDays(1);
+                reportSeries.Add(new DashboardReportTimeSeriesNode
+                {
+                    PeriodStart = secondDay,
+                    PeriodLabel = secondDay.ToString("dd MMM"),
+                    TotalRevenue = 80m
+                });
+            }
 
             graphQlClient
                 .Setup(x => x.ExecuteAsync<DashboardMainQueryData>(
@@ -24,9 +46,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                         TotalCount = 7,
                         Nodes =
                         [
-                            new DashboardProductNode { Id = 1, Name = "A", StockQuantity = 5, RetailPrice = 10m, Category = new DashboardCategoryNode { Name = "CatA" } },
-                            new DashboardProductNode { Id = 2, Name = "B", StockQuantity = 0, RetailPrice = 11m, Category = null },
-                            new DashboardProductNode { Id = 3, Name = "C", StockQuantity = 2, RetailPrice = 12m, Category = new DashboardCategoryNode { Name = "CatC" } }
+                            new DashboardProductNode { Id = 1, Name = "A", StockQuantity = 5, RetailPrice = 10m, ImageUrl = "https://example.com/a.png", Category = new DashboardCategoryNode { Name = "CatA" } },
+                            new DashboardProductNode { Id = 2, Name = "B", StockQuantity = 0, RetailPrice = 11m, ImageUrl = "https://example.com/b.png", Category = null },
+                            new DashboardProductNode { Id = 3, Name = "C", StockQuantity = 2, RetailPrice = 12m, ImageUrl = null, Category = new DashboardCategoryNode { Name = "CatC" } }
                         ]
                     },
                     GetOrders = new DashboardOrderConnection
@@ -56,13 +78,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     },
                     GetTopBestSellingProducts =
                     [
-                        new DashboardBestSellingProductNode { ProductId = 1, ProductName = "A", CategoryName = "CatA", RetailPrice = 10m, UnitsSold = 90, Rank = 1 }
+                        new DashboardBestSellingProductNode { ProductId = 1, ProductName = "A", CategoryName = "CatA", RetailPrice = 10m, UnitsSold = 90, Rank = 1, ImageUrl = "https://example.com/a.png" }
                     ],
-                    GetRevenueTrend =
-                    [
-                        new DashboardRevenuePointNode { DayLabel = "Mon", Revenue = 120m },
-                        new DashboardRevenuePointNode { DayLabel = "Tue", Revenue = 80m }
-                    ]
+                    GetReportTimeSeries = reportSeries
                 });
 
             graphQlClient
@@ -104,10 +122,27 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Single(vm.BestSellingProducts);
             Assert.True(vm.HasBestSellingProducts);
             Assert.False(vm.IsBestSellingProductsEmpty);
-            Assert.Equal(2, vm.RevenueTrendPoints.Count);
+            Assert.Equal("https://example.com/a.png", vm.BestSellingProducts[0].ImageUrl);
+            Assert.Equal(today.Day, vm.RevenueTrendPoints.Count);
+            Assert.Equal(monthStart, vm.RevenueTrendPoints[0].PeriodStart.Date);
+            Assert.Equal(today, vm.RevenueTrendPoints[^1].PeriodStart.Date);
+            Assert.Equal(120m, vm.RevenueTrendPoints[0].Revenue);
+            if (today.Day > 1)
+            {
+                Assert.Equal(80m, vm.RevenueTrendPoints[1].Revenue);
+            }
+
+            if (today.Day > 2)
+            {
+                Assert.All(vm.RevenueTrendPoints.Skip(2), point => Assert.Equal(0m, point.Revenue));
+            }
+
             Assert.NotEqual("M 0,0", vm.RevenueTrendPathData);
             Assert.NotEqual("M 0,0 Z", vm.RevenueTrendAreaData);
             Assert.True(vm.RevenueAxisMax >= 100);
+            Assert.NotEmpty(vm.RevenuePeriodLabel);
+            Assert.True(vm.RevenueTrendScrollableWidth > 0);
+            Assert.Equal(vm.RevenueTrendPoints.Count, vm.RevenueTrendMarkers.Count);
 
             Assert.Equal(2, vm.OrdersToday);
             Assert.Equal(100m, vm.TodayRevenue);
@@ -189,7 +224,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                         Nodes = []
                     },
                     GetTopBestSellingProducts = [],
-                    GetRevenueTrend = []
+                    GetReportTimeSeries = []
                 });
 
             graphQlClient

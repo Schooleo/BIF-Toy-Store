@@ -88,7 +88,7 @@ namespace BIF.ToyStore.WinUI
                 return;
             }
 
-            if (FindAncestor<SettingsPage>(source) is not null)
+            if (IsFocusableInteractionTarget(source))
             {
                 return;
             }
@@ -99,7 +99,8 @@ namespace BIF.ToyStore.WinUI
                 return;
             }
 
-            FocusSink.Focus(FocusState.Programmatic);
+            // Defer focus clear until pointer processing completes to avoid focus snapping back.
+            DispatcherQueue.TryEnqueue(() => FocusSink.Focus(FocusState.Programmatic));
         }
 
         private static bool IsTextInputElement(DependencyObject? element)
@@ -121,19 +122,22 @@ namespace BIF.ToyStore.WinUI
             return false;
         }
 
-        private static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+        private static bool IsFocusableInteractionTarget(DependencyObject? element)
         {
             while (element is not null)
             {
-                if (element is T typed)
+                if (element is Control control
+                    && control.IsEnabled
+                    && control.IsTabStop
+                    && control is not ScrollViewer)
                 {
-                    return typed;
+                    return true;
                 }
 
                 element = VisualTreeHelper.GetParent(element);
             }
 
-            return null;
+            return false;
         }
 
         public void NavigateToInitialSetup()

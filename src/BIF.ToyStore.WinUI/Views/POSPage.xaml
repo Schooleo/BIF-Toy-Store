@@ -170,11 +170,13 @@
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Padding="28,0,28,24">
-                <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}"
+                              MaxWidth="1040"
+                              HorizontalAlignment="Center">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <ItemsWrapGrid Orientation="Horizontal"
-                                           ItemWidth="188"/>
+                                           ItemWidth="232"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -183,11 +185,11 @@
                                     CornerRadius="12"
                                     BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                                     BorderThickness="1"
-                                    Width="172"
+                                    Width="220"
                                     Margin="0,0,12,12">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="128"/>
+                                        <RowDefinition Height="164"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
@@ -264,7 +266,7 @@
                                                 Padding="12,10,12,12"
                                                 Spacing="6">
                                         <TextBlock Text="{x:Bind Name, Mode=OneTime}"
-                                                   FontSize="13"
+                                                   FontSize="15"
                                                    FontWeight="SemiBold"
                                                    TextWrapping="Wrap"
                                                    MaxLines="2"
@@ -279,7 +281,7 @@
 
                                             <TextBlock Grid.Column="0"
                                                        Text="{x:Bind PriceDisplay, Mode=OneTime}"
-                                                       FontSize="13"
+                                                       FontSize="15"
                                                        FontWeight="Bold"
                                                        VerticalAlignment="Center"
                                                        Foreground="{StaticResource FluentPlayPrimaryBrush}"/>
@@ -315,8 +317,9 @@
                                                 </Button.Resources>
                                                 <TextBlock Text="+"
                                                            FontSize="18"
-                                                           FontWeight="Light"
+                                                           FontWeight="SemiBold"
                                                            Foreground="White"
+                                                           Padding="0,0,0,3"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"/>
                                             </Button>
