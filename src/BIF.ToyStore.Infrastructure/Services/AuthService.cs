@@ -1,17 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using BIF.ToyStore.Core.Interfaces;
+﻿using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
-using BIF.ToyStore.Infrastructure.Data;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
-    public class AuthService(AppDbContext dbContext) : IAuthService
+    public class AuthService(IAuthRepository authRepository) : IAuthService
     {
-        private readonly AppDbContext _dbContext = dbContext;
+        private readonly IAuthRepository _authRepository = authRepository;
 
         public async Task<User?> LoginAsync(string username, string password)
         {
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == username);
+            var user = await _authRepository.FindByUsernameAsync(username);
             if (user is null)
             {
                 return null;
@@ -40,7 +38,7 @@ namespace BIF.ToyStore.Infrastructure.Services
                 }
 
                 user.PasswordHash = PasswordCipher.Encrypt(password);
-                await _dbContext.SaveChangesAsync();
+                await _authRepository.SaveChangesAsync();
                 return user;
             }
 
@@ -51,7 +49,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             }
 
             user.PasswordHash = PasswordCipher.Encrypt(password);
-            await _dbContext.SaveChangesAsync();
+            await _authRepository.SaveChangesAsync();
             return user;
         }
 

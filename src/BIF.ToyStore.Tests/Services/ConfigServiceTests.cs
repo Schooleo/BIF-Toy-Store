@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Settings;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Repositories;
 using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -21,7 +22,8 @@ namespace BIF.ToyStore.Tests.Services
 
             _dbContext = new AppDbContext(options);
             _memoryCache = new MemoryCache(new MemoryCacheOptions());
-            _configService = new ConfigService(_dbContext, _memoryCache);
+            var configRepository = new ConfigRepository(_dbContext);
+            _configService = new ConfigService(configRepository, _memoryCache);
         }
 
         public void Dispose()

@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Repositories;
 using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +25,8 @@ namespace BIF.ToyStore.Tests.Services
                 .Options;
 
             _dbContext = new AppDbContext(options);
-            _orderService = new OrderService(_dbContext);
+            var orderRepository = new OrderRepository(_dbContext);
+            _orderService = new OrderService(orderRepository);
 
             SeedTestData();
         }

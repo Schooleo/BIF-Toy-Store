@@ -1,18 +1,16 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
-using BIF.ToyStore.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
-    public class ConfigService(AppDbContext dbContext, IMemoryCache memoryCache) : IConfigService
+    public class ConfigService(IConfigRepository configRepository, IMemoryCache memoryCache) : IConfigService
     {
         private const string ConfigCacheKey = "app-config-singleton";
         private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
 
-        private readonly AppDbContext _dbContext = dbContext;
+        private readonly IConfigRepository _configRepository = configRepository;
         private readonly IMemoryCache _memoryCache = memoryCache;
 
         public async Task<AppConfig> GetConfigAsync()
@@ -22,19 +20,17 @@ namespace BIF.ToyStore.Infrastructure.Services
                 return CloneConfig(cachedConfig);
             }
 
-            var dbConfig = await _dbContext.AppConfigs
-                .AsNoTracking()
-                .SingleOrDefaultAsync(c => c.Id == 1);
+            var dbConfig = await _configRepository.GetSingletonNoTrackingAsync();
 
             if (dbConfig is null)
             {
-                dbConfig = new AppConfig { Id = 1 };
-                _dbContext.AppConfigs.Add(dbConfig);
-                await _dbContext.SaveChangesAsync();
+                await _configRepository.GetOrCreateSingletonTrackedAsync();
+                dbConfig = await _configRepository.GetSingletonNoTrackingAsync();
+            }
 
-                dbConfig = await _dbContext.AppConfigs
-                    .AsNoTracking()
-                    .SingleAsync(c => c.Id == 1);
+            if (dbConfig is null)
+            {
+                throw new InvalidOperationException("Unable to load application configuration.");
             }
 
             _memoryCache.Set(ConfigCacheKey, CloneConfig(dbConfig), CacheTtl);
@@ -49,8 +45,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 
         public async Task<AppConfig> CompleteInitialSetupAsync(InitialSetupConfiguration setupConfiguration)
         {
-            var config = await _dbContext.AppConfigs.SingleOrDefaultAsync(c => c.Id == 1)
-                ?? new AppConfig { Id = 1 };
+            var config = await _configRepository.GetOrCreateSingletonTrackedAsync();
 
             config.Id = 1;
             config.DisplayName = setupConfiguration.DisplayName;
@@ -64,12 +59,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.TaxRate = setupConfiguration.TaxRate;
             config.IsInitialSetupCompleted = true;
 
-            if (_dbContext.Entry(config).State == EntityState.Detached)
-            {
-                _dbContext.AppConfigs.Add(config);
-            }
-
-            await _dbContext.SaveChangesAsync();
+            await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
@@ -78,8 +68,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 
         public async Task<AppConfig> UpdateConfigAsync(string displayName, decimal taxRate, int localServerPort, string databasePath)
         {
-            var config = await _dbContext.AppConfigs.SingleOrDefaultAsync(c => c.Id == 1)
-                ?? new AppConfig { Id = 1 };
+            var config = await _configRepository.GetOrCreateSingletonTrackedAsync();
 
             config.Id = 1;
             config.DisplayName = displayName;
@@ -87,12 +76,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.LocalServerPort = localServerPort;
             config.DatabasePath = databasePath;
 
-            if (_dbContext.Entry(config).State == EntityState.Detached)
-            {
-                _dbContext.AppConfigs.Add(config);
-            }
-
-            await _dbContext.SaveChangesAsync();
+            await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
@@ -107,8 +91,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             string receiptFooter,
             string themePreference)
         {
-            var config = await _dbContext.AppConfigs.SingleOrDefaultAsync(c => c.Id == 1)
-                ?? new AppConfig { Id = 1 };
+            var config = await _configRepository.GetOrCreateSingletonTrackedAsync();
 
             config.Id = 1;
             config.DisplayName = string.IsNullOrWhiteSpace(displayName) ? config.DisplayName : displayName.Trim();
@@ -118,12 +101,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.ReceiptFooter = receiptFooter ?? string.Empty;
             config.ThemePreference = string.IsNullOrWhiteSpace(themePreference) ? "System" : themePreference.Trim();
 
-            if (_dbContext.Entry(config).State == EntityState.Detached)
-            {
-                _dbContext.AppConfigs.Add(config);
-            }
-
-            await _dbContext.SaveChangesAsync();
+            await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
