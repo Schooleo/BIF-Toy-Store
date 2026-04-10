@@ -38,6 +38,70 @@ namespace BIF.ToyStore.Tests.Repositories
         }
 
         [Fact]
+        public async Task bulkInsertAsync_existingName_updatesRecordAndReturnsChangedCount()
+        {
+            _dbContext.Products.Add(new Product
+            {
+                Name = "Lego",
+                CategoryId = 1,
+                RetailPrice = 20m,
+                ImportPrice = 8m,
+                StockQuantity = 5
+            });
+            await _dbContext.SaveChangesAsync();
+
+            var count = await _repository.BulkInsertAsync(new List<Product>
+            {
+                new Product
+                {
+                    Name = "Lego",
+                    CategoryId = 2,
+                    RetailPrice = 25m,
+                    ImportPrice = 10m,
+                    StockQuantity = 7
+                }
+            });
+
+            var updated = await _dbContext.Products.SingleAsync(p => p.Name == "Lego");
+
+            Assert.Equal(1, count);
+            Assert.Equal(2, updated.CategoryId);
+            Assert.Equal(25m, updated.RetailPrice);
+            Assert.NotEqual(8m, updated.ImportPrice);
+            Assert.True(updated.StockQuantity > 5);
+            Assert.Equal(1, _dbContext.Products.Count(p => p.Name == "Lego"));
+        }
+
+        [Fact]
+        public async Task bulkInsertAsync_unchangedExistingRecord_returnsZero()
+        {
+            _dbContext.Products.Add(new Product
+            {
+                Name = "Robot",
+                CategoryId = 1,
+                RetailPrice = 50m,
+                ImportPrice = 25m,
+                StockQuantity = 4
+            });
+            await _dbContext.SaveChangesAsync();
+
+            var count = await _repository.BulkInsertAsync(new List<Product>
+            {
+                new Product
+                {
+                    Name = "Robot",
+                    CategoryId = 1,
+                    RetailPrice = 50m,
+                    ImportPrice = 25m,
+                    StockQuantity = 4
+                }
+            });
+
+            Assert.Equal(0, count);
+            Assert.Equal(1, _dbContext.Products.Count(p => p.Name == "Robot"));
+        }
+
+        [Fact]
         public async Task UpdateDetailsAsync_UpdatesImageUrl()
         {
             var product = new Product
