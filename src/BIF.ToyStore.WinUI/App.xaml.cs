@@ -35,6 +35,9 @@ namespace BIF.ToyStore.WinUI
         {
             InitializeComponent();
 
+            // Required for ExcelDataReader when importing legacy .xls files.
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
             var bootstrapSettings = new LocalSettingsService();
             (_pendingRestoreApplied, _pendingRestoreApplyError) = ApplyPendingRestoreIfScheduled(bootstrapSettings);
             var serverPort = bootstrapSettings.GetInt(AppPreferenceKeys.LocalServerPort, 5000);

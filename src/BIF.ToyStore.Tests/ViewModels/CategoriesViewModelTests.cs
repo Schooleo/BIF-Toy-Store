@@ -129,6 +129,18 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             // Assert – GraphQL must never be called
             _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(It.IsAny<int>()), Times.Never);
+            _categoryServiceMock.Verify(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteCategoryAsync_InvalidId_DoesNotCallGraphQL()
+        {
+            // Act
+            await _viewModel.DeleteCategoryAsync(0);
+
+            // Assert
+            _categoryServiceMock.Verify(x => x.DeleteCategoryAsync(It.IsAny<int>()), Times.Never);
+            _categoryServiceMock.Verify(x => x.GetCategoriesAsync(It.IsAny<CategoryListQuery>()), Times.Never);
         }
 
         [Fact]
