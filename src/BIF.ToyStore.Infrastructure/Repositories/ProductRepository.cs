@@ -10,8 +10,101 @@ namespace BIF.ToyStore.Infrastructure.Repositories
     {
         public async Task<int> BulkInsertAsync(IEnumerable<Product> products)
         {
-            await _dbSet.AddRangeAsync(products);
-            return await _dbContext.SaveChangesAsync();
+            var incomingProducts = products
+                .Where(p => p is not null && !string.IsNullOrWhiteSpace(p.Name))
+                .ToList();
+
+            if (incomingProducts.Count == 0)
+            {
+                return 0;
+            }
+
+            var incomingNames = incomingProducts
+                .Select(p => p.Name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var existingProducts = await _dbContext.Products
+                .IgnoreQueryFilters()
+                .Where(p => incomingNames.Contains(p.Name))
+                .ToListAsync();
+
+            var existingByName = existingProducts.ToDictionary(
+                p => p.Name,
+                p => p,
+                StringComparer.OrdinalIgnoreCase);
+
+            var changedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var incoming in incomingProducts)
+            {
+                var normalizedName = incoming.Name.Trim();
+
+                if (existingByName.TryGetValue(normalizedName, out var existing))
+                {
+                    var isChanged = false;
+
+                    if (existing.CategoryId != incoming.CategoryId)
+                    {
+                        existing.CategoryId = incoming.CategoryId;
+                        isChanged = true;
+                    }
+
+                    if (existing.RetailPrice != incoming.RetailPrice)
+                    {
+                        existing.RetailPrice = incoming.RetailPrice;
+                        isChanged = true;
+                    }
+
+                    if (existing.ImportPrice != incoming.ImportPrice)
+                    {
+                        existing.ImportPrice = incoming.ImportPrice;
+                        isChanged = true;
+                    }
+
+                    if (existing.StockQuantity != incoming.StockQuantity)
+                    {
+                        existing.StockQuantity += incoming.StockQuantity;
+                        isChanged = true;
+                    }
+
+                    if (existing.IsDeleted)
+                    {
+                        existing.IsDeleted = false;
+                        isChanged = true;
+                    }
+
+                    if (isChanged)
+                    {
+                        changedNames.Add(normalizedName);
+                    }
+
+                    continue;
+                }
+
+                var newProduct = new Product
+                {
+                    Name = normalizedName,
+                    CategoryId = incoming.CategoryId,
+                    RetailPrice = incoming.RetailPrice,
+                    ImportPrice = incoming.ImportPrice,
+                    StockQuantity = incoming.StockQuantity,
+                    ImageUrl = incoming.ImageUrl,
+                    IsDeleted = false
+                };
+
+                await _dbSet.AddAsync(newProduct);
+                existingByName[normalizedName] = newProduct;
+                changedNames.Add(normalizedName);
+            }
+
+            if (changedNames.Count == 0)
+            {
+                return 0;
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return changedNames.Count;
         }
 
         public async Task<Product> UpdateDetailsAsync(Product product)

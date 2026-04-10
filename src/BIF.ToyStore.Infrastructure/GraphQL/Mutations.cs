@@ -218,13 +218,26 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return await repo.SoftDeleteAsync(id);
         }
 
-        public async Task<ImportProductsPayload> ImportProducts(IFile file, [Service] IProductRepository repo)
+        public async Task<ImportProductsPayload> ImportProducts(
+            IFile file,
+            [Service] IProductRepository repo,
+            [Service] AppDbContext dbContext)
         {
             var payload = new ImportProductsPayload();
             var products = new List<Product>();
+
             try
             {
-                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                var categoryMap = await dbContext.Categories
+                    .AsNoTracking()
+                    .Select(c => new { c.Id, c.Name })
+                    .ToListAsync();
+
+                var categoryByName = categoryMap
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Name))
+                    .GroupBy(c => c.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
                 using var stream = file.OpenReadStream();
 
                 using var reader = ExcelReaderFactory.CreateReader(stream);
@@ -232,26 +245,63 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 {
                     ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
                 });
+
                 var table = dataSet.Tables[0];
+                var rowIndex = 1;
+
                 foreach (System.Data.DataRow row in table.Rows)
                 {
+                    rowIndex++;
+                    var productName = row["Name"]?.ToString()?.Trim() ?? string.Empty;
+
                     try
                     {
+                        if (string.IsNullOrWhiteSpace(productName))
+                        {
+                            throw new FormatException("Product name is required.");
+                        }
+
+                        var categoryName = row["CategoryName"]?.ToString()?.Trim();
+                        var categoryId = AppConstants.OtherCategoryId;
+                        if (!string.IsNullOrWhiteSpace(categoryName)
+                            && categoryByName.TryGetValue(categoryName, out var mappedCategoryId))
+                        {
+                            categoryId = mappedCategoryId;
+                        }
+
+                        if (!decimal.TryParse(row["RetailPrice"]?.ToString(), out var retailPrice))
+                        {
+                            throw new FormatException("RetailPrice is invalid.");
+                        }
+
+                        if (!decimal.TryParse(row["ImportPrice"]?.ToString(), out var importPrice))
+                        {
+                            throw new FormatException("ImportPrice is invalid.");
+                        }
+
+                        if (!int.TryParse(row["StockQuantity"]?.ToString(), out var stockQuantity))
+                        {
+                            throw new FormatException("StockQuantity is invalid.");
+                        }
+
                         var product = new Product
                         {
-                            Name = row["Name"]?.ToString() ?? "Unknown",
-                            CategoryId = Convert.ToInt32(row["CategoryId"]),
-                            RetailPrice = Convert.ToDecimal(row["RetailPrice"]),
-                            ImportPrice = Convert.ToDecimal(row["ImportPrice"]),
-                            StockQuantity = Convert.ToInt32(row["StockQuantity"])
+                            Name = productName,
+                            CategoryId = categoryId,
+                            RetailPrice = retailPrice,
+                            ImportPrice = importPrice,
+                            StockQuantity = stockQuantity
                         };
+
                         products.Add(product);
                     }
                     catch (Exception ex)
                     {
-                        payload.Errors.Add($"Error parsing row (skipped): {ex.Message}");
+                        var safeName = string.IsNullOrWhiteSpace(productName) ? "Unknown" : productName;
+                        payload.Errors.Add($"Row {rowIndex}: [{safeName}] - {ex.Message}");
                     }
                 }
+
                 if (products.Count > 0)
                 {
                     payload.ImportedCount = await repo.BulkInsertAsync(products);

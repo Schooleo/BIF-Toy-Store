@@ -32,10 +32,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 						nodes {
 							id
 							name
-							products {
-								id
-								name
-							}
+							productCount
 						}
 					}
 				}";
@@ -56,7 +53,9 @@ namespace BIF.ToyStore.Infrastructure.Services
 			}
 			else if (query.Direction == "prev" && !string.IsNullOrWhiteSpace(query.BeforeCursor))
 			{
+				firstVar = null;
 				lastVar = query.PageSize;
+				afterVar = null;
 				beforeVar = query.BeforeCursor;
 			}
 			else

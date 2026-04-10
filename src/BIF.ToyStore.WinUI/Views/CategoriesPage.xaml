@@ -205,7 +205,7 @@
                                             Height="8"
                                             Fill="{ThemeResource FluentPlayPrimaryBrush}" />
                                         <TextBlock FontWeight="Medium">
-                                            <Run Text="{x:Bind Products.Count}" />
+                                            <Run Text="{x:Bind ProductCount}" />
                                             <Run Text="items" />
                                         </TextBlock>
                                     </StackPanel>

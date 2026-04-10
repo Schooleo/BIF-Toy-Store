@@ -7,7 +7,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 	{
 		private readonly IGraphQLClient _graphQLClient = graphQLClient;
 
-		public async Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 50)
+		public async Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 250)
 		{
 			const string query = @"
 				query GetCategories($first: Int) {

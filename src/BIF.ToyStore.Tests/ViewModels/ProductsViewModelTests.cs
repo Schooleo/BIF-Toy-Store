@@ -337,5 +337,62 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 x => x.DeleteProductImageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
+
+        [Fact]
+        public async Task Test_Import_AggregatesAllErrorMessages()
+        {
+            // Arrange
+            _viewModel.SetWindowHandle((nint)1);
+
+            _excelFilePickerServiceMock
+                .Setup(x => x.PickExcelFilePathAsync((nint)1))
+                .ReturnsAsync("C:\\temp\\products.xlsx");
+
+            var backendErrors = new List<string>
+            {
+                "Row 2: [Name] - Name is required",
+                "Row 3: [RetailPrice] - Invalid decimal",
+                "Row 4: [CategoryName] - Unknown category",
+                "Row 5: [StockQuantity] - Invalid integer"
+            };
+
+            _productServiceMock
+                .Setup(x => x.ImportProductsAsync("C:\\temp\\products.xlsx"))
+                .ReturnsAsync(new ProductImportResult
+                {
+                    ImportedCount = 2,
+                    Errors = backendErrors
+                });
+
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(new ProductListResult { Items = new List<Product>() });
+
+            ProductsViewModel.ImportFeedback? capturedFeedback = null;
+            _viewModel.ImportFeedbackRequested += feedback =>
+            {
+                capturedFeedback = feedback;
+                return Task.CompletedTask;
+            };
+
+            // Act
+            await _viewModel.ImportExcelAsync();
+
+            // Assert
+            Assert.NotNull(capturedFeedback);
+            Assert.True(capturedFeedback!.HasErrors);
+            Assert.True(capturedFeedback.RequiresScrollableDialog);
+            Assert.Equal(4, capturedFeedback.ErrorCount);
+            Assert.Contains("Imported 2 product(s). Failed rows: 4.", _viewModel.ImportErrorMessage);
+            Assert.Contains("Successful rows: 2", capturedFeedback.DetailMessage);
+            Assert.Contains("Failed rows: 4", capturedFeedback.DetailMessage);
+
+            foreach (var backendError in backendErrors)
+            {
+                Assert.Contains(backendError, capturedFeedback.DetailMessage);
+            }
+
+            Assert.False(_viewModel.IsBusy);
+        }
     }
 }

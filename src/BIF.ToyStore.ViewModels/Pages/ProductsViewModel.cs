@@ -5,6 +5,7 @@ using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Text;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -17,6 +18,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         private nint _windowHandle;
         private string? _editingProductOriginalImageUrl;
         private Product? _editingProductSnapshot;
+
+        public event Func<ImportFeedback, Task>? ImportFeedbackRequested;
 
         [ObservableProperty]
         private ObservableCollection<Product> _products = [];
@@ -399,31 +402,115 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 if (result is null)
                 {
-                    ImportErrorMessage = "Import failed: server did not return a result.";
+                    var noResultFeedback = new ImportFeedback
+                    {
+                        ImportedCount = 0,
+                        ErrorCount = 1,
+                        HasErrors = true,
+                        SummaryMessage = "Import failed: server did not return a result.",
+                        DetailMessage = "Import failed: server did not return a result."
+                    };
+
+                    ImportErrorMessage = noResultFeedback.SummaryMessage;
+                    await NotifyImportFeedbackAsync(noResultFeedback);
                     return;
                 }
 
-                if (result.Errors.Count > 0)
+                var feedback = BuildImportFeedback(result);
+
+                if (feedback.HasErrors)
                 {
-                    var firstError = result.Errors[0];
-                    ImportErrorMessage =
-                        $"Imported {result.ImportedCount} products with {result.Errors.Count} error(s). First error: {firstError}";
+                    ImportErrorMessage = feedback.SummaryMessage;
+                    await NotifyImportFeedbackAsync(feedback);
                 }
                 else
                 {
-                    ImportSuccessMessage = $"Imported {result.ImportedCount} product(s) successfully.";
+                    ImportSuccessMessage = feedback.SummaryMessage;
                 }
 
                 await LoadProductsAsync();
             }
             catch (Exception ex)
             {
-                ImportErrorMessage = $"Import failed: {ex.Message}";
+                var failedFeedback = new ImportFeedback
+                {
+                    ImportedCount = 0,
+                    ErrorCount = 1,
+                    HasErrors = true,
+                    SummaryMessage = $"Import failed: {ex.Message}",
+                    DetailMessage = $"Import failed: {ex.Message}"
+                };
+
+                ImportErrorMessage = failedFeedback.SummaryMessage;
+                await NotifyImportFeedbackAsync(failedFeedback);
             }
             finally
             {
                 IsBusy = false;
             }
+        }
+
+        private static ImportFeedback BuildImportFeedback(ProductImportResult result)
+        {
+            var errorCount = result.Errors.Count;
+            var hasErrors = errorCount > 0;
+
+            var summary = hasErrors
+                ? $"Imported {result.ImportedCount} product(s). Failed rows: {errorCount}."
+                : $"Imported {result.ImportedCount} product(s) successfully.";
+
+            var detailsBuilder = new StringBuilder();
+            detailsBuilder.AppendLine($"Successful rows: {result.ImportedCount}");
+            detailsBuilder.AppendLine($"Failed rows: {errorCount}");
+
+            if (hasErrors)
+            {
+                detailsBuilder.AppendLine();
+                detailsBuilder.AppendLine("Failed row details:");
+
+                foreach (var error in result.Errors)
+                {
+                    detailsBuilder.Append("- ");
+                    detailsBuilder.AppendLine(error);
+                }
+            }
+
+            return new ImportFeedback
+            {
+                ImportedCount = result.ImportedCount,
+                ErrorCount = errorCount,
+                HasErrors = hasErrors,
+                SummaryMessage = summary,
+                DetailMessage = detailsBuilder.ToString().TrimEnd(),
+                RequiresScrollableDialog = errorCount > 3
+            };
+        }
+
+        private async Task NotifyImportFeedbackAsync(ImportFeedback feedback)
+        {
+            var handlers = ImportFeedbackRequested;
+            if (handlers is null)
+            {
+                return;
+            }
+
+            foreach (var handler in handlers.GetInvocationList())
+            {
+                if (handler is Func<ImportFeedback, Task> asyncHandler)
+                {
+                    await asyncHandler(feedback);
+                }
+            }
+        }
+
+        public sealed class ImportFeedback
+        {
+            public int ImportedCount { get; set; }
+            public int ErrorCount { get; set; }
+            public bool HasErrors { get; set; }
+            public bool RequiresScrollableDialog { get; set; }
+            public string SummaryMessage { get; set; } = string.Empty;
+            public string DetailMessage { get; set; } = string.Empty;
         }
 
         public class SortOption
