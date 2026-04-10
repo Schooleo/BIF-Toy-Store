@@ -56,7 +56,9 @@ namespace BIF.ToyStore.Infrastructure.Services
 			}
 			else if (query.Direction == "prev" && !string.IsNullOrWhiteSpace(query.BeforeCursor))
 			{
+				firstVar = null;
 				lastVar = query.PageSize;
+				afterVar = null;
 				beforeVar = query.BeforeCursor;
 			}
 			else

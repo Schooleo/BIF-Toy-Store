@@ -4,7 +4,7 @@ namespace BIF.ToyStore.Core.Interfaces
 {
     public interface IProductService
     {
-        Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 50);
+        Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 250);
 
         Task<ProductListResult> GetProductsAsync(ProductListQuery query);
 
