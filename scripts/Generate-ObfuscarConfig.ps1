@@ -35,33 +35,15 @@ if (-not (Test-Path -LiteralPath $resolvedInputDir)) {
 New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 New-Item -ItemType Directory -Force -Path $resolvedConfigDir | Out-Null
 
+# Keep obfuscation conservative for the desktop demo build.
+# WinUI, MVVM Toolkit source-generated command/property types, GraphQL, and EF/DI-heavy
+# assemblies are sensitive to obfuscation because startup and binding flows rely on
+# generated/reflected type surfaces.
+
 $modules = @(
     @{
         FileName = 'BIF.ToyStore.Core.dll'
         Rules = @()
-    },
-    @{
-        FileName = 'BIF.ToyStore.Infrastructure.dll'
-        Rules = @(
-            '  <SkipType name="BIF.ToyStore.Infrastructure.GraphQL.CreateProductInput" skipProperties="true" />',
-            '  <SkipType name="BIF.ToyStore.Infrastructure.GraphQL.UpdateProductInput" skipProperties="true" />',
-            '  <SkipType name="BIF.ToyStore.Infrastructure.GraphQL.CreateCategoryInput" skipProperties="true" />',
-            '  <SkipType name="BIF.ToyStore.Infrastructure.GraphQL.UpdateCategoryInput" skipProperties="true" />'
-        )
-    },
-    @{
-        FileName = 'BIF.ToyStore.ViewModels.dll'
-        Rules = @()
-    },
-    @{
-        FileName = 'BIF.ToyStore.WinUI.dll'
-        Rules = @(
-            '  <SkipNamespace name="BIF.ToyStore.WinUI.Views*" />',
-            '  <SkipNamespace name="BIF.ToyStore.WinUI.Controls*" />',
-            '  <SkipNamespace name="BIF.ToyStore.WinUI.Converters*" />',
-            '  <SkipType name="BIF.ToyStore.WinUI.App" skipMethods="true" skipFields="true" skipProperties="true" skipEvents="true" skipStringHiding="true" />',
-            '  <SkipType name="BIF.ToyStore.WinUI.MainWindow" skipMethods="true" skipFields="true" skipProperties="true" skipEvents="true" skipStringHiding="true" />'
-        )
     }
 )
 

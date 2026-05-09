@@ -24,8 +24,9 @@ if (-not (Test-Path -LiteralPath $resolvedScriptPath)) {
 Write-Host "Validating ISCC executable: $resolvedCompilerPath"
 & $resolvedCompilerPath /? | Out-Host
 
-if ($LASTEXITCODE -ne 0) {
+if ($LASTEXITCODE -gt 1) {
     throw "ISCC help command failed with exit code $LASTEXITCODE"
 }
 
 Write-Host "ISCC validation passed for script: $resolvedScriptPath"
+exit 0

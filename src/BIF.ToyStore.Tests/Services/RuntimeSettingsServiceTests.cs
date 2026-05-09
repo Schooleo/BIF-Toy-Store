@@ -6,14 +6,30 @@ namespace BIF.ToyStore.Tests.Services
     public class RuntimeSettingsServiceTests
     {
         [Fact]
-        public void GetResolvedDatabasePath_DefaultsToToyStoreDbUnderAppBaseDirectory()
+        public void GetResolvedDatabasePath_DefaultsToToyStoreDbUnderLocalAppData()
         {
+            using var scope = new LocalAppDataScope();
+
             var localSettings = new InMemoryLocalSettingsService();
             IRuntimeSettingsService service = new RuntimeSettingsService(localSettings, new DatabasePathService());
 
             var resolvedPath = service.GetResolvedDatabasePath();
 
-            Assert.Equal(Path.Combine(AppContext.BaseDirectory, "ToyStore.db"), resolvedPath);
+            Assert.Equal(Path.Combine(scope.RootPath, "BIF.ToyStore", "ToyStore.db"), resolvedPath);
+        }
+
+        [Fact]
+        public void GetResolvedDatabasePath_AbsoluteConfiguredPath_IsPreserved()
+        {
+            var localSettings = new InMemoryLocalSettingsService();
+            IRuntimeSettingsService service = new RuntimeSettingsService(localSettings, new DatabasePathService());
+            var absolutePath = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"), "ToyStore.db");
+
+            service.SetConfiguredDatabasePath(absolutePath);
+
+            var resolvedPath = service.GetResolvedDatabasePath();
+
+            Assert.Equal(absolutePath, resolvedPath);
         }
 
         [Fact]
@@ -25,6 +41,30 @@ namespace BIF.ToyStore.Tests.Services
             service.SetConfiguredDatabasePath("   ");
 
             Assert.Equal("ToyStore.db", service.GetConfiguredDatabasePath());
+        }
+
+        private sealed class LocalAppDataScope : IDisposable
+        {
+            private readonly string? _originalLocalAppData;
+
+            public LocalAppDataScope()
+            {
+                _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+                RootPath = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(RootPath);
+                Environment.SetEnvironmentVariable("LOCALAPPDATA", RootPath);
+            }
+
+            public string RootPath { get; }
+
+            public void Dispose()
+            {
+                Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
+                if (Directory.Exists(RootPath))
+                {
+                    Directory.Delete(RootPath, recursive: true);
+                }
+            }
         }
 
         private sealed class InMemoryLocalSettingsService : ILocalSettingsService

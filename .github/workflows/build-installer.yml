@@ -8,7 +8,10 @@ on:
 
 jobs:
   build-installer:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
 
     env:
       DOTNET_VERSION: 10.0.x
@@ -28,11 +31,63 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          clean: ${{ !env.ACT }}
 
       - name: Setup .NET SDK
+        if: ${{ !env.ACT }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Verify local .NET SDK for act
+        if: ${{ env.ACT }}
+        run: |
+          dotnet --info
+          $sdkVersion = dotnet --version
+          if (-not $sdkVersion.StartsWith('10.')) {
+            throw "Local act run requires .NET 10 SDK, but found $sdkVersion"
+          }
+        shell: powershell
+
+      - name: Install Inno Setup on GitHub runner
+        if: ${{ !env.ACT }}
+        run: |
+          if (Test-Path $env:INNO_COMPILER) {
+            Write-Host "Inno Setup already available at $env:INNO_COMPILER"
+            exit 0
+          }
+
+          choco install innosetup --yes --no-progress
+        shell: powershell
+
+      - name: Validate Inno Setup compiler
+        run: >
+          .\scripts\Validate-InnoSetup.ps1
+          -CompilerPath $env:INNO_COMPILER
+          -ScriptPath $env:INNO_SCRIPT
+        shell: powershell
+
+      - name: Clean previous Release outputs
+        run: |
+          dotnet clean $env:APP_PROJECT `
+            -c Release `
+            -r $env:RUNTIME_IDENTIFIER `
+            -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true
+
+          $pathsToReset = @(
+            $env:PUBLISH_DIR,
+            $env:OBFUSCATED_PUBLISH_DIR,
+            $env:OBFUSCAR_OUTPUT_DIR
+          )
+
+          foreach ($path in $pathsToReset) {
+            if (Test-Path $path) {
+              Remove-Item -Path $path -Recurse -Force
+            }
+          }
+        shell: powershell
 
       - name: Restore app for installer publish
         run: >
@@ -41,7 +96,7 @@ jobs:
           -p:PublishReadyToRun=true
           -p:WindowsPackageType=None
           -p:WindowsAppSDKSelfContained=true
-        shell: pwsh
+        shell: powershell
 
       - name: Publish WinUI app
         run: >
@@ -54,7 +109,7 @@ jobs:
           -p:WindowsPackageType=None
           -p:WindowsAppSDKSelfContained=true
           --no-restore
-        shell: pwsh
+        shell: powershell
 
       - name: Verify publish output
         run: |
@@ -62,8 +117,23 @@ jobs:
             throw "Publish output folder not found: $env:PUBLISH_DIR"
           }
 
+          $requiredAppTileAssets = @(
+            'Assets/AppTiles/Square150x150Logo.png',
+            'Assets/AppTiles/Square44x44Logo.png',
+            'Assets/AppTiles/Wide310x150Logo.png',
+            'Assets/AppTiles/SplashScreen.png',
+            'Assets/AppTiles/StoreLogo.png'
+          )
+
+          foreach ($asset in $requiredAppTileAssets) {
+            $assetPath = Join-Path $env:PUBLISH_DIR $asset
+            if (-not (Test-Path $assetPath)) {
+              throw "Required AppTiles asset missing from publish output: $assetPath"
+            }
+          }
+
           Get-ChildItem -Path $env:PUBLISH_DIR | Select-Object Name, Length
-        shell: pwsh
+        shell: powershell
 
       - name: Install Obfuscar tool
         run: >
@@ -71,8 +141,7 @@ jobs:
           --tool-path $env:OBFUSCAR_TOOL_PATH
           Obfuscar.GlobalTool
           --version $env:OBFUSCAR_VERSION
-          --prerelease
-        shell: pwsh
+        shell: powershell
 
       - name: Prepare obfuscated publish payload
         run: |
@@ -82,7 +151,7 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path $env:OBFUSCATED_PUBLISH_DIR | Out-Null
           Copy-Item -Path (Join-Path $env:PUBLISH_DIR '*') -Destination $env:OBFUSCATED_PUBLISH_DIR -Recurse -Force
-        shell: pwsh
+        shell: powershell
 
       - name: Generate Obfuscar config
         run: >
@@ -90,7 +159,7 @@ jobs:
           -InputDir $env:OBFUSCATED_PUBLISH_DIR
           -OutputDir $env:OBFUSCAR_OUTPUT_DIR
           -ConfigPath $env:OBFUSCAR_CONFIG_PATH
-        shell: pwsh
+        shell: powershell
 
       - name: Obfuscate managed assemblies
         run: |
@@ -99,10 +168,11 @@ jobs:
             throw "Obfuscar executable not found: $obfuscarExe"
           }
 
-          & $obfuscarExe $env:OBFUSCAR_CONFIG_PATH
+          $obfuscarConfigPath = [System.IO.Path]::GetFullPath($env:OBFUSCAR_CONFIG_PATH)
+          & $obfuscarExe $obfuscarConfigPath
 
           Get-ChildItem -Path $env:OBFUSCAR_OUTPUT_DIR | Select-Object Name, Length
-        shell: pwsh
+        shell: powershell
 
       - name: Merge obfuscated assemblies into installer payload
         run: |
@@ -111,19 +181,50 @@ jobs:
           }
 
           Get-ChildItem -Path $env:OBFUSCATED_PUBLISH_DIR | Select-Object Name, Length
-        shell: pwsh
+        shell: powershell
 
-      - name: Validate Inno Setup compiler
-        run: >
-          .\scripts\Validate-InnoSetup.ps1
-          -CompilerPath $env:INNO_COMPILER
-          -ScriptPath $env:INNO_SCRIPT
-        shell: pwsh
+      - name: Bundle local demo environment when present
+        run: |
+          $workspaceRoot = if ($env:GITHUB_WORKSPACE) { $env:GITHUB_WORKSPACE } else { (Get-Location).Path }
+          $payloadEnvPath = Join-Path $env:OBFUSCATED_PUBLISH_DIR '.env'
+          $candidateEnvPaths = New-Object System.Collections.Generic.List[string]
+
+          if (-not [string]::IsNullOrWhiteSpace($env:ACT_LOCAL_ENV_PATH)) {
+            $candidateEnvPaths.Add([System.IO.Path]::GetFullPath($env:ACT_LOCAL_ENV_PATH))
+          }
+
+          $candidateEnvPaths.Add((Join-Path $workspaceRoot '.env'))
+
+          $resolvedEnvPath = $candidateEnvPaths |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Select-Object -Unique |
+            Where-Object { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+
+          if ($resolvedEnvPath) {
+            Copy-Item -Path $resolvedEnvPath -Destination $payloadEnvPath -Force
+            Write-Host "Bundled local .env from $resolvedEnvPath into installer payload."
+            exit 0
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:CLOUDINARY_URL)) {
+            Set-Content -Path $payloadEnvPath -Value "CLOUDINARY_URL=$($env:CLOUDINARY_URL)" -Encoding UTF8
+            Write-Host "Bundled local .env from CLOUDINARY_URL environment variable."
+            exit 0
+          }
+
+          Write-Host "No local .env source found. Checked:"
+          $candidateEnvPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique | ForEach-Object {
+            Write-Host " - $_"
+          }
+          Write-Host "Current working directory: $((Get-Location).Path)"
+          Write-Host "Skipping bundled demo configuration."
+        shell: powershell
 
       - name: Build installer with Inno Setup
         run: |
           & $env:INNO_COMPILER /Qp $env:INNO_SCRIPT
-        shell: pwsh
+        shell: powershell
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4

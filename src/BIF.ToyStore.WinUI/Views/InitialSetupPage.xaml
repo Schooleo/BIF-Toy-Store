@@ -10,7 +10,7 @@
 
     <Grid x:Name="InitialSetupRoot"
           Background="{StaticResource LoginSurfaceBrush}">
-        <Image Source="ms-appx:///Assets/Branding/StoreInterior.png"
+        <Image Source="ms-appx:///Assets/Branding/StoreInterior.jpg"
                Stretch="UniformToFill"/>
         <Rectangle Fill="{StaticResource LoginOverlayBrush}"/>
 
