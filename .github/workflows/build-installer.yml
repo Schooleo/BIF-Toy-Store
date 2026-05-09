@@ -1,0 +1,144 @@
+name: Build WinUI Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    env:
+      DOTNET_VERSION: 10.0.x
+      TARGET_FRAMEWORK: net10.0-windows10.0.19041.0
+      RUNTIME_IDENTIFIER: win-x64
+      APP_PROJECT: src/BIF.ToyStore.WinUI/BIF.ToyStore.WinUI.csproj
+      SOLUTION_FILE: src/BIF-Toy-Store.slnx
+      PUBLISH_DIR: src/BIF.ToyStore.WinUI/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish
+      OBFUSCATED_PUBLISH_DIR: artifacts/publish-obfuscated
+      OBFUSCAR_TOOL_PATH: .tools/obfuscar
+      OBFUSCAR_VERSION: 3.0.0-beta.11
+      OBFUSCAR_OUTPUT_DIR: artifacts/obfuscation/output
+      OBFUSCAR_CONFIG_PATH: artifacts/obfuscation/obfuscar.xml
+      INNO_SCRIPT: installer.iss
+      INNO_COMPILER: "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore app for installer publish
+        run: >
+          dotnet restore $env:APP_PROJECT
+          -r $env:RUNTIME_IDENTIFIER
+          -p:PublishReadyToRun=true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+        shell: pwsh
+
+      - name: Publish WinUI app
+        run: >
+          dotnet publish $env:APP_PROJECT
+          -c Release
+          -f $env:TARGET_FRAMEWORK
+          -r $env:RUNTIME_IDENTIFIER
+          --self-contained true
+          -p:PublishReadyToRun=true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          --no-restore
+        shell: pwsh
+
+      - name: Verify publish output
+        run: |
+          if (-not (Test-Path $env:PUBLISH_DIR)) {
+            throw "Publish output folder not found: $env:PUBLISH_DIR"
+          }
+
+          Get-ChildItem -Path $env:PUBLISH_DIR | Select-Object Name, Length
+        shell: pwsh
+
+      - name: Install Obfuscar tool
+        run: >
+          dotnet tool install
+          --tool-path $env:OBFUSCAR_TOOL_PATH
+          Obfuscar.GlobalTool
+          --version $env:OBFUSCAR_VERSION
+          --prerelease
+        shell: pwsh
+
+      - name: Prepare obfuscated publish payload
+        run: |
+          if (Test-Path $env:OBFUSCATED_PUBLISH_DIR) {
+            Remove-Item -Path $env:OBFUSCATED_PUBLISH_DIR -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Force -Path $env:OBFUSCATED_PUBLISH_DIR | Out-Null
+          Copy-Item -Path (Join-Path $env:PUBLISH_DIR '*') -Destination $env:OBFUSCATED_PUBLISH_DIR -Recurse -Force
+        shell: pwsh
+
+      - name: Generate Obfuscar config
+        run: >
+          .\scripts\Generate-ObfuscarConfig.ps1
+          -InputDir $env:OBFUSCATED_PUBLISH_DIR
+          -OutputDir $env:OBFUSCAR_OUTPUT_DIR
+          -ConfigPath $env:OBFUSCAR_CONFIG_PATH
+        shell: pwsh
+
+      - name: Obfuscate managed assemblies
+        run: |
+          $obfuscarExe = Join-Path $env:OBFUSCAR_TOOL_PATH 'obfuscar.console.exe'
+          if (-not (Test-Path $obfuscarExe)) {
+            throw "Obfuscar executable not found: $obfuscarExe"
+          }
+
+          & $obfuscarExe $env:OBFUSCAR_CONFIG_PATH
+
+          Get-ChildItem -Path $env:OBFUSCAR_OUTPUT_DIR | Select-Object Name, Length
+        shell: pwsh
+
+      - name: Merge obfuscated assemblies into installer payload
+        run: |
+          Get-ChildItem -Path $env:OBFUSCAR_OUTPUT_DIR -File | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination (Join-Path $env:OBFUSCATED_PUBLISH_DIR $_.Name) -Force
+          }
+
+          Get-ChildItem -Path $env:OBFUSCATED_PUBLISH_DIR | Select-Object Name, Length
+        shell: pwsh
+
+      - name: Validate Inno Setup compiler
+        run: >
+          .\scripts\Validate-InnoSetup.ps1
+          -CompilerPath $env:INNO_COMPILER
+          -ScriptPath $env:INNO_SCRIPT
+        shell: pwsh
+
+      - name: Build installer with Inno Setup
+        run: |
+          & $env:INNO_COMPILER /Qp $env:INNO_SCRIPT
+        shell: pwsh
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BIF-Toy-Store-setup
+          path: InstallerOutput/*.exe
+          if-no-files-found: error
+
+      - name: Upload obfuscation mapping
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: BIF-Toy-Store-obfuscation
+          path: |
+            artifacts/obfuscation/obfuscar.xml
+            artifacts/obfuscation/output/*.xml
+            artifacts/obfuscation/output/*.map
+          if-no-files-found: warn
