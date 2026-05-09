@@ -2,6 +2,7 @@ using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
 using Moq;
+using System.Collections.ObjectModel;
 
 namespace BIF.ToyStore.Tests.ViewModels.Pages
 {
@@ -51,7 +52,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 ImportPrice = 10m,
                 RetailPrice = 20m,
                 StockQuantity = 5,
-                ImageUrl = "https://example.com/image.png"
+                Images = new ObservableCollection<ProductImage> 
+                { 
+                    new ProductImage { ImageUrl = "https://example.com/image.png", IsPrimary = true } 
+                }
             };
 
             vm.InitializeForEdit(product, categories);
@@ -87,7 +91,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             vm.ImportPrice = 5m;
             vm.RetailPrice = 9m;
             vm.StockQuantity = 3;
-            vm.ImageUrl = "https://example.com/updated.png";
+            vm.Images.Clear();
+            vm.Images.Add(new ProductImage { ImageUrl = "https://example.com/updated.png", IsPrimary = true });
 
             var result = vm.GetProduct();
 
@@ -97,7 +102,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal(5m, result.ImportPrice);
             Assert.Equal(9m, result.RetailPrice);
             Assert.Equal(3, result.StockQuantity);
-            Assert.Equal("https://example.com/updated.png", result.ImageUrl);
+            Assert.Equal("https://example.com/updated.png", result.Images.First().ImageUrl);
         }
 
         [Fact]
@@ -109,7 +114,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             vm.ImportPrice = 1;
             vm.RetailPrice = 2;
             vm.StockQuantity = 3;
-            vm.ImageUrl = "https://example.com/product.png";
+            vm.Images.Add(new ProductImage { ImageUrl = "https://example.com/product.png", IsPrimary = true });
             vm.UploadErrorMessage = "oops";
             vm.HasNameError = true;
             vm.HasCategoryError = true;

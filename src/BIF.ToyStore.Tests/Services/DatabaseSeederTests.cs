@@ -37,7 +37,12 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Contains("IsInitialSetupCompleted", columns);
 
             var productColumns = await GetTableColumnsAsync(context, "Products");
-            Assert.Contains("ImageUrl", productColumns);
+            Assert.DoesNotContain("ImageUrl", productColumns);
+
+            // Verify ProductImages table exists
+            var productImagesColumns = await GetTableColumnsAsync(context, "ProductImages");
+            Assert.Contains("ImageUrl", productImagesColumns);
+            Assert.Contains("ProductId", productImagesColumns);
 
             var config = await context.AppConfigs.SingleAsync(c => c.Id == 1);
             Assert.False(config.IsInitialSetupCompleted);
@@ -206,19 +211,25 @@ namespace BIF.ToyStore.Tests.Services
             // Run Seeder
             await DatabaseSeeder.SeedAsync(context);
 
-            // Assert: 3 default categories + protected "Other" category, and 15 products
+            // Assert: 3 default categories + protected "Other" category, and 66 products
             var categoriesCount = await context.Categories.CountAsync();
             var productsCount = await context.Products.CountAsync();
 
             Assert.Equal(4, categoriesCount);
-            Assert.Equal(15, productsCount);
+            Assert.Equal(66, productsCount);
 
-            // Validate mapping by checking English category
-            var legoCategory = await context.Categories
+            // Validate mapping by checking a category from seed_data.json
+            var stuffedAnimalsCategory = await context.Categories
                 .Include(c => c.Products)
-                .SingleAsync(c => c.Name == "Lego Sets");
+                .SingleAsync(c => c.Name == "Stuffed Animals");
 
-            Assert.Equal(5, legoCategory.Products.Count);
+            Assert.Equal(22, stuffedAnimalsCategory.Products.Count);
+
+            // Verify images are seeded
+            var productWithImages = await context.Products
+                .Include(p => p.Images)
+                .FirstAsync(p => p.CategoryId == stuffedAnimalsCategory.Id);
+            Assert.NotEmpty(productWithImages.Images);
         }
 
         private static async Task CreateLegacySchemaAsync(AppDbContext context)

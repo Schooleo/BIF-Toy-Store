@@ -20,6 +20,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await EnsureAppConfigSchemaAsync(dbContext);
             await EnsureCategorySchemaAsync(dbContext);
             await EnsureProductSchemaAsync(dbContext);
+            await EnsureProductImageSchemaAsync(dbContext);
             await EnsureOrderSchemaAsync(dbContext);
 
             bool configExists = await dbContext.AppConfigs.AnyAsync(c => c.Id == 1);
@@ -71,40 +72,76 @@ namespace BIF.ToyStore.Infrastructure.Data
             bool categoryExists = await dbContext.Categories.AnyAsync(c => c.Id != AppConstants.OtherCategoryId);
             if (categoryExists)
             {
-                return; 
+                return;
             }
-            // 1. Create Sample Categories
-            var category1 = new Category { Name = "Action Figures" };
-            var category2 = new Category { Name = "Lego Sets" };
-            var category3 = new Category { Name = "Board Games" };
-            dbContext.Categories.AddRange(category1, category2, category3);
-            await dbContext.SaveChangesAsync();
-            // 2. Create Sample Products
-            var products = new List<Product>
+
+            string jsonPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "seed_data.json");
+            if (!File.Exists(jsonPath))
             {
-                // Action Figures (Id của category1)
-                new Product { Name = "Ferrari 1:18 Diecast Model", CategoryId = category1.Id, RetailPrice = 45.99m, ImportPrice = 20.00m, StockQuantity = 10 },
-                new Product { Name = "Gundam RX-78-2 Master Grade", CategoryId = category1.Id, RetailPrice = 65.50m, ImportPrice = 35.00m, StockQuantity = 5 },
-                new Product { Name = "Transformers Optimus Prime", CategoryId = category1.Id, RetailPrice = 39.99m, ImportPrice = 18.00m, StockQuantity = 22 },
-                new Product { Name = "Marvel Legends Iron Man", CategoryId = category1.Id, RetailPrice = 24.99m, ImportPrice = 10.00m, StockQuantity = 40 },
-                new Product { Name = "Star Wars Darth Vader Helmet", CategoryId = category1.Id, RetailPrice = 59.90m, ImportPrice = 28.50m, StockQuantity = 8 },
-                
-                // Lego Sets (Id của category2)
-                new Product { Name = "Lego Ninjago Master Dragon", CategoryId = category2.Id, RetailPrice = 89.99m, ImportPrice = 50.00m, StockQuantity = 12 },
-                new Product { Name = "Lego City Fire Station", CategoryId = category2.Id, RetailPrice = 119.99m, ImportPrice = 75.00m, StockQuantity = 3 },
-                new Product { Name = "Lego Technic McLaren F1", CategoryId = category2.Id, RetailPrice = 199.99m, ImportPrice = 110.00m, StockQuantity = 5 },
-                new Product { Name = "Lego Star Wars Millennium Falcon", CategoryId = category2.Id, RetailPrice = 159.99m, ImportPrice = 90.00m, StockQuantity = 2 },
-                new Product { Name = "Lego Creator 3-in-1 Dinosaur", CategoryId = category2.Id, RetailPrice = 29.99m, ImportPrice = 12.00m, StockQuantity = 30 },
-                
-                // Board Games (Id của category3)
-                new Product { Name = "Monopoly Classic Edition", CategoryId = category3.Id, RetailPrice = 19.99m, ImportPrice = 10.50m, StockQuantity = 50 },
-                new Product { Name = "Catan Base Game", CategoryId = category3.Id, RetailPrice = 44.99m, ImportPrice = 22.00m, StockQuantity = 15 },
-                new Product { Name = "Ticket to Ride Classic", CategoryId = category3.Id, RetailPrice = 49.99m, ImportPrice = 25.00m, StockQuantity = 18 },
-                new Product { Name = "Scrabble Original", CategoryId = category3.Id, RetailPrice = 21.50m, ImportPrice = 9.00m, StockQuantity = 25 },
-                new Product { Name = "Chess Set Premium Wood", CategoryId = category3.Id, RetailPrice = 35.00m, ImportPrice = 15.00m, StockQuantity = 7 }
-            };
-            dbContext.Products.AddRange(products);
-            await dbContext.SaveChangesAsync();
+                // Fallback for different environments
+                jsonPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data", "seed_data.json");
+            }
+
+            if (!File.Exists(jsonPath)) return;
+
+            var json = await File.ReadAllTextAsync(jsonPath);
+            var seedData = System.Text.Json.JsonSerializer.Deserialize<List<CategorySeedDto>>(json);
+
+            if (seedData == null) return;
+
+            foreach (var categoryDto in seedData)
+            {
+                var category = new Category { Name = categoryDto.CategoryName };
+                dbContext.Categories.Add(category);
+                await dbContext.SaveChangesAsync();
+
+                foreach (var productDto in categoryDto.Products)
+                {
+                    var product = new Product
+                    {
+                        Name = productDto.Name,
+                        CategoryId = category.Id,
+                        RetailPrice = productDto.RetailPrice,
+                        ImportPrice = productDto.ImportPrice,
+                        StockQuantity = productDto.StockQuantity,
+                        IsDeleted = false
+                    };
+
+                    dbContext.Products.Add(product);
+                    await dbContext.SaveChangesAsync();
+
+                    if (productDto.Images != null)
+                    {
+                        for (int i = 0; i < productDto.Images.Count; i++)
+                        {
+                            var productImage = new ProductImage
+                            {
+                                ProductId = product.Id,
+                                ImageUrl = productDto.Images[i],
+                                DisplayOrder = i,
+                                IsPrimary = i == 0
+                            };
+                            dbContext.ProductImages.Add(productImage);
+                        }
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+
+        private class CategorySeedDto
+        {
+            public string CategoryName { get; set; } = string.Empty;
+            public List<ProductSeedDto> Products { get; set; } = new();
+        }
+
+        private class ProductSeedDto
+        {
+            public string Name { get; set; } = string.Empty;
+            public decimal RetailPrice { get; set; }
+            public decimal ImportPrice { get; set; }
+            public int StockQuantity { get; set; }
+            public List<string> Images { get; set; } = new();
         }
 
         /// <summary>
@@ -114,7 +151,7 @@ namespace BIF.ToyStore.Infrastructure.Data
         {
             var expectedTables = new[]
             {
-                "Users", "Categories", "Products",
+                "Users", "Categories", "Products", "ProductImages",
                 "Customers", "Orders", "OrderDetails", "AppConfigs"
             };
 
@@ -228,7 +265,32 @@ namespace BIF.ToyStore.Infrastructure.Data
                 }
 
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
-                await EnsureColumnAsync(connection, tableName, existingColumns, "ImageUrl", "TEXT NULL");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureProductImageSchemaAsync(AppDbContext dbContext)
+        {
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS ProductImages (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ProductId INTEGER NOT NULL,
+                        ImageUrl TEXT NOT NULL,
+                        DisplayOrder INTEGER NOT NULL,
+                        IsPrimary INTEGER NOT NULL,
+                        CONSTRAINT FK_ProductImages_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE CASCADE
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_ProductImages_ProductId ON ProductImages (ProductId);";
+                await cmd.ExecuteNonQueryAsync();
             }
             finally
             {

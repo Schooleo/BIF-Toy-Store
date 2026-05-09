@@ -17,6 +17,7 @@ namespace BIF.ToyStore.Infrastructure.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<AppConfig> AppConfigs { get; set; }
 
         // Configure SQLite connection
@@ -72,6 +73,13 @@ namespace BIF.ToyStore.Infrastructure.Data
                 .HasOne(d => d.Product)
                 .WithMany()
                 .HasForeignKey(d => d.ProductId);
+
+            // ProductImage: relationship
+            modelBuilder.Entity<ProductImage>()
+                .HasOne(pi => pi.Product)
+                .WithMany(p => p.Images)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

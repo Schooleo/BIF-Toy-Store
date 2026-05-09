@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+using System.Linq;
 using WinRT.Interop;
 
 namespace BIF.ToyStore.WinUI.Controls
@@ -94,7 +95,7 @@ namespace BIF.ToyStore.WinUI.Controls
             }
         }
 
-        public string? CurrentImageUrl => Product?.ImageUrl;
+        public string? CurrentImageUrl => Product?.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? Product?.Images?.FirstOrDefault()?.ImageUrl;
 
         public Product? Product
         {
@@ -262,6 +263,13 @@ namespace BIF.ToyStore.WinUI.Controls
             try
             {
                 UploadErrorMessage = string.Empty;
+
+                if (Product.Images.Count >= 3)
+                {
+                    UploadErrorMessage = "Maximum 3 images allowed.";
+                    return;
+                }
+
                 IsUploadingImage = true;
 
                 var selectedFilePath = await _imageFilePickerService.PickImageFilePathAsync(_windowHandle);
@@ -270,7 +278,7 @@ namespace BIF.ToyStore.WinUI.Controls
                     return;
                 }
 
-                Product.ImageUrl = selectedFilePath;
+                Product.Images.Add(new ProductImage { ImageUrl = selectedFilePath, IsPrimary = Product.Images.Count == 0, DisplayOrder = Product.Images.Count });
                 OnPropertyChanged(nameof(CurrentImageUrl));
             }
             catch (Exception ex)
@@ -281,6 +289,53 @@ namespace BIF.ToyStore.WinUI.Controls
             {
                 IsUploadingImage = false;
             }
+        }
+
+        private void SetPrimary_Click(object sender, RoutedEventArgs e)
+        {
+            if (Product is null || sender is not Button { DataContext: ProductImage image })
+            {
+                return;
+            }
+
+            var oldPrimary = Product.Images.FirstOrDefault(i => i.IsPrimary);
+            if (oldPrimary != null && oldPrimary != image)
+            {
+                oldPrimary.IsPrimary = false;
+                var oldIndex = Product.Images.IndexOf(oldPrimary);
+                Product.Images[oldIndex] = oldPrimary;
+            }
+
+            image.IsPrimary = true;
+            var newIndex = Product.Images.IndexOf(image);
+            Product.Images[newIndex] = image;
+
+            OnPropertyChanged(nameof(CurrentImageUrl));
+        }
+
+        private void RemoveImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (Product is null || sender is not Button { DataContext: ProductImage image })
+            {
+                return;
+            }
+
+            bool wasPrimary = image.IsPrimary;
+            Product.Images.Remove(image);
+
+            if (wasPrimary && Product.Images.Count > 0)
+            {
+                Product.Images.First().IsPrimary = true;
+            }
+
+            // Update display orders
+            int order = 0;
+            foreach (var img in Product.Images)
+            {
+                img.DisplayOrder = order++;
+            }
+
+            OnPropertyChanged(nameof(CurrentImageUrl));
         }
 
         private void OnPropertyChanged(string propertyName)

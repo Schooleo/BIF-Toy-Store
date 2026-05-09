@@ -1,10 +1,12 @@
-﻿using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BIF.ToyStore.Tests.Repositories
 {
@@ -125,11 +127,14 @@ namespace BIF.ToyStore.Tests.Repositories
                 RetailPrice = 50m,
                 ImportPrice = 25m,
                 StockQuantity = 4,
-                ImageUrl = "https://example.com/robot.png"
+                Images = new ObservableCollection<ProductImage> 
+                { 
+                    new ProductImage { ImageUrl = "https://example.com/robot.png", IsPrimary = true } 
+                }
             });
 
-            Assert.Equal("https://example.com/robot.png", updated.ImageUrl);
-            Assert.Equal("https://example.com/robot.png", _dbContext.Products.Single(p => p.Id == 10).ImageUrl);
+            Assert.Equal("https://example.com/robot.png", updated.Images.First().ImageUrl);
+            Assert.Equal("https://example.com/robot.png", _dbContext.Products.Include(p => p.Images).Single(p => p.Id == 10).Images.First().ImageUrl);
         }
     }
 }

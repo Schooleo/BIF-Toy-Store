@@ -1,8 +1,9 @@
-﻿using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
 using BIF.ToyStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 
 namespace BIF.ToyStore.Infrastructure.Repositories
 {
@@ -89,7 +90,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     RetailPrice = incoming.RetailPrice,
                     ImportPrice = incoming.ImportPrice,
                     StockQuantity = incoming.StockQuantity,
-                    ImageUrl = incoming.ImageUrl,
+                    Images = incoming.Images,
                     IsDeleted = false
                 };
 
@@ -110,6 +111,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
         public async Task<Product> UpdateDetailsAsync(Product product)
         {
             var existing = await _dbContext.Products
+                .Include(p => p.Images)
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.Id == product.Id && !p.IsDeleted);
 
@@ -123,7 +125,21 @@ namespace BIF.ToyStore.Infrastructure.Repositories
             existing.RetailPrice = product.RetailPrice;
             existing.ImportPrice = product.ImportPrice;
             existing.StockQuantity = product.StockQuantity;
-            existing.ImageUrl = product.ImageUrl;
+
+            // Update Images
+            _dbContext.ProductImages.RemoveRange(existing.Images);
+            if (product.Images != null && product.Images.Any())
+            {
+                foreach (var img in product.Images)
+                {
+                    existing.Images.Add(new ProductImage
+                    {
+                        ImageUrl = img.ImageUrl,
+                        DisplayOrder = img.DisplayOrder,
+                        IsPrimary = img.IsPrimary
+                    });
+                }
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -166,7 +182,13 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     RetailPrice = p.RetailPrice,
                     ImportPrice = p.ImportPrice,
                     StockQuantity = p.StockQuantity,
-                    ImageUrl = p.ImageUrl,
+                    Images = new ObservableCollection<ProductImage>(p.Images.Select(img => new ProductImage 
+                    {
+                        Id = img.Id,
+                        ImageUrl = img.ImageUrl,
+                        DisplayOrder = img.DisplayOrder,
+                        IsPrimary = img.IsPrimary
+                    }).ToList()), // Note: In some EF Core versions, this might still be needed for in-memory, but usually causes issues with IQueryable providers.
                     IsDeleted = p.IsDeleted
                 })
                 .AsNoTracking();
@@ -178,6 +200,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
             {
                 return _dbContext.Products
                     .IgnoreQueryFilters()
+                    .Include(p => p.Images)
                     .Where(p => !p.IsDeleted && p.CategoryId == categoryId)
                     .AsNoTracking();
             }
@@ -195,6 +218,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
 
             return _dbContext.Products
                 .IgnoreQueryFilters()
+                .Include(p => p.Images)
                 .Where(p => !p.IsDeleted && effectiveOtherProductIds.Contains(p.Id))
                 .AsNoTracking();
         }
