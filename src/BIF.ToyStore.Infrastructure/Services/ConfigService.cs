@@ -5,19 +5,23 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
-    public class ConfigService(IConfigRepository configRepository, IMemoryCache memoryCache) : IConfigService
+    public class ConfigService(
+        IConfigRepository configRepository,
+        IMemoryCache memoryCache,
+        IRuntimeSettingsService runtimeSettingsService) : IConfigService
     {
         private const string ConfigCacheKey = "app-config-singleton";
         private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
 
         private readonly IConfigRepository _configRepository = configRepository;
         private readonly IMemoryCache _memoryCache = memoryCache;
+        private readonly IRuntimeSettingsService _runtimeSettingsService = runtimeSettingsService;
 
         public async Task<AppConfig> GetConfigAsync()
         {
             if (_memoryCache.TryGetValue<AppConfig>(ConfigCacheKey, out var cachedConfig) && cachedConfig is not null)
             {
-                return CloneConfig(cachedConfig);
+                return ApplyRuntimeOverrides(cachedConfig);
             }
 
             var dbConfig = await _configRepository.GetSingletonNoTrackingAsync();
@@ -34,7 +38,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             }
 
             _memoryCache.Set(ConfigCacheKey, CloneConfig(dbConfig), CacheTtl);
-            return CloneConfig(dbConfig);
+            return ApplyRuntimeOverrides(dbConfig);
         }
 
         public async Task<bool> IsInitialSetupCompletedAsync()
@@ -57,30 +61,35 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.ThemePreference = setupConfiguration.ThemePreference;
             config.EnableLoyaltyPoints = setupConfiguration.EnableLoyaltyPoints;
             config.TaxRate = setupConfiguration.TaxRate;
+            config.LocalServerPort = _runtimeSettingsService.GetLocalServerPort();
+            config.DatabasePath = _runtimeSettingsService.GetConfiguredDatabasePath();
             config.IsInitialSetupCompleted = true;
 
             await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
-            return CloneConfig(cachedCopy);
+            return ApplyRuntimeOverrides(cachedCopy);
         }
 
         public async Task<AppConfig> UpdateConfigAsync(string displayName, decimal taxRate, int localServerPort, string databasePath)
         {
             var config = await _configRepository.GetOrCreateSingletonTrackedAsync();
 
+            _runtimeSettingsService.SetLocalServerPort(localServerPort);
+            _runtimeSettingsService.SetConfiguredDatabasePath(databasePath);
+
             config.Id = 1;
             config.DisplayName = displayName;
             config.TaxRate = taxRate;
-            config.LocalServerPort = localServerPort;
-            config.DatabasePath = databasePath;
+            config.LocalServerPort = _runtimeSettingsService.GetLocalServerPort();
+            config.DatabasePath = _runtimeSettingsService.GetConfiguredDatabasePath();
 
             await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
-            return CloneConfig(cachedCopy);
+            return ApplyRuntimeOverrides(cachedCopy);
         }
 
         public async Task<AppConfig> UpdateStoreSettingsAsync(
@@ -100,12 +109,22 @@ namespace BIF.ToyStore.Infrastructure.Services
             config.ReceiptHeader = receiptHeader ?? string.Empty;
             config.ReceiptFooter = receiptFooter ?? string.Empty;
             config.ThemePreference = string.IsNullOrWhiteSpace(themePreference) ? "System" : themePreference.Trim();
+            config.LocalServerPort = _runtimeSettingsService.GetLocalServerPort();
+            config.DatabasePath = _runtimeSettingsService.GetConfiguredDatabasePath();
 
             await _configRepository.SaveChangesAsync();
 
             var cachedCopy = CloneConfig(config);
             _memoryCache.Set(ConfigCacheKey, cachedCopy, CacheTtl);
-            return CloneConfig(cachedCopy);
+            return ApplyRuntimeOverrides(cachedCopy);
+        }
+
+        private AppConfig ApplyRuntimeOverrides(AppConfig source)
+        {
+            var clone = CloneConfig(source);
+            clone.LocalServerPort = _runtimeSettingsService.GetLocalServerPort();
+            clone.DatabasePath = _runtimeSettingsService.GetConfiguredDatabasePath();
+            return clone;
         }
 
         private static AppConfig CloneConfig(AppConfig source)

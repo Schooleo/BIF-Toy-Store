@@ -12,10 +12,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace BIF.ToyStore.WinUI
@@ -36,8 +36,14 @@ namespace BIF.ToyStore.WinUI
             InitializeComponent();
 
             var bootstrapSettings = new LocalSettingsService();
-            (_pendingRestoreApplied, _pendingRestoreApplyError) = ApplyPendingRestoreIfScheduled(bootstrapSettings);
-            var serverPort = bootstrapSettings.GetInt(AppPreferenceKeys.LocalServerPort, 5000);
+            var databasePathService = new DatabasePathService();
+            var runtimeSettingsService = new RuntimeSettingsService(bootstrapSettings, databasePathService);
+            var pendingRestoreService = new PendingRestoreService(bootstrapSettings, databasePathService);
+            var pendingRestoreResult = pendingRestoreService.ApplyPendingRestoreIfScheduled();
+            _pendingRestoreApplied = pendingRestoreResult.Applied;
+            _pendingRestoreApplyError = pendingRestoreResult.Error;
+            var serverPort = runtimeSettingsService.GetLocalServerPort();
+            var databasePath = runtimeSettingsService.GetResolvedDatabasePath();
 
             // Create the Host Builder
             _host = Host.CreateDefaultBuilder()
@@ -53,7 +59,8 @@ namespace BIF.ToyStore.WinUI
                     webBuilder.ConfigureServices(services =>
                     {
                         // Database
-                        services.AddDbContext<AppDbContext>();
+                        services.AddDbContext<AppDbContext>(options =>
+                            options.UseSqlite($"Data Source={databasePath}"));
 
                         // Repositories
                         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
@@ -73,11 +80,15 @@ namespace BIF.ToyStore.WinUI
                         services.AddScoped<IOrderService, OrderService>();
                         services.AddScoped<IProductService, ProductService>();
                         services.AddSingleton<ICredentialVaultService, CredentialVaultService>();
-                        services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
+                        services.AddSingleton<ILocalSettingsService>(bootstrapSettings);
                         services.AddSingleton<IAppInfoService, AppInfoService>();
                         services.AddSingleton<IExcelFilePickerService, ExcelFilePickerService>();
                         services.AddSingleton<IImageFilePickerService, ImageFilePickerService>();
                         services.AddSingleton<IProductImageUploadService, CloudinaryProductImageUploadService>();
+                        services.AddSingleton<IDatabasePathService>(databasePathService);
+                        services.AddSingleton<IRuntimeSettingsService>(runtimeSettingsService);
+                        services.AddSingleton<IBackupService, BackupService>();
+                        services.AddSingleton<IPendingRestoreService>(pendingRestoreService);
                         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
                         // GraphQL
@@ -185,37 +196,6 @@ namespace BIF.ToyStore.WinUI
             catch (Exception ex)
             {
                 await ShowErrorDialogAsync(ex);
-            }
-        }
-
-        private static (bool applied, string? error) ApplyPendingRestoreIfScheduled(LocalSettingsService localSettings)
-        {
-            var backupPath = localSettings.GetString(AppPreferenceKeys.PendingRestoreBackupPath);
-            var targetPath = localSettings.GetString(AppPreferenceKeys.PendingRestoreTargetPath);
-
-            if (string.IsNullOrWhiteSpace(backupPath) || string.IsNullOrWhiteSpace(targetPath))
-            {
-                return (false, null);
-            }
-
-            try
-            {
-                if (!File.Exists(backupPath))
-                {
-                    return (false, "Backup file was not found.");
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(targetPath) ?? AppContext.BaseDirectory);
-                File.Copy(backupPath, targetPath, overwrite: true);
-
-                localSettings.SetString(AppPreferenceKeys.PendingRestoreBackupPath, string.Empty);
-                localSettings.SetString(AppPreferenceKeys.PendingRestoreTargetPath, string.Empty);
-
-                return (true, null);
-            }
-            catch (Exception ex)
-            {
-                return (false, ex.Message);
             }
         }
 

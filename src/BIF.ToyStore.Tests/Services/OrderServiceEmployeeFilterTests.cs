@@ -1,4 +1,5 @@
 using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Repositories;
@@ -15,7 +16,7 @@ namespace BIF.ToyStore.Tests.Services
     public class OrderServiceEmployeeFilterTests : IDisposable
     {
         private readonly AppDbContext _dbContext;
-        private readonly OrderService _orderService;
+        private readonly IOrderService _orderService;
 
         public OrderServiceEmployeeFilterTests()
         {
@@ -25,8 +26,7 @@ namespace BIF.ToyStore.Tests.Services
                 .Options;
 
             _dbContext = new AppDbContext(options);
-            var orderRepository = new OrderRepository(_dbContext);
-            _orderService = new OrderService(orderRepository);
+            _orderService = new OrderService(new OrderRepository(_dbContext));
 
             SeedTestData();
         }
