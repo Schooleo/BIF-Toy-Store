@@ -89,5 +89,20 @@ namespace BIF.ToyStore.WinUI.Views.Dialogs
             }
         }
 
+        private void Thumbnail_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { DataContext: ProductImage image })
+            {
+                ViewModel.SetPrimaryCommand.Execute(image);
+            }
+        }
+
+        private void DeleteImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { DataContext: ProductImage image })
+            {
+                ViewModel.RemoveImageCommand.Execute(image);
+            }
+        }
     }
 }

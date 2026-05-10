@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -197,7 +198,11 @@ namespace BIF.ToyStore.ViewModels.Pages
                              categoryName
                              retailPrice
                              stockQuantity
-                             imageUrl
+                             images {
+                                 imageUrl
+                                 isPrimary
+                                 displayOrder
+                             }
                          }
                      }
                  }";
@@ -556,7 +561,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             CategoryName = string.IsNullOrWhiteSpace(p.CategoryName)
                 ? p.Category?.Name ?? string.Empty
                 : p.CategoryName;
-            ImageUrl = p.ImageUrl;
+            ImageUrl = p.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? p.Images?.FirstOrDefault()?.ImageUrl ?? p.ImageUrl;
             CurrencySymbol = currencySymbol;
             CartQuantity = 0;
         }

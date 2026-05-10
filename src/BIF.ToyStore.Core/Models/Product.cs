@@ -1,5 +1,7 @@
-using System.Globalization;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Globalization;
 
 namespace BIF.ToyStore.Core.Models
 {
@@ -15,6 +17,9 @@ namespace BIF.ToyStore.Core.Models
         [NotMapped]
         public string CategoryName { get; set; } = string.Empty;
 
+        [NotMapped]
+        public string ImageUrl { get; set; } = string.Empty;
+
         public decimal RetailPrice { get; set; }
 
         // For Income Report
@@ -23,7 +28,7 @@ namespace BIF.ToyStore.Core.Models
         // For listing "Low Stock" products
         public int StockQuantity { get; set; }
 
-        public string? ImageUrl { get; set; }
+        public ObservableCollection<ProductImage> Images { get; set; } = new ObservableCollection<ProductImage>();
 
         public bool IsDeleted { get; set; } = false;
 

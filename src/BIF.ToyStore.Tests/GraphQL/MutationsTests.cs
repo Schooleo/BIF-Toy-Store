@@ -4,8 +4,10 @@ using System.IO;
 using System.Threading.Tasks;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.GraphQL;
 using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 
@@ -98,6 +100,7 @@ namespace BIF.ToyStore.Tests.GraphQL
         {
             var mockRepo = new Mock<IProductRepository>();
             var mutation = new Mutations();
+            using var dbContext = CreateDbContext();
 
             var fakeFileBytes = System.Text.Encoding.UTF8.GetBytes("Invalid corrupted binary text data");
             var fakeStream = new MemoryStream(fakeFileBytes);
@@ -106,7 +109,7 @@ namespace BIF.ToyStore.Tests.GraphQL
             mockFile.Setup(f => f.OpenReadStream()).Returns(fakeStream);
             mockFile.Setup(f => f.Name).Returns("virus.txt");
 
-            var result = await mutation.ImportProducts(mockFile.Object, mockRepo.Object);
+            var result = await mutation.ImportProducts(mockFile.Object, mockRepo.Object, dbContext);
 
             Assert.Equal(0, result.ImportedCount);
             Assert.NotEmpty(result.Errors);
@@ -118,10 +121,19 @@ namespace BIF.ToyStore.Tests.GraphQL
         {
             var mockRepo = new Mock<IProductRepository>();
             var mutation = new Mutations();
+            using var dbContext = CreateDbContext();
+            dbContext.Categories.AddRange(
+                new Category { Id = 1, Name = "Other", IsDeleted = false },
+                new Category { Id = 2, Name = "Board Games", IsDeleted = false },
+                new Category { Id = 3, Name = "Lego Sets", IsDeleted = false });
+            await dbContext.SaveChangesAsync();
 
-            var sampleFilePath = Path.Combine("TestFiles", "import_products_sample.xlsx");
+            mockRepo.Setup(x => x.BulkInsertAsync(It.IsAny<IEnumerable<Product>>()))
+                .ReturnsAsync(2);
 
-            if (!File.Exists(sampleFilePath))
+            var sampleFilePath = FindSampleExcelPath();
+
+            if (sampleFilePath is null)
             {
                 Assert.True(true, "Skipped: Physical Excel file not found in TestFiles directory.");
                 return;
@@ -133,11 +145,41 @@ namespace BIF.ToyStore.Tests.GraphQL
             mockFile.Setup(f => f.OpenReadStream()).Returns(realFileStream);
             mockFile.Setup(f => f.Name).Returns("import_products_sample.xlsx");
 
-            var result = await mutation.ImportProducts(mockFile.Object, mockRepo.Object);
+            var result = await mutation.ImportProducts(mockFile.Object, mockRepo.Object, dbContext);
 
             Assert.True(result.ImportedCount > 0);
             Assert.Empty(result.Errors);
-            mockRepo.Verify(x => x.BulkInsertAsync(It.IsAny<IEnumerable<Product>>()), Times.Once);
+            mockRepo.Verify(x => x.BulkInsertAsync(It.Is<IEnumerable<Product>>(items =>
+                items.Any(p => p.Name == "Uno Premium" && p.CategoryId == 2) &&
+                items.Any(p => p.Name == "Unknown Category Toy" && p.CategoryId == 1))), Times.Once);
+        }
+
+        private static AppDbContext CreateDbContext()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
+            return new AppDbContext(options);
+        }
+
+        private static string? FindSampleExcelPath()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), "TestFiles", "import_products_sample.xlsx"),
+                Path.Combine(Directory.GetCurrentDirectory(), "BIF.ToyStore.Tests", "TestFiles", "import_products_sample.xlsx"),
+                Path.Combine(AppContext.BaseDirectory, "TestFiles", "import_products_sample.xlsx"),
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
     }
 }

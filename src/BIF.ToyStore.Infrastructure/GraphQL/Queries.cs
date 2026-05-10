@@ -110,7 +110,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return productRepository.QueryForGraphQL();
         }
 
-        [UsePaging(IncludeTotalCount = true)]
+        [UsePaging(IncludeTotalCount = true, MaxPageSize = 250)]
         [UseFiltering]
         [UseSorting]
         public IQueryable<Category> Categories([Service] ICategoryRepository categoryRepository)
@@ -223,6 +223,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
     [ExtendObjectType(typeof(Category))]
     public class CategoryExtension
     {
+        [BindMember(nameof(Category.ProductCount))]
+        public int GetProductCount([Parent] Category category, [Service] IProductRepository productRepository)
+        {
+            return productRepository.QueryByCategoryForGraphQL(category.Id).Count();
+        }
+
         [BindMember(nameof(Category.Products))]
         public IQueryable<Product> GetProducts([Parent] Category category, [Service] IProductRepository productRepository)
         {

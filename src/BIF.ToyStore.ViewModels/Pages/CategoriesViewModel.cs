@@ -96,8 +96,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task DeleteCategoryAsync(int id)
         {
-            if (id == AppConstants.OtherCategoryId)
-                return; // Do not allow deleting the "Other" category
+            if (id <= 0 || id == AppConstants.OtherCategoryId)
+                return; // Do not allow invalid ids or deleting the "Other" category
 
             await _categoryService.DeleteCategoryAsync(id);
             await LoadCategoriesAsync();

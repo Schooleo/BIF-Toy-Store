@@ -92,21 +92,55 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public int? CustomerId { get; set; }
     }
 
+    public class ProductImagePayload
+    {
+        public int Id { get; init; }
+        public string ImageUrl { get; init; } = string.Empty;
+        public int DisplayOrder { get; init; }
+        public bool IsPrimary { get; init; }
+
+        public static ProductImagePayload FromModel(ProductImage image)
+        {
+            if (image == null) return new ProductImagePayload();
+            
+            return new ProductImagePayload
+            {
+                Id = image.Id,
+                ImageUrl = image.ImageUrl ?? string.Empty,
+                DisplayOrder = image.DisplayOrder,
+                IsPrimary = image.IsPrimary
+            };
+        }
+    }
+
     public class ProductPayload
     {
         public int Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public decimal RetailPrice { get; init; }
-        public string? ImageUrl { get; init; }
+        public string? PrimaryImageUrl { get; init; }
+        public List<ProductImagePayload> Images { get; init; } = [];
 
         public static ProductPayload FromProduct(Product product)
         {
+            if (product == null) return new ProductPayload();
+
+            var safeImages = product.Images?.Select(ProductImagePayload.FromModel).ToList() ?? new List<ProductImagePayload>();
+            
+            // Limit to 3 images for the payload to be safe and consistent with UI
+            if (safeImages.Count > 3)
+            {
+                safeImages = safeImages.Take(3).ToList();
+            }
+
             return new ProductPayload
             {
                 Id = product.Id,
-                Name = product.Name,
+                Name = product.Name ?? string.Empty,
                 RetailPrice = product.RetailPrice,
-                ImageUrl = product.ImageUrl
+                PrimaryImageUrl = safeImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl 
+                                  ?? safeImages.FirstOrDefault()?.ImageUrl,
+                Images = safeImages
             };
         }
     }
@@ -194,8 +228,18 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public decimal ImportPrice { get; set; }
         [JsonPropertyName("stockQuantity")]
         public int StockQuantity { get; set; }
+        [JsonPropertyName("images")]
+        public List<ProductImageInput> Images { get; set; } = new();
+    }
+
+    public class ProductImageInput
+    {
         [JsonPropertyName("imageUrl")]
-        public string? ImageUrl { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        [JsonPropertyName("displayOrder")]
+        public int DisplayOrder { get; set; }
+        [JsonPropertyName("isPrimary")]
+        public bool IsPrimary { get; set; }
     }
 
     public class UpdateProductInput : CreateProductInput

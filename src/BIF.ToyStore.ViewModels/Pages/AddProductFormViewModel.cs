@@ -4,6 +4,7 @@ using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -28,7 +29,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private int stockQuantity;
 
         [ObservableProperty]
-        private string? imageUrl;
+        private ObservableCollection<ProductImage> images = new();
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(UploadImageCommand))]
@@ -57,6 +58,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         private int _editingProductId;
 
         public bool HasUploadError => !string.IsNullOrWhiteSpace(UploadErrorMessage);
+
+        public string? ImageUrl => Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? Images?.FirstOrDefault()?.ImageUrl;
 
         public AddProductFormViewModel(
             IImageFilePickerService imageFilePickerService,
@@ -97,7 +100,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             ImportPrice = existingProduct.ImportPrice;
             RetailPrice = existingProduct.RetailPrice;
             StockQuantity = existingProduct.StockQuantity;
-            ImageUrl = existingProduct.ImageUrl;
+            Images = new ObservableCollection<ProductImage>(existingProduct.Images ?? Enumerable.Empty<ProductImage>());
         }
 
         public bool Validate()
@@ -161,7 +164,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 ImportPrice = ImportPrice,
                 RetailPrice = RetailPrice,
                 StockQuantity = StockQuantity,
-                ImageUrl = ImageUrl
+                Images = Images
             };
         }
 
@@ -171,6 +174,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         private async Task UploadImageAsync()
         {
             UploadErrorMessage = string.Empty;
+
+            if (Images.Count >= 3)
+            {
+                UploadErrorMessage = "Maximum 3 images allowed.";
+                return;
+            }
 
             if (_windowHandle == 0)
             {
@@ -188,7 +197,13 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return;
                 }
 
-                ImageUrl = selectedFilePath;
+                Images.Add(new ProductImage 
+                { 
+                    ImageUrl = selectedFilePath, 
+                    IsPrimary = Images.Count == 0, 
+                    DisplayOrder = Images.Count 
+                });
+                OnPropertyChanged(nameof(ImageUrl));
             }
             catch (Exception ex)
             {
@@ -200,6 +215,41 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
+        [RelayCommand]
+        private void RemoveImage(ProductImage image)
+        {
+            if (image == null) return;
+            
+            bool wasPrimary = image.IsPrimary;
+            Images.Remove(image);
+            
+            if (wasPrimary && Images.Count > 0)
+            {
+                Images[0].IsPrimary = true;
+            }
+            
+            // Update display orders
+            for (int i = 0; i < Images.Count; i++)
+            {
+                Images[i].DisplayOrder = i;
+            }
+            
+            OnPropertyChanged(nameof(ImageUrl));
+        }
+
+        [RelayCommand]
+        private void SetPrimary(ProductImage image)
+        {
+            if (image == null) return;
+            
+            foreach (var img in Images)
+            {
+                img.IsPrimary = (img == image);
+            }
+            
+            OnPropertyChanged(nameof(ImageUrl));
+        }
+
         public void ResetForm()
         {
             Name = string.Empty;
@@ -207,7 +257,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             ImportPrice = 0;
             RetailPrice = 0;
             StockQuantity = 0;
-            ImageUrl = null;
+            Images.Clear();
             UploadErrorMessage = string.Empty;
             IsUploadingImage = false;
 

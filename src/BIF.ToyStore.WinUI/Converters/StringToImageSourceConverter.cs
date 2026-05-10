@@ -13,9 +13,19 @@ namespace BIF.ToyStore.WinUI.Converters
                 return null;
             }
 
-            return Uri.TryCreate(source, UriKind.Absolute, out var uri)
-                ? new BitmapImage(uri)
-                : null;
+            try
+            {
+                if (Uri.TryCreate(source, UriKind.Absolute, out var uri))
+                {
+                    return new BitmapImage(uri);
+                }
+            }
+            catch
+            {
+                // Fallback or log error
+            }
+            
+            return null;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

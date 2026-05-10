@@ -7,7 +7,7 @@ namespace BIF.ToyStore.Infrastructure.Services
 	{
 		private readonly IProductApiRepository _productApiRepository = productApiRepository;
 
-		public async Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 50)
+		public async Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 250)
 		{
 			return await _productApiRepository.GetCategoriesAsync(take);
 		}
