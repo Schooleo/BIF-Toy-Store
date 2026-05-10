@@ -52,7 +52,7 @@ namespace BIF.ToyStore.Tests.Services
         }
 
         [Fact]
-        public async Task SeedAsync_NoUsers_DoesNotCreateDefaultAccounts()
+        public async Task SeedAsync_NoUsers_CreatesDefaultAccounts()
         {
             const string connectionString = "Data Source=SeederDb2;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -70,7 +70,10 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            Assert.Empty(context.Users);
+            Assert.Equal(3, await context.Users.CountAsync());
+            Assert.Contains(context.Users, u => u.Username == "admin");
+            Assert.Contains(context.Users, u => u.Username == "cashier_a");
+            Assert.Contains(context.Users, u => u.Username == "cashier_b");
         }
 
         [Fact]

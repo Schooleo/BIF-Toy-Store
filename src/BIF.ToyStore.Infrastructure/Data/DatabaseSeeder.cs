@@ -21,6 +21,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await dbContext.Database.EnsureCreatedAsync();
             await EnsureAppConfigSchemaAsync(dbContext);
             await EnsureCategorySchemaAsync(dbContext);
+            await EnsureCustomerSchemaAsync(dbContext);
             await EnsureProductSchemaAsync(dbContext);
             await EnsureProductImageSchemaAsync(dbContext);
             await EnsureOrderSchemaAsync(dbContext);
@@ -549,6 +550,37 @@ namespace BIF.ToyStore.Infrastructure.Data
                 }
 
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureCustomerSchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "Customers";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "PhoneNumber", "TEXT NOT NULL DEFAULT ''");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "LoyaltyPoints", "INTEGER NOT NULL DEFAULT 0");
             }
             finally
             {
