@@ -1,4 +1,5 @@
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
@@ -32,6 +33,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _localSettingsServiceMock
                 .Setup(s => s.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20))
                 .Returns(20);
+            _localSettingsServiceMock
+                .Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns(UserRole.Admin.ToString());
 
             _viewModel = new ProductsViewModel(
                 _graphQLClientMock.Object,
@@ -384,6 +388,30 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _productImageUploadServiceMock.Verify(
                 x => x.DeleteProductImageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateProductAsync_SaleUser_ThrowsAndSkipsServiceCall()
+        {
+            _localSettingsServiceMock
+                .Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns(UserRole.Sale.ToString());
+
+            var saleViewModel = new ProductsViewModel(
+                _graphQLClientMock.Object,
+                _productServiceMock.Object,
+                _productImageUploadServiceMock.Object,
+                _localSettingsServiceMock.Object,
+                _excelFilePickerServiceMock.Object);
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => saleViewModel.CreateProductAsync(new Product
+            {
+                Name = "Blocked",
+                CategoryId = 1
+            }));
+
+            Assert.Equal("Only admin users can add new products.", ex.Message);
+            _productServiceMock.Verify(x => x.CreateProductAsync(It.IsAny<Product>()), Times.Never);
         }
 
         [Fact]

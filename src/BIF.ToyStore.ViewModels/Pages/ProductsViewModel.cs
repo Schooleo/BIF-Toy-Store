@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -79,11 +80,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _currencySymbol = "USD";
 
+        [ObservableProperty]
+        private bool _isAdminUser = true;
+
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
         public bool HasProducts => Products.Count > 0;
         public bool IsProductsEmpty => !HasProducts;
+        public bool CanCreateProducts => IsAdminUser;
         public string SelectedCategoryLabel => SelectedCategory?.Name ?? "All Categories";
         public string SelectedSortLabel => SelectedSort?.Name ?? "Newest";
 
@@ -103,6 +108,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             _localSettingsService = localSettingsService;
             _excelFilePickerService = excelFilePickerService;
             Title = "Product Management";
+            IsAdminUser = Enum.TryParse<UserRole>(
+                _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString()),
+                true,
+                out var currentRole)
+                && currentRole == UserRole.Admin;
             
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
             SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
@@ -121,6 +131,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             OnPropertyChanged(nameof(HasProducts));
             OnPropertyChanged(nameof(IsProductsEmpty));
         }
+
+        partial void OnIsAdminUserChanged(bool value) => OnPropertyChanged(nameof(CanCreateProducts));
 
         partial void OnSelectedCategoryChanged(Category? value) => OnPropertyChanged(nameof(SelectedCategoryLabel));
 
@@ -243,6 +255,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task<Product> CreateProductAsync(Product input)
         {
+            EnsureAdminCanCreateProducts();
+
             var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
             
             var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
@@ -445,6 +459,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task ImportExcelAsync()
         {
+            EnsureAdminCanCreateProducts();
+
             ImportSuccessMessage = string.Empty;
             ImportErrorMessage = string.Empty;
 
@@ -702,6 +718,14 @@ namespace BIF.ToyStore.ViewModels.Pages
             catch
             {
                 // Best-effort refresh only.
+            }
+        }
+
+        private void EnsureAdminCanCreateProducts()
+        {
+            if (!CanCreateProducts)
+            {
+                throw new InvalidOperationException("Only admin users can add new products.");
             }
         }
     }

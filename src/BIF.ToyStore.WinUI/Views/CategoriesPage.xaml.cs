@@ -90,6 +90,11 @@ namespace BIF.ToyStore.WinUI.Views
 
         private async void AddCategory_Click(object sender, RoutedEventArgs e)
         {
+            if (!ViewModel.CanCreateCategories)
+            {
+                return;
+            }
+
             AddCategoryNameTextBox.Text = string.Empty;
             AddCategoryError.Visibility = Visibility.Collapsed;
             AddCategoryDialog.XamlRoot = this.XamlRoot;
@@ -101,6 +106,12 @@ namespace BIF.ToyStore.WinUI.Views
 
         private void AddCategoryDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
+            if (!ViewModel.CanCreateCategories)
+            {
+                args.Cancel = true;
+                return;
+            }
+
             var name = AddCategoryNameTextBox.Text?.Trim();
             if (string.IsNullOrWhiteSpace(name))
             {

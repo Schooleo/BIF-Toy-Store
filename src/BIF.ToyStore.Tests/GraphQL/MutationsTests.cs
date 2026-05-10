@@ -10,6 +10,7 @@ using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
+using BIF.ToyStore.Core.Enums;
 
 namespace BIF.ToyStore.Tests.GraphQL
 {
@@ -37,6 +38,20 @@ namespace BIF.ToyStore.Tests.GraphQL
             Assert.NotNull(result);
             Assert.Equal(77, result.Id);
             mockRepo.Verify(x => x.AddAsync(It.Is<Product>(p => p.Name == "Uno Premium")), Times.Once);
+        }
+
+        [Fact]
+        public async Task createProduct_saleRole_throwsUnauthorizedError()
+        {
+            var mockRepo = new Mock<IProductRepository>();
+            var input = new CreateProductInput { Name = "Blocked", CategoryId = 1 };
+
+            var mutation = new Mutations();
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                mutation.CreateProduct(input, mockRepo.Object, currentUserId: 2, currentUserRole: UserRole.Sale.ToString()));
+
+            Assert.Equal("Only admin users can create products.", ex.Message);
+            mockRepo.Verify(x => x.AddAsync(It.IsAny<Product>()), Times.Never);
         }
 
         [Fact]
@@ -152,6 +167,20 @@ namespace BIF.ToyStore.Tests.GraphQL
             mockRepo.Verify(x => x.BulkInsertAsync(It.Is<IEnumerable<Product>>(items =>
                 items.Any(p => p.Name == "Uno Premium" && p.CategoryId == 2) &&
                 items.Any(p => p.Name == "Unknown Category Toy" && p.CategoryId == 1))), Times.Once);
+        }
+
+        [Fact]
+        public async Task createCategory_saleRole_throwsUnauthorizedError()
+        {
+            var mockRepo = new Mock<ICategoryRepository>();
+            var input = new CreateCategoryInput { Name = "Blocked" };
+
+            var mutation = new Mutations();
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                mutation.CreateCategory(input, mockRepo.Object, currentUserId: 2, currentUserRole: UserRole.Sale.ToString()));
+
+            Assert.Equal("Only admin users can create categories.", ex.Message);
+            mockRepo.Verify(x => x.AddAsync(It.IsAny<Category>()), Times.Never);
         }
 
         private static AppDbContext CreateDbContext()

@@ -229,8 +229,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return await orderService.DeleteOrderAsync(id);
         }
 
-        public async Task<Product> CreateProduct(CreateProductInput input, [Service] IProductRepository repo)
+        public async Task<Product> CreateProduct(
+            CreateProductInput input,
+            [Service] IProductRepository repo,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "create products");
+
             var product = new Product
             {
                 Name = input.Name,
@@ -277,8 +283,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public async Task<ImportProductsPayload> ImportProducts(
             IFile file,
             [Service] IProductRepository repo,
-            [Service] AppDbContext dbContext)
+            [Service] AppDbContext dbContext,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "import products");
+
             var payload = new ImportProductsPayload();
             var products = new List<Product>();
 
@@ -370,8 +380,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return payload;
         }
 
-        public async Task<Category> CreateCategory(CreateCategoryInput input, [Service] ICategoryRepository repo)
+        public async Task<Category> CreateCategory(
+            CreateCategoryInput input,
+            [Service] ICategoryRepository repo,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "create categories");
+
             var category = new Category
             {
                 Name = input.Name
@@ -412,6 +428,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             }
 
             return currentUserId.HasValue && currentUserId.Value > 0 && order.SaleId == currentUserId.Value;
+        }
+
+        private static void EnsureAdminAccess(int? currentUserId, string? currentUserRole, string action)
+        {
+            if (HasActorContext(currentUserId, currentUserRole) && !IsAdminRole(currentUserRole))
+            {
+                throw new InvalidOperationException($"Only admin users can {action}.");
+            }
         }
     }
 }

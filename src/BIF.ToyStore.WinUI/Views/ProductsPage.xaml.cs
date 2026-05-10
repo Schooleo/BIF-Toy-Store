@@ -238,6 +238,11 @@ namespace BIF.ToyStore.WinUI.Views
 
         private async void AddProduct_Click(object sender, RoutedEventArgs e)
         {
+            if (!ViewModel.CanCreateProducts)
+            {
+                return;
+            }
+
             var dialog = new Dialogs.AddProductForm(ViewModel.Categories)
             {
                 XamlRoot = this.XamlRoot

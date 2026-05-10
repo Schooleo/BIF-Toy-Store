@@ -1,11 +1,15 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 
 namespace BIF.ToyStore.Infrastructure.Repositories
 {
-    public class ProductApiRepository(IGraphQLClient graphQLClient) : IProductApiRepository
+    public class ProductApiRepository(
+        IGraphQLClient graphQLClient,
+        ILocalSettingsService localSettingsService) : IProductApiRepository
     {
         private readonly IGraphQLClient _graphQLClient = graphQLClient;
+        private readonly ILocalSettingsService _localSettingsService = localSettingsService;
 
         public async Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 50)
         {
@@ -57,7 +61,11 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                             retailPrice
                             importPrice
                             stockQuantity
-                            imageUrl
+                            images {
+                                imageUrl
+                                displayOrder
+                                isPrimary
+                            }
                         }
                     }
                 }";
@@ -150,15 +158,19 @@ namespace BIF.ToyStore.Infrastructure.Repositories
         public async Task<Product> CreateProductAsync(Product product)
         {
             const string mutation = @"
-                mutation Create($input: CreateProductInput!) {
-                    createProduct(input: $input) {
+                mutation Create($input: CreateProductInput!, $currentUserId: Int, $currentUserRole: String) {
+                    createProduct(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                         id
                         name
                         categoryId
                         retailPrice
                         importPrice
                         stockQuantity
-                        imageUrl
+                        images {
+                            imageUrl
+                            displayOrder
+                            isPrimary
+                        }
                     }
                 }";
 
@@ -169,12 +181,22 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 retailPrice = product.RetailPrice,
                 importPrice = product.ImportPrice,
                 stockQuantity = product.StockQuantity,
-                imageUrl = product.ImageUrl
+                images = product.Images?.Select(i => new
+                {
+                    imageUrl = i.ImageUrl,
+                    displayOrder = i.DisplayOrder,
+                    isPrimary = i.IsPrimary
+                }).ToList() ?? []
             };
 
             return await _graphQLClient.ExecuteAsync<Product>(
                 mutation,
-                new { input },
+                new
+                {
+                    input,
+                    currentUserId = GetCurrentUserId(),
+                    currentUserRole = GetCurrentUserRole()
+                },
                 dataKey: "createProduct")
                 ?? throw new InvalidOperationException("Failed to create product.");
         }
@@ -190,7 +212,11 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                         retailPrice
                         importPrice
                         stockQuantity
-                        imageUrl
+                        images {
+                            imageUrl
+                            displayOrder
+                            isPrimary
+                        }
                     }
                 }";
 
@@ -202,7 +228,12 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 retailPrice = product.RetailPrice,
                 importPrice = product.ImportPrice,
                 stockQuantity = product.StockQuantity,
-                imageUrl = product.ImageUrl
+                images = product.Images?.Select(i => new
+                {
+                    imageUrl = i.ImageUrl,
+                    displayOrder = i.DisplayOrder,
+                    isPrimary = i.IsPrimary
+                }).ToList() ?? []
             };
 
             return await _graphQLClient.ExecuteAsync<Product>(
@@ -228,8 +259,8 @@ namespace BIF.ToyStore.Infrastructure.Repositories
         public async Task<ProductImportResult> ImportProductsAsync(string filePath)
         {
             const string mutation = @"
-                mutation Import($file: Upload!) {
-                    importProducts(file: $file) {
+                mutation Import($file: Upload!, $currentUserId: Int, $currentUserRole: String) {
+                    importProducts(file: $file, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                         importedCount
                         errors
                     }
@@ -239,7 +270,12 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 mutation,
                 variableName: "file",
                 filePath,
-                dataKey: "importProducts");
+                dataKey: "importProducts",
+                variables: new
+                {
+                    currentUserId = GetCurrentUserId(),
+                    currentUserRole = GetCurrentUserRole()
+                });
 
             return new ProductImportResult
             {
@@ -272,6 +308,16 @@ namespace BIF.ToyStore.Infrastructure.Repositories
         {
             public int ImportedCount { get; set; }
             public List<string> Errors { get; set; } = [];
+        }
+
+        private int GetCurrentUserId()
+        {
+            return _localSettingsService.GetInt("CurrentUserId", 0);
+        }
+
+        private string GetCurrentUserRole()
+        {
+            return _localSettingsService.GetString("CurrentUserRole", UserRole.Admin.ToString());
         }
     }
 }

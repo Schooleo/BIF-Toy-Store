@@ -1,11 +1,15 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 
 namespace BIF.ToyStore.Infrastructure.Repositories
 {
-    public class CategoryApiRepository(IGraphQLClient graphQLClient) : ICategoryApiRepository
+    public class CategoryApiRepository(
+        IGraphQLClient graphQLClient,
+        ILocalSettingsService localSettingsService) : ICategoryApiRepository
     {
         private readonly IGraphQLClient _graphQLClient = graphQLClient;
+        private readonly ILocalSettingsService _localSettingsService = localSettingsService;
 
         public async Task<CategoryListResult> GetCategoriesAsync(CategoryListQuery query)
         {
@@ -90,8 +94,8 @@ namespace BIF.ToyStore.Infrastructure.Repositories
         public async Task<Category> CreateCategoryAsync(Category category)
         {
             const string mutation = @"
-                mutation Create($input: CreateCategoryInput!) {
-                    createCategory(input: $input) {
+                mutation Create($input: CreateCategoryInput!, $currentUserId: Int, $currentUserRole: String) {
+                    createCategory(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                         id
                         name
                     }
@@ -101,7 +105,12 @@ namespace BIF.ToyStore.Infrastructure.Repositories
 
             return await _graphQLClient.ExecuteAsync<Category>(
                 mutation,
-                new { input },
+                new
+                {
+                    input,
+                    currentUserId = GetCurrentUserId(),
+                    currentUserRole = GetCurrentUserRole()
+                },
                 dataKey: "createCategory")
                 ?? throw new InvalidOperationException("Failed to create category.");
         }
@@ -172,6 +181,16 @@ namespace BIF.ToyStore.Infrastructure.Repositories
             public bool HasPreviousPage { get; set; }
             public string? StartCursor { get; set; }
             public string? EndCursor { get; set; }
+        }
+
+        private int GetCurrentUserId()
+        {
+            return _localSettingsService.GetInt("CurrentUserId", 0);
+        }
+
+        private string GetCurrentUserRole()
+        {
+            return _localSettingsService.GetString("CurrentUserRole", UserRole.Admin.ToString());
         }
     }
 }

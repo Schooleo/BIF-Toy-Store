@@ -71,7 +71,8 @@
                             Click="AddCategory_Click"
                             Content="ADD NEW CATEGORY"
                             FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}">
+                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}"
+                            Visibility="{x:Bind ViewModel.CanCreateCategories, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource FluentPlayPrimaryHoverColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource FluentPlayPrimaryPressedColor}" />

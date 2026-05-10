@@ -139,13 +139,15 @@
                             BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                             Command="{x:Bind ViewModel.ImportExcelCommand}"
                             Content="Import Excel"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
+                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                            Visibility="{x:Bind ViewModel.CanCreateProducts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         <Button
                             Background="{ThemeResource FluentPlayPrimaryBrush}"
                             Click="AddProduct_Click"
                             Content="ADD NEW PRODUCT"
                             FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}">
+                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}"
+                            Visibility="{x:Bind ViewModel.CanCreateProducts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
                                                  Color="{StaticResource FluentPlayPrimaryHoverColor}"/>

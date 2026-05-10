@@ -316,7 +316,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 return Task.FromResult(result);
             }
 
-            public Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
+            public Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "", object? variables = null)
             {
                 return Task.FromResult(default(T));
             }
