@@ -283,6 +283,54 @@ namespace BIF.ToyStore.Infrastructure.Data
                 saleUsers = users;
             }
 
+            var frequentlyPurchasedProductNames = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "Chiikawa Usagi Cute Plush",
+                "Duka Remote Control Supercar 24G"
+            };
+
+            int GetProductWeight(Product product)
+            {
+                return frequentlyPurchasedProductNames.Contains(product.Name) ? 5 : 1;
+            }
+
+            int PickWeightedProductIndex(HashSet<int> excludedIndexes)
+            {
+                int totalWeight = 0;
+                for (int i = 0; i < products.Count; i++)
+                {
+                    if (excludedIndexes.Contains(i))
+                    {
+                        continue;
+                    }
+
+                    totalWeight += GetProductWeight(products[i]);
+                }
+
+                if (totalWeight == 0)
+                {
+                    return -1;
+                }
+
+                int roll = random.Next(1, totalWeight + 1);
+                int cumulative = 0;
+                for (int i = 0; i < products.Count; i++)
+                {
+                    if (excludedIndexes.Contains(i))
+                    {
+                        continue;
+                    }
+
+                    cumulative += GetProductWeight(products[i]);
+                    if (roll <= cumulative)
+                    {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
                 bool isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
@@ -314,7 +362,13 @@ namespace BIF.ToyStore.Infrastructure.Data
                     var selectedProductIndexes = new HashSet<int>();
                     while (selectedProductIndexes.Count < lineCount)
                     {
-                        selectedProductIndexes.Add(random.Next(products.Count));
+                        int selectedIndex = PickWeightedProductIndex(selectedProductIndexes);
+                        if (selectedIndex < 0)
+                        {
+                            break;
+                        }
+
+                        selectedProductIndexes.Add(selectedIndex);
                     }
 
                     var orderDetails = new List<OrderDetail>(lineCount);
