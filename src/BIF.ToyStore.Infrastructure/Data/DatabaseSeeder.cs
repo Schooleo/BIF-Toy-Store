@@ -70,61 +70,74 @@ namespace BIF.ToyStore.Infrastructure.Data
             }
 
             bool categoryExists = await dbContext.Categories.AnyAsync(c => c.Id != AppConstants.OtherCategoryId);
-            if (categoryExists)
+            if (!categoryExists)
             {
-                return;
-            }
-
-            string jsonPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "seed_data.json");
-            if (!File.Exists(jsonPath))
-            {
-                // Fallback for different environments
-                jsonPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data", "seed_data.json");
-            }
-
-            if (!File.Exists(jsonPath)) return;
-
-            var json = await File.ReadAllTextAsync(jsonPath);
-            var seedData = System.Text.Json.JsonSerializer.Deserialize<List<CategorySeedDto>>(json);
-
-            if (seedData == null) return;
-
-            foreach (var categoryDto in seedData)
-            {
-                var category = new Category { Name = categoryDto.CategoryName };
-                dbContext.Categories.Add(category);
-                await dbContext.SaveChangesAsync();
-
-                foreach (var productDto in categoryDto.Products)
+                string jsonPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "seed_data.json");
+                if (!File.Exists(jsonPath))
                 {
-                    var product = new Product
-                    {
-                        Name = productDto.Name,
-                        CategoryId = category.Id,
-                        RetailPrice = productDto.RetailPrice,
-                        ImportPrice = productDto.ImportPrice,
-                        StockQuantity = productDto.StockQuantity,
-                        IsDeleted = false
-                    };
+                    // Fallback for different environments
+                    jsonPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data", "seed_data.json");
+                }
 
-                    dbContext.Products.Add(product);
-                    await dbContext.SaveChangesAsync();
+                if (File.Exists(jsonPath))
+                {
+                    var json = await File.ReadAllTextAsync(jsonPath);
+                    var seedData = System.Text.Json.JsonSerializer.Deserialize<List<CategorySeedDto>>(json);
 
-                    if (productDto.Images != null)
+                    if (seedData != null)
                     {
-                        for (int i = 0; i < productDto.Images.Count; i++)
+                        foreach (var categoryDto in seedData)
                         {
-                            var productImage = new ProductImage
+                            var category = new Category { Name = categoryDto.CategoryName };
+                            dbContext.Categories.Add(category);
+                            await dbContext.SaveChangesAsync();
+
+                            foreach (var productDto in categoryDto.Products)
                             {
-                                ProductId = product.Id,
-                                ImageUrl = productDto.Images[i],
-                                DisplayOrder = i,
-                                IsPrimary = i == 0
-                            };
-                            dbContext.ProductImages.Add(productImage);
+                                var product = new Product
+                                {
+                                    Name = productDto.Name,
+                                    CategoryId = category.Id,
+                                    RetailPrice = productDto.RetailPrice,
+                                    ImportPrice = productDto.ImportPrice,
+                                    StockQuantity = productDto.StockQuantity,
+                                    IsDeleted = false
+                                };
+
+                                dbContext.Products.Add(product);
+                                await dbContext.SaveChangesAsync();
+
+                                if (productDto.Images != null)
+                                {
+                                    for (int i = 0; i < productDto.Images.Count; i++)
+                                    {
+                                        var productImage = new ProductImage
+                                        {
+                                            ProductId = product.Id,
+                                            ImageUrl = productDto.Images[i],
+                                            DisplayOrder = i,
+                                            IsPrimary = i == 0
+                                        };
+                                        dbContext.ProductImages.Add(productImage);
+                                    }
+                                    await dbContext.SaveChangesAsync();
+                                }
+                            }
                         }
-                        await dbContext.SaveChangesAsync();
                     }
+                }
+            }
+
+            // Force exactly 2 products to have zero stock for testing critical stock UI states
+            // This runs every time, regardless of whether seeding occurred
+            var productsToSetToZeroStock = new[] { "Panda Stuffed Animal 22cm", "Ford GT RC 1-24 Blue R78200" };
+            foreach (var productName in productsToSetToZeroStock)
+            {
+                var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Name == productName);
+                if (product != null && product.StockQuantity != 0)
+                {
+                    product.StockQuantity = 0;
+                    await dbContext.SaveChangesAsync();
                 }
             }
         }
