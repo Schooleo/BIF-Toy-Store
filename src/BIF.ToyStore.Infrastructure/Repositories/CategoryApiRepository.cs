@@ -32,10 +32,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                         nodes {
                             id
                             name
-                            products {
-                                id
-                                name
-                            }
+                            productCount
                         }
                     }
                 }";

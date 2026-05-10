@@ -10,7 +10,26 @@ namespace BIF.ToyStore.Infrastructure.Repositories
     {
         public IQueryable<Category> QueryForGraphQL()
         {
-            return _dbContext.Categories.AsNoTracking();
+            var deletedCategoryIds = _dbContext.Categories
+                .IgnoreQueryFilters()
+                .Where(c => c.IsDeleted && c.Id != AppConstants.OtherCategoryId)
+                .Select(c => c.Id);
+
+            return _dbContext.Categories
+                .AsNoTracking()
+                .Select(c => new Category
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    IsDeleted = c.IsDeleted,
+                    ProductCount = c.Id == AppConstants.OtherCategoryId
+                        ? _dbContext.Products
+                            .IgnoreQueryFilters()
+                            .Count(p => !p.IsDeleted && (p.CategoryId == AppConstants.OtherCategoryId || deletedCategoryIds.Contains(p.CategoryId)))
+                        : _dbContext.Products
+                            .IgnoreQueryFilters()
+                            .Count(p => !p.IsDeleted && p.CategoryId == c.Id)
+                });
         }
 
         public async Task<Category> UpdateNameAsync(int id, string name)

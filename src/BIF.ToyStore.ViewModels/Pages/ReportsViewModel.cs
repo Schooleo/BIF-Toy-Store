@@ -195,6 +195,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                 decimal maxSeriesProfit = orderedSeries.Count == 0
                     ? 0m
                     : orderedSeries.Max(x => x.TotalProfit);
+                double pointLabelWidth = orderedSeries.Count == 0
+                    ? TrendPointSlotWidth
+                    : Math.Max(TrendChartMinWidth, orderedSeries.Count * TrendPointSlotWidth) / orderedSeries.Count;
 
                 foreach (var point in orderedSeries)
                 {
@@ -225,7 +228,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                         Profit = point.TotalProfit,
                         RevenueBarHeight = revenueBarHeight,
                         ProfitBarHeight = profitBarHeight,
-                        CurrencySymbol = CurrencySymbol
+                        CurrencySymbol = CurrencySymbol,
+                        LabelWidth = pointLabelWidth
                     });
                 }
 
@@ -323,10 +327,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             double chartWidth = Math.Max(TrendChartMinWidth, TimeSeriesPoints.Count * TrendPointSlotWidth);
             TrendScrollableWidth = chartWidth;
 
-            double innerWidth = chartWidth - (TrendChartPadding * 2d);
             double innerHeight = TrendChartHeight - (TrendChartPadding * 2d);
             int count = TimeSeriesPoints.Count;
-            double xStep = count > 1 ? innerWidth / (count - 1) : 0;
+            double pointSlotWidth = chartWidth / count;
 
             var lineBuilder = new StringBuilder();
             var areaBuilder = new StringBuilder();
@@ -335,7 +338,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             for (int i = 0; i < count; i++)
             {
                 var item = TimeSeriesPoints[i];
-                double x = TrendChartPadding + (xStep * i);
+                item.LabelWidth = pointSlotWidth;
+
+                double x = (pointSlotWidth / 2d) + (pointSlotWidth * i);
                 double normalized = axisMax == 0 ? 0d : (double)item.Quantity / axisMax;
                 normalized = Math.Clamp(normalized, 0d, 1d);
                 double y = TrendChartPadding + ((1d - normalized) * innerHeight);
@@ -360,13 +365,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                 });
             }
 
-            double right = TrendChartPadding + innerWidth;
+            double left = pointSlotWidth / 2d;
+            double right = left + (pointSlotWidth * (count - 1));
             double bottom = TrendChartPadding + innerHeight;
             areaBuilder
                 .Append(" L ")
                 .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", right, bottom))
                 .Append(" L ")
-                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", TrendChartPadding, bottom))
+                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", left, bottom))
                 .Append(" Z");
 
             TrendPathData = lineBuilder.ToString();
@@ -512,6 +518,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal Profit { get; set; }
         public double RevenueBarHeight { get; set; }
         public double ProfitBarHeight { get; set; }
+        public double LabelWidth { get; set; } = 80d;
         public string CurrencySymbol { get; set; } = "$";
 
         public string QuantityDisplay => Quantity.ToString(CultureInfo.InvariantCulture);

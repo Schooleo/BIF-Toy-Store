@@ -30,7 +30,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private double _taxRate = 10.0;
 
         [ObservableProperty]
-        private string _selectedCurrency = "VND";
+        private string _selectedCurrency = "USD";
 
         [ObservableProperty]
         private string _storeName = string.Empty;
@@ -311,7 +311,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             TaxRate = (double)(config.TaxRate * 100m);
             StoreName = NormalizeStoreName(config.DisplayName);
             _localSettingsService.SetString(AppPreferenceKeys.StoreName, StoreName);
-            SelectedCurrency = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "VND" : config.CurrencySymbol;
+            SelectedCurrency = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "USD" : config.CurrencySymbol;
             ReceiptHeader = config.ReceiptHeader;
             ReceiptFooter = config.ReceiptFooter;
             SelectedThemePreference = ThemePreferenceOptions.Contains(config.ThemePreference)
@@ -431,7 +431,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             public string DisplayName { get; set; } = string.Empty;
             public decimal TaxRate { get; set; }
-            public string CurrencySymbol { get; set; } = "VND";
+            public string CurrencySymbol { get; set; } = "USD";
             public string ReceiptHeader { get; set; } = string.Empty;
             public string ReceiptFooter { get; set; } = string.Empty;
             public string ThemePreference { get; set; } = "System";

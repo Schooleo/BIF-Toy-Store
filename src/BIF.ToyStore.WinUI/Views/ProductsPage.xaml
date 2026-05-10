@@ -461,7 +461,7 @@
                                             FontSize="10"
                                             FontWeight="Bold"
                                             Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
-                                            Text="{x:Bind Category.Name, Mode=OneTime}"/>
+                                            Text="{x:Bind CategoryName, Mode=OneTime}"/>
                                     </Border>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
@@ -470,7 +470,7 @@
                         <!--  COLUMN: RETAIL  -->
                         <controls:DataGridTextColumn
                             Width="*"
-                            Binding="{Binding RetailPrice}"
+                            Binding="{Binding RetailPriceDisplay}"
                             Header="RETAIL"/>
 
                         <!--  COLUMN: STOCK  -->

@@ -10,6 +10,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class ProductsViewModel : PaginatedViewModel
     {
+        private readonly IGraphQLClient _graphQLClient;
         private readonly IProductService _productService;
         private readonly IProductImageUploadService _productImageUploadService;
         private readonly ILocalSettingsService _localSettingsService;
@@ -73,6 +74,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _editErrorMessage = string.Empty;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
@@ -83,11 +87,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
+            IGraphQLClient graphQLClient,
             IProductService productService,
             IProductImageUploadService productImageUploadService,
             ILocalSettingsService localSettingsService,
             IExcelFilePickerService excelFilePickerService)
         {
+            _graphQLClient = graphQLClient;
             _productService = productService;
             _productImageUploadService = productImageUploadService;
             _localSettingsService = localSettingsService;
@@ -141,6 +147,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
+                await LoadCurrencySymbolAsync();
+
                 var result = await _productService.GetProductsAsync(new ProductListQuery
                 {
                     PageSize = PageSize,
@@ -154,6 +162,11 @@ namespace BIF.ToyStore.ViewModels.Pages
                     SortValue = SelectedSort?.Value
                 });
 
+                foreach (var product in result.Items)
+                {
+                    product.CurrencySymbol = CurrencySymbol;
+                }
+
                 Products = new ObservableCollection<Product>(result.Items);
                 ApplyPageInfo(
                     result.TotalCount,
@@ -165,6 +178,26 @@ namespace BIF.ToyStore.ViewModels.Pages
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        private async Task LoadCurrencySymbolAsync()
+        {
+            const string query = @"
+                query GetProductsAppConfig {
+                    appConfig {
+                        currencySymbol
+                    }
+                }";
+
+            try
+            {
+                var config = await _graphQLClient.ExecuteAsync<ProductAppConfigNode>(query, dataKey: "appConfig");
+                CurrencySymbol = string.IsNullOrWhiteSpace(config?.CurrencySymbol) ? "USD" : config.CurrencySymbol;
+            }
+            catch
+            {
+                CurrencySymbol = "USD";
             }
         }
 
@@ -555,5 +588,10 @@ namespace BIF.ToyStore.ViewModels.Pages
                 // Best-effort refresh only.
             }
         }
+    }
+
+    public sealed class ProductAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "USD";
     }
 }

@@ -428,26 +428,11 @@
                             </Grid.RowDefinitions>
 
                             <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="QUANTITY SOLD OVER TIME"
                                            FontSize="11"
                                            CharacterSpacing="100"
                                            Foreground="{StaticResource ReportsSubtitleBrush}"
                                            FontWeight="SemiBold"/>
-                                <StackPanel Grid.Column="1"
-                                            Orientation="Horizontal"
-                                            Spacing="6"
-                                            VerticalAlignment="Center">
-                                    <Ellipse Width="8"
-                                             Height="8"
-                                             Fill="{StaticResource ReportsRevenueBarBrush}"/>
-                                    <TextBlock Text="Active Toys"
-                                               FontSize="11"
-                                               Foreground="{StaticResource ReportsSubtitleBrush}"/>
-                                </StackPanel>
                             </Grid>
 
                                 <Grid Grid.Row="1"
@@ -486,22 +471,22 @@
                                         BorderBrush="#FFE5E7EB"
                                         BorderThickness="1"
                                         CornerRadius="8"
-                                        Background="#FFF8FAFC"
-                                        Padding="8,8,8,8">
-                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                        Background="#FFF8FAFC">
+                                    <ScrollViewer x:Name="SalesTrendScrollViewer"
+                                                  HorizontalScrollBarVisibility="Auto"
                                                   HorizontalScrollMode="Enabled"
                                                   VerticalScrollBarVisibility="Disabled"
                                                   VerticalScrollMode="Disabled"
-                                                  Padding="0,0,0,4"
                                                   ZoomMode="Disabled">
                                         <Grid Width="{Binding TrendScrollableWidth}">
                                             <Grid.RowDefinitions>
-                                                <RowDefinition Height="220"/>
-                                                <RowDefinition Height="28"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 
                                             <Grid Grid.Row="0"
-                                                  Height="220">
+                                                  Height="220"
+                                                  Margin="0,0,0,4">
                                                 <Rectangle Height="1"
                                                         Fill="#33D1D5DB"
                                                         VerticalAlignment="Top"
@@ -524,49 +509,20 @@
                                                       StrokeStartLineCap="Round"
                                                       StrokeEndLineCap="Round"
                                                       Stretch="None"/>
-
-                                                <ItemsControl ItemsSource="{Binding TrendMarkers}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <Canvas/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="pages:ReportTrendMarkerViewModel">
-                                                            <Grid Width="18"
-                                                                  Height="18"
-                                                                  Background="Transparent"
-                                                                  Canvas.Left="{Binding X}"
-                                                                  Canvas.Top="{Binding Y}">
-                                                                <ToolTipService.ToolTip>
-                                                                    <TextBlock Text="{Binding Tooltip}"/>
-                                                                </ToolTipService.ToolTip>
-                                                                <Ellipse Width="10"
-                                                                         Height="10"
-                                                                         Fill="White"
-                                                                         Stroke="{StaticResource ReportsRevenueBarBrush}"
-                                                                         StrokeThickness="3"
-                                                                         HorizontalAlignment="Center"
-                                                                         VerticalAlignment="Center"/>
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
                                             </Grid>
 
                                             <ItemsControl Grid.Row="1"
                                                           ItemsSource="{Binding TimeSeriesPoints}"
-                                                          Margin="4,2,4,4"
-                                                          VerticalAlignment="Center">
+                                                          Margin="0,4,0,12">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
                                                         <StackPanel Orientation="Horizontal"/>
                                                     </ItemsPanelTemplate>
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding Label}"
-                                                                   Width="80"
+                                                    <DataTemplate x:DataType="pages:ReportTimePointViewModel">
+                                                        <TextBlock Text="{x:Bind Label}"
+                                                                   Width="{x:Bind LabelWidth, Mode=OneWay}"
                                                                    FontSize="10"
                                                                    Foreground="{StaticResource ReportsSubtitleBrush}"
                                                                    TextAlignment="Center"
@@ -756,7 +712,8 @@
                                 </StackPanel>
                             </Grid>
 
-                            <ScrollViewer Grid.Row="1"
+                            <ScrollViewer x:Name="RevenueProfitScrollViewer"
+                                          Grid.Row="1"
                                           HorizontalScrollBarVisibility="Auto"
                                           HorizontalScrollMode="Enabled"
                                           VerticalScrollBarVisibility="Disabled"

@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace BIF.ToyStore.Core.Models
 {
     public class Product
@@ -8,6 +11,9 @@ namespace BIF.ToyStore.Core.Models
         // Foreign Key
         public int CategoryId { get; set; }
         public Category? Category { get; set; }
+
+        [NotMapped]
+        public string CategoryName { get; set; } = string.Empty;
 
         public decimal RetailPrice { get; set; }
 
@@ -20,5 +26,18 @@ namespace BIF.ToyStore.Core.Models
         public string? ImageUrl { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+
+        [NotMapped]
+        public string CurrencySymbol { get; set; } = "USD";
+
+        [NotMapped]
+        public string RetailPriceDisplay => FormatCurrency(RetailPrice, CurrencySymbol);
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 }

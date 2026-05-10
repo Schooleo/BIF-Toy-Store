@@ -53,10 +53,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                             id
                             name
                             categoryId
-                            category {
-                                id
-                                name
-                            }
+                            categoryName
                             retailPrice
                             importPrice
                             stockQuantity

@@ -39,6 +39,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private bool _isEmployeeFilterVisible = true;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public string PaginationLabel => $"Showing {Orders.Count} of {TotalCount} ORDERS";
         public string SelectedEmployeeDisplay => SelectedEmployee?.Username ?? "All Employees";
 
@@ -188,6 +191,16 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
+                const string configQuery = @"
+                    query GetOrderAppConfig {
+                        appConfig {
+                            currencySymbol
+                        }
+                    }";
+
+                var config = await _graphQLClient.ExecuteAsync<OrderAppConfigNode>(configQuery, dataKey: "appConfig");
+                CurrencySymbol = string.IsNullOrWhiteSpace(config?.CurrencySymbol) ? "USD" : config.CurrencySymbol;
+
                 const string query = @"
                     query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int, $currentUserId: Int, $currentUserRole: String) {
                         orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
@@ -261,7 +274,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 Orders.Clear();
                 foreach (var item in payload.Nodes)
                 {
-                    Orders.Add(OrderItemViewModel.FromPayload(item));
+                    Orders.Add(OrderItemViewModel.FromPayload(item, CurrencySymbol));
                 }
 
                 ApplyPageInfo(
@@ -323,7 +336,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     });
                 if (result?.GetOrderById is { } detail)
                 {
-                    SelectedOrder = OrderDetailsViewModel.FromPayload(detail);
+                    SelectedOrder = OrderDetailsViewModel.FromPayload(detail, CurrencySymbol);
                     IsDetailsPanelOpen = true;
                 }
             }
@@ -445,6 +458,23 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
         partial void OnStatusMessageChanged(string value) => OnPropertyChanged(nameof(HasStatusMessage));
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            foreach (var order in Orders)
+            {
+                order.CurrencySymbol = value;
+            }
+
+            if (SelectedOrder is not null)
+            {
+                SelectedOrder.CurrencySymbol = value;
+                foreach (var line in SelectedOrder.Lines)
+                {
+                    line.CurrencySymbol = value;
+                }
+            }
+        }
     }
 
     // ── Item ViewModels ────────────────────────────────────────────────────────
@@ -456,25 +486,39 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _status = string.Empty;
+
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal TotalAmount { get; set; }
         public string? EmployeeName { get; set; }
         public string? CustomerName { get; set; }
 
         public string IdDisplay => $"#TY-{Id:D4}";
         public string DateDisplay => OrderDate.ToString("MMM dd, yyyy HH:mm", CultureInfo.InvariantCulture);
-        public string TotalDisplay => $"${TotalAmount:N2}";
+        public string TotalDisplay => FormatCurrency(TotalAmount, CurrencySymbol);
         public string EmployeeDisplay => string.IsNullOrWhiteSpace(EmployeeName) ? "Unknown" : EmployeeName;
         public string CustomerDisplay => string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in" : CustomerName;
 
-        public static OrderItemViewModel FromPayload(OrderItemNode node) => new()
+        partial void OnCurrencySymbolChanged(string value) => OnPropertyChanged(nameof(TotalDisplay));
+
+        public static OrderItemViewModel FromPayload(OrderItemNode node, string currencySymbol) => new()
         {
             Id = node.Id,
             OrderDate = node.OrderDate,
             Status = node.Status,
             TotalAmount = node.TotalAmount,
             EmployeeName = node.Sale?.Username,
-            CustomerName = node.Customer?.FullName
+            CustomerName = node.Customer?.FullName,
+            CurrencySymbol = currencySymbol
         };
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public partial class OrderDetailsViewModel : ObservableObject
@@ -488,6 +532,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _statusBadgeClass = string.Empty;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal TotalAmount { get; set; }
         public string? EmployeeName { get; set; }
         public string? CustomerName { get; set; }
@@ -495,12 +542,14 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string IdDisplay => $"#TY-{Id:D4}";
         public string DateDisplay => OrderDate.ToString("MMM dd, yyyy HH:mm", CultureInfo.InvariantCulture);
-        public string TotalDisplay => $"${TotalAmount:N2}";
+        public string TotalDisplay => FormatCurrency(TotalAmount, CurrencySymbol);
         public string EmployeeDisplay => string.IsNullOrWhiteSpace(EmployeeName) ? "Unknown" : EmployeeName;
         public string CustomerDisplay => string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in Customer" : CustomerName;
         public int ItemCount => Lines.Sum(l => l.Quantity);
 
-        public static OrderDetailsViewModel FromPayload(OrderDetailPayload p)
+        partial void OnCurrencySymbolChanged(string value) => OnPropertyChanged(nameof(TotalDisplay));
+
+        public static OrderDetailsViewModel FromPayload(OrderDetailPayload p, string currencySymbol)
         {
             var vm = new OrderDetailsViewModel
             {
@@ -510,7 +559,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                 StatusBadgeClass = p.Status,
                 TotalAmount = p.TotalAmount,
                 EmployeeName = p.SaleName,
-                CustomerName = p.CustomerName
+                CustomerName = p.CustomerName,
+                CurrencySymbol = currencySymbol
             };
 
             if (p.OrderDetails != null)
@@ -521,23 +571,48 @@ namespace BIF.ToyStore.ViewModels.Pages
                     {
                         ProductName = d.Product?.Name ?? "Unknown Product",
                         Quantity = d.Quantity,
-                        UnitPrice = d.UnitPrice
+                        UnitPrice = d.UnitPrice,
+                        CurrencySymbol = currencySymbol
                     });
                 }
             }
             return vm;
         }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
-    public sealed class OrderDetailLineViewModel
+    public sealed partial class OrderDetailLineViewModel : ObservableObject
     {
         public string ProductName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal LineTotal => Quantity * UnitPrice;
         public string QtyDisplay => $"x{Quantity}";
-        public string UnitPriceDisplay => $"${UnitPrice:N2}";
-        public string LineTotalDisplay => $"${LineTotal:N2}";
+        public string UnitPriceDisplay => FormatCurrency(UnitPrice, CurrencySymbol);
+        public string LineTotalDisplay => FormatCurrency(LineTotal, CurrencySymbol);
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            OnPropertyChanged(nameof(UnitPriceDisplay));
+            OnPropertyChanged(nameof(LineTotalDisplay));
+        }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class EmployeeListItem
@@ -636,5 +711,10 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         public int Id { get; set; }
         public string Status { get; set; } = string.Empty;
+    }
+
+    public sealed class OrderAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "USD";
     }
 }

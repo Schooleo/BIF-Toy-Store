@@ -338,39 +338,11 @@
                                                           StrokeStartLineCap="Round"
                                                           StrokeEndLineCap="Round"
                                                           Stretch="None"/>
-
-                                                    <ItemsControl ItemsSource="{x:Bind ViewModel.RevenueTrendMarkers, Mode=OneWay}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <Canvas/>
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate x:DataType="pages:RevenueTrendMarkerViewModel">
-                                                                <Grid Width="18"
-                                                                      Height="18"
-                                                                      Background="Transparent"
-                                                                      Canvas.Left="{x:Bind X}"
-                                                                      Canvas.Top="{x:Bind Y}">
-                                                                    <ToolTipService.ToolTip>
-                                                                        <TextBlock Text="{x:Bind Tooltip}"/>
-                                                                    </ToolTipService.ToolTip>
-                                                                    <Ellipse Width="10"
-                                                                             Height="10"
-                                                                             Fill="White"
-                                                                             Stroke="#FF005FAA"
-                                                                             StrokeThickness="3"
-                                                                             HorizontalAlignment="Center"
-                                                                             VerticalAlignment="Center"/>
-                                                                </Grid>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
                                                 </Grid>
 
                                                 <ItemsControl Grid.Row="1"
                                                               ItemsSource="{x:Bind ViewModel.RevenueTrendPoints, Mode=OneWay}"
-                                                              Margin="0,4,0,6">
+                                                              Margin="0,4,0,12">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
                                                             <StackPanel Orientation="Horizontal"/>

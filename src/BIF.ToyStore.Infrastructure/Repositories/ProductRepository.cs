@@ -60,6 +60,22 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 .Where(c => c.IsDeleted && c.Id != AppConstants.OtherCategoryId)
                 .Select(c => c.Id);
 
+            var effectiveCategories = _dbContext.Categories
+                .IgnoreQueryFilters()
+                .Select(c => new
+                {
+                    OriginalId = c.Id,
+                    EffectiveId = c.IsDeleted && c.Id != AppConstants.OtherCategoryId
+                        ? AppConstants.OtherCategoryId
+                        : c.Id,
+                    EffectiveName = c.IsDeleted && c.Id != AppConstants.OtherCategoryId
+                        ? _dbContext.Categories
+                            .Where(other => other.Id == AppConstants.OtherCategoryId)
+                            .Select(other => other.Name)
+                            .FirstOrDefault() ?? "Other"
+                        : c.Name
+                });
+
             return _dbContext.Products
                 .IgnoreQueryFilters()
                 .Where(p => !p.IsDeleted)
@@ -70,6 +86,10 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     CategoryId = deletedCategoryIds.Contains(p.CategoryId)
                         ? AppConstants.OtherCategoryId
                         : p.CategoryId,
+                    CategoryName = effectiveCategories
+                        .Where(c => c.OriginalId == p.CategoryId)
+                        .Select(c => c.EffectiveName)
+                        .FirstOrDefault() ?? string.Empty,
                     RetailPrice = p.RetailPrice,
                     ImportPrice = p.ImportPrice,
                     StockQuantity = p.StockQuantity,

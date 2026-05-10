@@ -15,6 +15,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         private readonly Mock<IProductImageUploadService> _productImageUploadServiceMock;
         private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
         private readonly Mock<IExcelFilePickerService> _excelFilePickerServiceMock;
+        private readonly Mock<IGraphQLClient> _graphQLClientMock;
         private readonly ProductsViewModel _viewModel;
 
         public ProductsViewModelTests()
@@ -23,6 +24,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             _productImageUploadServiceMock = new Mock<IProductImageUploadService>();
             _localSettingsServiceMock = new Mock<ILocalSettingsService>();
             _excelFilePickerServiceMock = new Mock<IExcelFilePickerService>();
+            _graphQLClientMock = new Mock<IGraphQLClient>();
 
             // Setup default setting
             _localSettingsServiceMock
@@ -30,6 +32,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 .Returns(20);
 
             _viewModel = new ProductsViewModel(
+                _graphQLClientMock.Object,
                 _productServiceMock.Object,
                 _productImageUploadServiceMock.Object,
                 _localSettingsServiceMock.Object,
@@ -58,6 +61,13 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
                 .ReturnsAsync(fakeResponse);
 
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<ProductAppConfigNode>(
+                    It.Is<string>(q => q.Contains("GetProductsAppConfig")),
+                    It.IsAny<object?>(),
+                    "appConfig"))
+                .ReturnsAsync(new ProductAppConfigNode { CurrencySymbol = "USD" });
+
             // Act
             await _viewModel.LoadProductsAsync();
 
@@ -68,6 +78,36 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.True(_viewModel.HasNextPage);
             Assert.False(_viewModel.HasPreviousPage);
             Assert.Equal("cursor20", _viewModel.AfterCursor);
+            Assert.Equal("USD", _viewModel.Products[0].CurrencySymbol);
+        }
+
+        [Fact]
+        public async Task LoadProductsAsync_UsesGlobalCurrencyForRetailDisplay()
+        {
+            var fakeResponse = new ProductListResult
+            {
+                TotalCount = 1,
+                Items = new List<Product>
+                {
+                    new Product { Id = 1, Name = "Test Product 1", RetailPrice = 12.5m }
+                }
+            };
+
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<ProductAppConfigNode>(
+                    It.Is<string>(q => q.Contains("GetProductsAppConfig")),
+                    It.IsAny<object?>(),
+                    "appConfig"))
+                .ReturnsAsync(new ProductAppConfigNode { CurrencySymbol = "USD" });
+
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(fakeResponse);
+
+            await _viewModel.LoadProductsAsync();
+
+            Assert.Single(_viewModel.Products);
+            Assert.Equal("USD 12.50", _viewModel.Products[0].RetailPriceDisplay);
         }
 
         [Fact]
