@@ -199,6 +199,28 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return products.Select(ReportTopProductPointPayload.FromModel).ToList();
         }
 
+        public async Task<DashboardTodaySummaryPayload> GetDashboardTodaySummary(
+            [Service] AppDbContext dbContext)
+        {
+            var todayStart = DateTime.Today;
+            var todayEnd = todayStart.AddDays(1).AddTicks(-1);
+
+            var todayOrders = dbContext.Orders
+                .AsNoTracking()
+                .Where(o => o.OrderDate >= todayStart && o.OrderDate <= todayEnd);
+
+            var orderCount = await todayOrders.CountAsync();
+            var revenue = await todayOrders
+                .Where(o => o.Status == OrderStatus.Paid)
+                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
+
+            return new DashboardTodaySummaryPayload
+            {
+                OrderCount = orderCount,
+                Revenue = revenue
+            };
+        }
+
         private static bool HasActorContext(int? currentUserId, string? currentUserRole)
         {
             return currentUserId.HasValue || !string.IsNullOrWhiteSpace(currentUserRole);
@@ -244,6 +266,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             return await productRepository.ResolveEffectiveCategoryAsync(product);
         }
+    }
+
+    public sealed class DashboardTodaySummaryPayload
+    {
+        public int OrderCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 }
 

@@ -409,8 +409,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="3*"/>
                                         <ColumnDefinition Width="2*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1.3*"/>
+                                        <ColumnDefinition Width="0.5*"/>
+                                        <ColumnDefinition Width="2*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="1"
                                                Text="Product"
@@ -420,19 +420,22 @@
                                                Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <TextBlock Grid.Column="2"
                                                Text="Category"
+                                               Padding="28,0,0,0"
                                                FontSize="11"
                                                FontWeight="Bold"
                                                CharacterSpacing="120"
                                                Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
                                     <TextBlock Grid.Column="3"
                                                Text="Stock"
+                                               Padding="12,0,0,0"
                                                FontSize="11"
                                                FontWeight="Bold"
                                                CharacterSpacing="120"
                                                Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                               HorizontalAlignment="Right"/>
+                                               HorizontalAlignment="Center"/>
                                     <TextBlock Grid.Column="4"
                                                Text="Price"
+                                               Padding="0,0,12,0"
                                                FontSize="11"
                                                FontWeight="Bold"
                                                CharacterSpacing="120"
@@ -459,8 +462,8 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="3*"/>
                                                     <ColumnDefinition Width="2*"/>
-                                                    <ColumnDefinition Width="1*"/>
-                                                    <ColumnDefinition Width="1.3*"/>
+                                                    <ColumnDefinition Width="0.5*"/>
+                                                    <ColumnDefinition Width="2*"/>
                                                 </Grid.ColumnDefinitions>
 
                                                 <Border Grid.Column="0"
@@ -488,7 +491,7 @@
                                                            FontSize="13"
                                                            FontWeight="Bold"
                                                            Foreground="{StaticResource FluentPlayOnSurfaceBrush}"
-                                                           HorizontalAlignment="Right"/>
+                                                           HorizontalAlignment="Center"/>
                                                 <TextBlock Grid.Column="4"
                                                            Text="{x:Bind PriceDisplay}"
                                                            FontSize="14"

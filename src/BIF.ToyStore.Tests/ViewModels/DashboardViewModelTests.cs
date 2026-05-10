@@ -84,21 +84,14 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 });
 
             graphQlClient
-                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
-                    It.Is<string>(q => q.Contains("DashboardToday")),
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
                     It.IsAny<object?>(),
-                    It.IsAny<string>()))
-                .ReturnsAsync(new DashboardTodayQueryData
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode
                 {
-                    GetOrders = new DashboardOrderConnection
-                    {
-                        TotalCount = 2,
-                        Nodes =
-                        [
-                            new DashboardOrderNode { Status = "Paid", TotalAmount = 100m },
-                            new DashboardOrderNode { Status = "New", TotalAmount = 50m }
-                        ]
-                    }
+                    OrderCount = 2,
+                    Revenue = 100m
                 });
 
             var vm = new DashboardViewModel(graphQlClient.Object);
@@ -230,18 +223,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 });
 
             graphQlClient
-                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
-                    It.Is<string>(q => q.Contains("DashboardToday")),
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
                     It.IsAny<object?>(),
-                    It.IsAny<string>()))
-                .ReturnsAsync(new DashboardTodayQueryData
-                {
-                    GetOrders = new DashboardOrderConnection
-                    {
-                        TotalCount = 0,
-                        Nodes = []
-                    }
-                });
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode());
 
             var vm = new DashboardViewModel(graphQlClient.Object);
 
@@ -296,11 +282,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 });
 
             graphQlClient
-                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
-                    It.Is<string>(q => q.Contains("DashboardToday")),
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
                     It.IsAny<object?>(),
-                    It.IsAny<string>()))
-                .ReturnsAsync(new DashboardTodayQueryData());
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode());
 
             graphQlClient
                 .Setup(x => x.ExecuteAsync<DashboardProductNode>(

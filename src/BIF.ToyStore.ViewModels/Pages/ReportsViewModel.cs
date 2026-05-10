@@ -101,9 +101,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             ? "Sales in this range."
             : "No sales in this range.";
 
-        public string TotalRevenueDisplay => FormatCurrency(TotalRevenue, CurrencySymbol);
+        public string TotalRevenueDisplay => ReportsFormatting.FormatMil(TotalRevenue);
 
-        public string TotalProfitDisplay => FormatCurrency(TotalProfit, CurrencySymbol);
+        public string TotalProfitDisplay => ReportsFormatting.FormatMil(TotalProfit);
 
         public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
@@ -497,6 +497,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
     }
 
+    internal static class ReportsFormatting
+    {
+        public static string FormatMil(decimal amount)
+        {
+            var value = amount / 1_000_000m;
+            return string.Concat(value.ToString("0.##", CultureInfo.InvariantCulture), " MIL");
+        }
+    }
+
     public sealed class ReportGroupByOption
     {
         public string Label { get; }
@@ -523,9 +532,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string QuantityDisplay => Quantity.ToString(CultureInfo.InvariantCulture);
 
-        public string RevenueDisplay => FormatCurrency(Revenue, CurrencySymbol);
+        public string RevenueDisplay => ReportsFormatting.FormatMil(Revenue);
 
-        public string ProfitDisplay => FormatCurrency(Profit, CurrencySymbol);
+        public string ProfitDisplay => ReportsFormatting.FormatMil(Profit);
 
         public string TooltipText => $"{Label}: {QuantityDisplay} units\nRevenue: {RevenueDisplay}\nProfit: {ProfitDisplay}";
 
@@ -552,8 +561,8 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string RankDisplay => Rank.ToString(CultureInfo.InvariantCulture);
         public string QuantityDisplay => $"{TotalQuantity} units";
-        public string RevenueDisplay => FormatCurrency(TotalRevenue, CurrencySymbol);
-        public string ProfitDisplay => FormatCurrency(TotalProfit, CurrencySymbol);
+        public string RevenueDisplay => ReportsFormatting.FormatMil(TotalRevenue);
+        public string ProfitDisplay => ReportsFormatting.FormatMil(TotalProfit);
         public string TooltipText => $"{ProductName}\n{QuantityDisplay}\nRevenue: {RevenueDisplay}\nProfit: {ProfitDisplay}";
 
         private static string FormatCurrency(decimal amount, string currencySymbol)

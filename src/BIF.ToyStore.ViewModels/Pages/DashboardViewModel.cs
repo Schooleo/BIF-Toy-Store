@@ -1,5 +1,4 @@
 using BIF.ToyStore.Core.Interfaces;
-using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,7 +13,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         private const int LowStockTake = 5;
         private const int RecentOrdersTake = 3;
         private const int BestSellerTake = 5;
-        private const int DashboardTodayBatchSize = 50;
         private const int CriticalStockThreshold = 0;
         private const int WarningStockThreshold = 3;
 
@@ -342,7 +340,11 @@ namespace BIF.ToyStore.ViewModels.Pages
                         stockQuantity
                         retailPrice
                         importPrice
-                        imageUrl
+                        images {
+                            imageUrl
+                            displayOrder
+                            isPrimary
+                        }
                         category {
                             id
                             name
@@ -404,6 +406,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                 .OrderBy(x => x.StockQuantity)
                 .Take(LowStockTake))
             {
+                var imageUrl = ResolvePrimaryImageUrl(product);
+
                 LowStockProducts.Add(new LowStockProductViewModel
                 {
                     Id = product.Id,
@@ -413,7 +417,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     StockQuantity = product.StockQuantity,
                     RetailPrice = product.RetailPrice,
                     ImportPrice = product.ImportPrice,
-                    ImageUrl = product.ImageUrl,
+                    ImageUrl = imageUrl,
                     CurrencySymbol = CurrencySymbol,
                     IsCritical = product.StockQuantity <= CriticalStockThreshold
                 });
@@ -484,59 +488,19 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         private async Task LoadTodaySummaryAsync()
         {
-            var todayStart = DateTime.Today;
-            var todayEnd = todayStart.AddDays(1).AddTicks(-1);
-
-            const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime, $first: Int!, $after: String) {
-                getOrders: orders(first: $first, after: $after, fromDate: $fromDate, toDate: $toDate) {
-                    totalCount
-                    pageInfo {
-                        hasNextPage
-                        endCursor
-                    }
-                    nodes {
-                        status
-                        totalAmount
-                    }
+            const string summaryQuery = @"query DashboardTodaySummary {
+                dashboardTodaySummary {
+                    orderCount
+                    revenue
                 }
             }";
 
-            var allTodayOrders = new List<DashboardOrderNode>();
-            int? totalCount = null;
-            string? afterCursor = null;
+            var payload = await _graphQLClient.ExecuteAsync<DashboardTodaySummaryNode>(
+                summaryQuery,
+                dataKey: "dashboardTodaySummary");
 
-            while (true)
-            {
-                var variables = new
-                {
-                    fromDate = todayStart,
-                    toDate = todayEnd,
-                    first = DashboardTodayBatchSize,
-                    after = afterCursor
-                };
-
-                var payload = await _graphQLClient.ExecuteAsync<DashboardTodayQueryData>(todayQuery, variables)
-                    ?? new DashboardTodayQueryData();
-
-                totalCount ??= payload.GetOrders.TotalCount;
-                allTodayOrders.AddRange(payload.GetOrders.Nodes);
-
-                if (payload.GetOrders.PageInfo?.HasNextPage == true
-                    && !string.IsNullOrWhiteSpace(payload.GetOrders.PageInfo.EndCursor))
-                {
-                    afterCursor = payload.GetOrders.PageInfo.EndCursor;
-                    continue;
-                }
-
-                break;
-            }
-
-            OrdersToday = totalCount.GetValueOrDefault() > 0
-                ? totalCount.Value
-                : allTodayOrders.Count;
-            TodayRevenue = allTodayOrders
-                .Where(x => string.Equals(x.Status, OrderStatus.Paid.ToString(), StringComparison.OrdinalIgnoreCase))
-                .Sum(x => x.TotalAmount);
+            OrdersToday = payload?.OrderCount ?? 0;
+            TodayRevenue = payload?.Revenue ?? 0m;
         }
 
         private void RebuildRevenueGeometry()
@@ -703,6 +667,17 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
 
             return normalized;
+        }
+
+        private static string? ResolvePrimaryImageUrl(DashboardProductNode product)
+        {
+            if (product.Images is { Count: > 0 })
+            {
+                return product.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                    ?? product.Images.FirstOrDefault()?.ImageUrl;
+            }
+
+            return product.ImageUrl;
         }
     }
 
@@ -917,9 +892,10 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string CurrencySymbol { get; set; } = "$";
     }
 
-    public sealed class DashboardTodayQueryData
+    public sealed class DashboardTodaySummaryNode
     {
-        public DashboardOrderConnection GetOrders { get; set; } = new();
+        public int OrderCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 
     public sealed class DashboardProductConnection
@@ -937,7 +913,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal RetailPrice { get; set; }
         public decimal ImportPrice { get; set; }
         public string? ImageUrl { get; set; }
+        public List<DashboardProductImageNode> Images { get; set; } = new();
         public DashboardCategoryNode? Category { get; set; }
+    }
+
+    public sealed class DashboardProductImageNode
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+        public bool IsPrimary { get; set; }
     }
 
     public sealed class DashboardCategoryNode

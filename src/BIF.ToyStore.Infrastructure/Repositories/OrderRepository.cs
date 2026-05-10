@@ -254,6 +254,9 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 from detail in _dbContext.OrderDetails.AsNoTracking()
                 join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
                 join product in _dbContext.Products.AsNoTracking() on detail.ProductId equals product.Id
+                join image in _dbContext.ProductImages.AsNoTracking().Where(i => i.IsPrimary)
+                    on product.Id equals image.ProductId into imageGroup
+                from image in imageGroup.DefaultIfEmpty()
                 join category in _dbContext.Categories.AsNoTracking()
                     on product.CategoryId equals category.Id into categoryGroup
                 from category in categoryGroup.DefaultIfEmpty()
@@ -263,7 +266,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                     product.Id,
                     product.Name,
                     product.RetailPrice,
-                    product.ImageUrl,
+                    ImageUrl = image != null ? image.ImageUrl : string.Empty,
                     CategoryName = category != null ? category.Name : "Unknown"
                 }
                 into g
