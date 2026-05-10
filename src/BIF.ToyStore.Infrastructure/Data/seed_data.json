@@ -1,0 +1,743 @@
+[
+  {
+    "CategoryName": "Stuffed Animals",
+    "Products": [
+      {
+        "Name": "Fruit Rabbit Stuffed Animal",
+        "RetailPrice": 240000,
+        "ImportPrice": 100000,
+        "StockQuantity": 38,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334393/BIF-Toy-Store/seed-product/Fruit%20Rabbit%20Stuffed%20Animal/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334394/BIF-Toy-Store/seed-product/Fruit%20Rabbit%20Stuffed%20Animal/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334395/BIF-Toy-Store/seed-product/Fruit%20Rabbit%20Stuffed%20Animal/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Easy Soft Stuffed Animal",
+        "RetailPrice": 220000,
+        "ImportPrice": 90000,
+        "StockQuantity": 46,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334387/BIF-Toy-Store/seed-product/Easy%20Soft%20Stuffed%20Animal/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334388/BIF-Toy-Store/seed-product/Easy%20Soft%20Stuffed%20Animal/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334388/BIF-Toy-Store/seed-product/Easy%20Soft%20Stuffed%20Animal/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Panda Stuffed Animal 22cm",
+        "RetailPrice": 190000,
+        "ImportPrice": 90000,
+        "StockQuantity": 6,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334400/BIF-Toy-Store/seed-product/Panda%20Stuffed%20Animal%2022cm/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334401/BIF-Toy-Store/seed-product/Panda%20Stuffed%20Animal%2022cm/img_2.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334402/BIF-Toy-Store/seed-product/Panda%20Stuffed%20Animal%2022cm/img_3.png"
+        ]
+      },
+      {
+        "Name": "Fruit Pig Plush Toy",
+        "RetailPrice": 150000,
+        "ImportPrice": 90000,
+        "StockQuantity": 29,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334391/BIF-Toy-Store/seed-product/Fruit%20Pig%20Plush%20Toy/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334392/BIF-Toy-Store/seed-product/Fruit%20Pig%20Plush%20Toy/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334393/BIF-Toy-Store/seed-product/Fruit%20Pig%20Plush%20Toy/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Youth Movement Bear Plush",
+        "RetailPrice": 150000,
+        "ImportPrice": 70000,
+        "StockQuantity": 48,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334420/BIF-Toy-Store/seed-product/Youth%20Movement%20Bear%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334421/BIF-Toy-Store/seed-product/Youth%20Movement%20Bear%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334422/BIF-Toy-Store/seed-product/Youth%20Movement%20Bear%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Busy Pig Plush 40cm",
+        "RetailPrice": 190000,
+        "ImportPrice": 60000,
+        "StockQuantity": 16,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334368/BIF-Toy-Store/seed-product/Busy%20Pig%20Plush%2040cm/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334368/BIF-Toy-Store/seed-product/Busy%20Pig%20Plush%2040cm/img_2.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334369/BIF-Toy-Store/seed-product/Busy%20Pig%20Plush%2040cm/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Pikachu Soft Plush",
+        "RetailPrice": 190000,
+        "ImportPrice": 80000,
+        "StockQuantity": 19,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334403/BIF-Toy-Store/seed-product/Pikachu%20Soft%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334403/BIF-Toy-Store/seed-product/Pikachu%20Soft%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334404/BIF-Toy-Store/seed-product/Pikachu%20Soft%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Shiba Dog Cosplay Plush",
+        "RetailPrice": 160000,
+        "ImportPrice": 50000,
+        "StockQuantity": 37,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334411/BIF-Toy-Store/seed-product/Shiba%20Dog%20Cosplay%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334412/BIF-Toy-Store/seed-product/Shiba%20Dog%20Cosplay%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334413/BIF-Toy-Store/seed-product/Shiba%20Dog%20Cosplay%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Chiikawa Usagi Cute Plush",
+        "RetailPrice": 260000,
+        "ImportPrice": 150000,
+        "StockQuantity": 44,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334379/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Cute%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334380/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Cute%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334382/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Cute%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Fruit Head Rabbit Plush",
+        "RetailPrice": 170000,
+        "ImportPrice": 50000,
+        "StockQuantity": 40,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334389/BIF-Toy-Store/seed-product/Fruit%20Head%20Rabbit%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334390/BIF-Toy-Store/seed-product/Fruit%20Head%20Rabbit%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334391/BIF-Toy-Store/seed-product/Fruit%20Head%20Rabbit%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Rabbit Hugging Flower Plush",
+        "RetailPrice": 210000,
+        "ImportPrice": 70000,
+        "StockQuantity": 7,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334407/BIF-Toy-Store/seed-product/Rabbit%20Hugging%20Flower%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334408/BIF-Toy-Store/seed-product/Rabbit%20Hugging%20Flower%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334408/BIF-Toy-Store/seed-product/Rabbit%20Hugging%20Flower%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Polar Bear Ice Bear Plush",
+        "RetailPrice": 230000,
+        "ImportPrice": 90000,
+        "StockQuantity": 14,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334405/BIF-Toy-Store/seed-product/Polar%20Bear%20Ice%20Bear%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334406/BIF-Toy-Store/seed-product/Polar%20Bear%20Ice%20Bear%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334406/BIF-Toy-Store/seed-product/Polar%20Bear%20Ice%20Bear%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Dragon Stuffed Toy",
+        "RetailPrice": 190000,
+        "ImportPrice": 90000,
+        "StockQuantity": 45,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334385/BIF-Toy-Store/seed-product/Dragon%20Stuffed%20Toy/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334385/BIF-Toy-Store/seed-product/Dragon%20Stuffed%20Toy/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334386/BIF-Toy-Store/seed-product/Dragon%20Stuffed%20Toy/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Silly Face Rabbit Plush",
+        "RetailPrice": 240000,
+        "ImportPrice": 90000,
+        "StockQuantity": 33,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334416/BIF-Toy-Store/seed-product/Silly%20Face%20Rabbit%20Plush/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334417/BIF-Toy-Store/seed-product/Silly%20Face%20Rabbit%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334417/BIF-Toy-Store/seed-product/Silly%20Face%20Rabbit%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Graduation Bear Plush",
+        "RetailPrice": 120000,
+        "ImportPrice": 60000,
+        "StockQuantity": 18,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334396/BIF-Toy-Store/seed-product/Graduation%20Bear%20Plush/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334396/BIF-Toy-Store/seed-product/Graduation%20Bear%20Plush/img_2.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334397/BIF-Toy-Store/seed-product/Graduation%20Bear%20Plush/img_3.png"
+        ]
+      },
+      {
+        "Name": "Cat with Scarf Plush",
+        "RetailPrice": 300000,
+        "ImportPrice": 150000,
+        "StockQuantity": 50,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334374/BIF-Toy-Store/seed-product/Cat%20with%20Scarf%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334376/BIF-Toy-Store/seed-product/Cat%20with%20Scarf%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334377/BIF-Toy-Store/seed-product/Cat%20with%20Scarf%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Usagi Cute Adorable Plush",
+        "RetailPrice": 180000,
+        "ImportPrice": 80000,
+        "StockQuantity": 21,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334418/BIF-Toy-Store/seed-product/Usagi%20Cute%20Adorable%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334419/BIF-Toy-Store/seed-product/Usagi%20Cute%20Adorable%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334420/BIF-Toy-Store/seed-product/Usagi%20Cute%20Adorable%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Silly Face Duck Plush",
+        "RetailPrice": 220000,
+        "ImportPrice": 110000,
+        "StockQuantity": 13,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334414/BIF-Toy-Store/seed-product/Silly%20Face%20Duck%20Plush/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334414/BIF-Toy-Store/seed-product/Silly%20Face%20Duck%20Plush/img_2.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334415/BIF-Toy-Store/seed-product/Silly%20Face%20Duck%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Koala Stuffed Animal 14cm",
+        "RetailPrice": 230000,
+        "ImportPrice": 90000,
+        "StockQuantity": 45,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334398/BIF-Toy-Store/seed-product/Koala%20Stuffed%20Animal%2014cm/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334399/BIF-Toy-Store/seed-product/Koala%20Stuffed%20Animal%2014cm/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334399/BIF-Toy-Store/seed-product/Koala%20Stuffed%20Animal%2014cm/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Shark Bee Hybrid Plush",
+        "RetailPrice": 280000,
+        "ImportPrice": 130000,
+        "StockQuantity": 20,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334409/BIF-Toy-Store/seed-product/Shark%20Bee%20Hybrid%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334410/BIF-Toy-Store/seed-product/Shark%20Bee%20Hybrid%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334411/BIF-Toy-Store/seed-product/Shark%20Bee%20Hybrid%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Chiikawa Usagi Hachiware Plush",
+        "RetailPrice": 150000,
+        "ImportPrice": 100000,
+        "StockQuantity": 30,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334382/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Hachiware%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334383/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Hachiware%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334384/BIF-Toy-Store/seed-product/Chiikawa%20Usagi%20Hachiware%20Plush/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Baby Three Cosplay Rabbit Plush",
+        "RetailPrice": 170000,
+        "ImportPrice": 80000,
+        "StockQuantity": 28,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334365/BIF-Toy-Store/seed-product/Baby%20Three%20Cosplay%20Rabbit%20Plush/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334366/BIF-Toy-Store/seed-product/Baby%20Three%20Cosplay%20Rabbit%20Plush/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778334367/BIF-Toy-Store/seed-product/Baby%20Three%20Cosplay%20Rabbit%20Plush/img_3.jpg"
+        ]
+      }
+    ]
+  },
+  {
+    "CategoryName": "Gundam Models",
+    "Products": [
+      {
+        "Name": "Gundam Cao Cao Warlord Series",
+        "RetailPrice": 450000,
+        "ImportPrice": 340000,
+        "StockQuantity": 14,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332494/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Warlord%20Series/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332495/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Warlord%20Series/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332495/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Warlord%20Series/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Cao Cao Elite Figure",
+        "RetailPrice": 650000,
+        "ImportPrice": 490000,
+        "StockQuantity": 7,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332489/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Elite%20Figure/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332490/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Elite%20Figure/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332491/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Elite%20Figure/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Sima Yi Strategic Master",
+        "RetailPrice": 440000,
+        "ImportPrice": 290000,
+        "StockQuantity": 32,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332502/BIF-Toy-Store/seed-product/Gundam%20Sima%20Yi%20Strategic%20Master/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332504/BIF-Toy-Store/seed-product/Gundam%20Sima%20Yi%20Strategic%20Master/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332504/BIF-Toy-Store/seed-product/Gundam%20Sima%20Yi%20Strategic%20Master/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Zhao Zilong Dragon Warrior",
+        "RetailPrice": 430000,
+        "ImportPrice": 250000,
+        "StockQuantity": 8,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332514/BIF-Toy-Store/seed-product/Gundam%20Zhao%20Zilong%20Dragon%20Warrior/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332516/BIF-Toy-Store/seed-product/Gundam%20Zhao%20Zilong%20Dragon%20Warrior/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332516/BIF-Toy-Store/seed-product/Gundam%20Zhao%20Zilong%20Dragon%20Warrior/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Sun Quan Eastern Lord",
+        "RetailPrice": 590000,
+        "ImportPrice": 360000,
+        "StockQuantity": 13,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332508/BIF-Toy-Store/seed-product/Gundam%20Sun%20Quan%20Eastern%20Lord/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332509/BIF-Toy-Store/seed-product/Gundam%20Sun%20Quan%20Eastern%20Lord/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332510/BIF-Toy-Store/seed-product/Gundam%20Sun%20Quan%20Eastern%20Lord/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Cao Cao Tyrant General",
+        "RetailPrice": 440000,
+        "ImportPrice": 250000,
+        "StockQuantity": 27,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332492/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Tyrant%20General/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332492/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Tyrant%20General/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332493/BIF-Toy-Store/seed-product/Gundam%20Cao%20Cao%20Tyrant%20General/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Plastic Robot Warrior",
+        "RetailPrice": 590000,
+        "ImportPrice": 410000,
+        "StockQuantity": 34,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332500/BIF-Toy-Store/seed-product/Gundam%20Plastic%20Robot%20Warrior/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332501/BIF-Toy-Store/seed-product/Gundam%20Plastic%20Robot%20Warrior/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332501/BIF-Toy-Store/seed-product/Gundam%20Plastic%20Robot%20Warrior/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A032 Power General",
+        "RetailPrice": 530000,
+        "ImportPrice": 240000,
+        "StockQuantity": 33,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332532/BIF-Toy-Store/seed-product/SD%20Gundam%20A032%20Power%20General/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332533/BIF-Toy-Store/seed-product/SD%20Gundam%20A032%20Power%20General/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332533/BIF-Toy-Store/seed-product/SD%20Gundam%20A032%20Power%20General/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Legends Combo Pack",
+        "RetailPrice": 410000,
+        "ImportPrice": 210000,
+        "StockQuantity": 30,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332498/BIF-Toy-Store/seed-product/Gundam%20Legends%20Combo%20Pack/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332498/BIF-Toy-Store/seed-product/Gundam%20Legends%20Combo%20Pack/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332499/BIF-Toy-Store/seed-product/Gundam%20Legends%20Combo%20Pack/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A013 Scholar General",
+        "RetailPrice": 560000,
+        "ImportPrice": 390000,
+        "StockQuantity": 33,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332521/BIF-Toy-Store/seed-product/SD%20Gundam%20A013%20Scholar%20General/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332522/BIF-Toy-Store/seed-product/SD%20Gundam%20A013%20Scholar%20General/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332523/BIF-Toy-Store/seed-product/SD%20Gundam%20A013%20Scholar%20General/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A016 Beauty Assassin",
+        "RetailPrice": 540000,
+        "ImportPrice": 400000,
+        "StockQuantity": 11,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332524/BIF-Toy-Store/seed-product/SD%20Gundam%20A016%20Beauty%20Assassin/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332524/BIF-Toy-Store/seed-product/SD%20Gundam%20A016%20Beauty%20Assassin/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332525/BIF-Toy-Store/seed-product/SD%20Gundam%20A016%20Beauty%20Assassin/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Sun Qian Diplomat Figure",
+        "RetailPrice": 760000,
+        "ImportPrice": 480000,
+        "StockQuantity": 43,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332505/BIF-Toy-Store/seed-product/Gundam%20Sun%20Qian%20Diplomat%20Figure/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332506/BIF-Toy-Store/seed-product/Gundam%20Sun%20Qian%20Diplomat%20Figure/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332507/BIF-Toy-Store/seed-product/Gundam%20Sun%20Qian%20Diplomat%20Figure/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A001 Supreme Leader",
+        "RetailPrice": 390000,
+        "ImportPrice": 280000,
+        "StockQuantity": 28,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332517/BIF-Toy-Store/seed-product/SD%20Gundam%20A001%20Supreme%20Leader/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332518/BIF-Toy-Store/seed-product/SD%20Gundam%20A001%20Supreme%20Leader/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332518/BIF-Toy-Store/seed-product/SD%20Gundam%20A001%20Supreme%20Leader/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A034 Tiger Warrior",
+        "RetailPrice": 770000,
+        "ImportPrice": 470000,
+        "StockQuantity": 20,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332534/BIF-Toy-Store/seed-product/SD%20Gundam%20A034%20Tiger%20Warrior/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332535/BIF-Toy-Store/seed-product/SD%20Gundam%20A034%20Tiger%20Warrior/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332536/BIF-Toy-Store/seed-product/SD%20Gundam%20A034%20Tiger%20Warrior/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A031 Commander",
+        "RetailPrice": 350000,
+        "ImportPrice": 230000,
+        "StockQuantity": 45,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332530/BIF-Toy-Store/seed-product/SD%20Gundam%20A031%20Commander/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332531/BIF-Toy-Store/seed-product/SD%20Gundam%20A031%20Commander/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332531/BIF-Toy-Store/seed-product/SD%20Gundam%20A031%20Commander/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Xiahou Yuan Ice General",
+        "RetailPrice": 510000,
+        "ImportPrice": 360000,
+        "StockQuantity": 27,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332511/BIF-Toy-Store/seed-product/Gundam%20Xiahou%20Yuan%20Ice%20General/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332512/BIF-Toy-Store/seed-product/Gundam%20Xiahou%20Yuan%20Ice%20General/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332513/BIF-Toy-Store/seed-product/Gundam%20Xiahou%20Yuan%20Ice%20General/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A035 Loyal Advisor",
+        "RetailPrice": 420000,
+        "ImportPrice": 290000,
+        "StockQuantity": 17,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332536/BIF-Toy-Store/seed-product/SD%20Gundam%20A035%20Loyal%20Advisor/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332537/BIF-Toy-Store/seed-product/SD%20Gundam%20A035%20Loyal%20Advisor/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332538/BIF-Toy-Store/seed-product/SD%20Gundam%20A035%20Loyal%20Advisor/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A003 Fierce Guardian",
+        "RetailPrice": 470000,
+        "ImportPrice": 200000,
+        "StockQuantity": 16,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332519/BIF-Toy-Store/seed-product/SD%20Gundam%20A003%20Fierce%20Guardian/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332520/BIF-Toy-Store/seed-product/SD%20Gundam%20A003%20Fierce%20Guardian/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332520/BIF-Toy-Store/seed-product/SD%20Gundam%20A003%20Fierce%20Guardian/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A028 River Lord",
+        "RetailPrice": 450000,
+        "ImportPrice": 240000,
+        "StockQuantity": 5,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332528/BIF-Toy-Store/seed-product/SD%20Gundam%20A028%20River%20Lord/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332529/BIF-Toy-Store/seed-product/SD%20Gundam%20A028%20River%20Lord/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332529/BIF-Toy-Store/seed-product/SD%20Gundam%20A028%20River%20Lord/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam A031 Military Genius",
+        "RetailPrice": 530000,
+        "ImportPrice": 270000,
+        "StockQuantity": 42,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332487/BIF-Toy-Store/seed-product/Gundam%20A031%20Military%20Genius/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332488/BIF-Toy-Store/seed-product/Gundam%20A031%20Military%20Genius/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332489/BIF-Toy-Store/seed-product/Gundam%20A031%20Military%20Genius/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "SD Gundam A024 Ancient Sage",
+        "RetailPrice": 530000,
+        "ImportPrice": 390000,
+        "StockQuantity": 7,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332526/BIF-Toy-Store/seed-product/SD%20Gundam%20A024%20Ancient%20Sage/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332526/BIF-Toy-Store/seed-product/SD%20Gundam%20A024%20Ancient%20Sage/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332527/BIF-Toy-Store/seed-product/SD%20Gundam%20A024%20Ancient%20Sage/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Gundam Legend Alliance Set",
+        "RetailPrice": 460000,
+        "ImportPrice": 310000,
+        "StockQuantity": 17,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332496/BIF-Toy-Store/seed-product/Gundam%20Legend%20Alliance%20Set/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332497/BIF-Toy-Store/seed-product/Gundam%20Legend%20Alliance%20Set/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778332497/BIF-Toy-Store/seed-product/Gundam%20Legend%20Alliance%20Set/img_3.jpg"
+        ]
+      }
+    ]
+  },
+  {
+    "CategoryName": "Remote Control Cars",
+    "Products": [
+      {
+        "Name": "Duka Remote Control Car 24G",
+        "RetailPrice": 820000,
+        "ImportPrice": 420000,
+        "StockQuantity": 25,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335318/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Car%2024G/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335319/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Car%2024G/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335319/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Car%2024G/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Duka Construction Vehicle RC",
+        "RetailPrice": 970000,
+        "ImportPrice": 490000,
+        "StockQuantity": 22,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335314/BIF-Toy-Store/seed-product/Duka%20Construction%20Vehicle%20RC/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335315/BIF-Toy-Store/seed-product/Duka%20Construction%20Vehicle%20RC/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335315/BIF-Toy-Store/seed-product/Duka%20Construction%20Vehicle%20RC/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Pagani Black RC Car R38010",
+        "RetailPrice": 980000,
+        "ImportPrice": 480000,
+        "StockQuantity": 27,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335337/BIF-Toy-Store/seed-product/Pagani%20Black%20RC%20Car%20R38010/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335338/BIF-Toy-Store/seed-product/Pagani%20Black%20RC%20Car%20R38010/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335338/BIF-Toy-Store/seed-product/Pagani%20Black%20RC%20Car%20R38010/img_3.webp"
+        ]
+      },
+      {
+        "Name": "Ferrari SF90 Stradale RC 1-24",
+        "RetailPrice": 780000,
+        "ImportPrice": 500000,
+        "StockQuantity": 45,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335818/BIF-Toy-Store/seed-product/Ferrari%20SF90%20Stradale%20RC%201-24/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335819/BIF-Toy-Store/seed-product/Ferrari%20SF90%20Stradale%20RC%201-24/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335820/BIF-Toy-Store/seed-product/Ferrari%20SF90%20Stradale%20RC%201-24/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Duka Remote Control Supercar 24G",
+        "RetailPrice": 1110000,
+        "ImportPrice": 740000,
+        "StockQuantity": 35,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335320/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Supercar%2024G/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335321/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Supercar%2024G/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335322/BIF-Toy-Store/seed-product/Duka%20Remote%20Control%20Supercar%2024G/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Duka RC Construction Vehicle",
+        "RetailPrice": 620000,
+        "ImportPrice": 400000,
+        "StockQuantity": 25,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335316/BIF-Toy-Store/seed-product/Duka%20RC%20Construction%20Vehicle/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335317/BIF-Toy-Store/seed-product/Duka%20RC%20Construction%20Vehicle/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335317/BIF-Toy-Store/seed-product/Duka%20RC%20Construction%20Vehicle/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Ford GT RC 1-24 Blue R78200",
+        "RetailPrice": 1100000,
+        "ImportPrice": 800000,
+        "StockQuantity": 5,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335821/BIF-Toy-Store/seed-product/Ford%20GT%20RC%201-24%20Blue%20R78200/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335821/BIF-Toy-Store/seed-product/Ford%20GT%20RC%201-24%20Blue%20R78200/img_2.webp",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335822/BIF-Toy-Store/seed-product/Ford%20GT%20RC%201-24%20Blue%20R78200/img_3.webp"
+        ]
+      },
+      {
+        "Name": "Duka Supercar RC Deluxe",
+        "RetailPrice": 920000,
+        "ImportPrice": 420000,
+        "StockQuantity": 11,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335322/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Deluxe/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335323/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Deluxe/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335324/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Deluxe/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "RC Off-Road Terrain Vehicle",
+        "RetailPrice": 850000,
+        "ImportPrice": 440000,
+        "StockQuantity": 10,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335339/BIF-Toy-Store/seed-product/RC%20Off-Road%20Terrain%20Vehicle/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335340/BIF-Toy-Store/seed-product/RC%20Off-Road%20Terrain%20Vehicle/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335341/BIF-Toy-Store/seed-product/RC%20Off-Road%20Terrain%20Vehicle/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Ferrari FXXK Evo RC R79300",
+        "RetailPrice": 740000,
+        "ImportPrice": 450000,
+        "StockQuantity": 24,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335329/BIF-Toy-Store/seed-product/Ferrari%20FXXK%20Evo%20RC%20R79300/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335330/BIF-Toy-Store/seed-product/Ferrari%20FXXK%20Evo%20RC%20R79300/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335330/BIF-Toy-Store/seed-product/Ferrari%20FXXK%20Evo%20RC%20R79300/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Veyron Supercar RC Control",
+        "RetailPrice": 1060000,
+        "ImportPrice": 640000,
+        "StockQuantity": 16,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335347/BIF-Toy-Store/seed-product/Veyron%20Supercar%20RC%20Control/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335348/BIF-Toy-Store/seed-product/Veyron%20Supercar%20RC%20Control/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335348/BIF-Toy-Store/seed-product/Veyron%20Supercar%20RC%20Control/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Duka Supercar RC Lamborghini",
+        "RetailPrice": 1020000,
+        "ImportPrice": 650000,
+        "StockQuantity": 34,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335325/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Lamborghini/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335325/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Lamborghini/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335326/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Lamborghini/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Bugatti Chiron RC R76100 Red",
+        "RetailPrice": 1010000,
+        "ImportPrice": 740000,
+        "StockQuantity": 7,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335310/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Red/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335311/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Red/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335311/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Red/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Ferrari Purosangue RC Car",
+        "RetailPrice": 740000,
+        "ImportPrice": 430000,
+        "StockQuantity": 47,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335331/BIF-Toy-Store/seed-product/Ferrari%20Purosangue%20RC%20Car/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335332/BIF-Toy-Store/seed-product/Ferrari%20Purosangue%20RC%20Car/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335332/BIF-Toy-Store/seed-product/Ferrari%20Purosangue%20RC%20Car/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Remote Control RC Car Toy",
+        "RetailPrice": 870000,
+        "ImportPrice": 400000,
+        "StockQuantity": 27,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335342/BIF-Toy-Store/seed-product/Remote%20Control%20RC%20Car%20Toy/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335343/BIF-Toy-Store/seed-product/Remote%20Control%20RC%20Car%20Toy/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335343/BIF-Toy-Store/seed-product/Remote%20Control%20RC%20Car%20Toy/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Storm Rush RC Supercar Display",
+        "RetailPrice": 780000,
+        "ImportPrice": 520000,
+        "StockQuantity": 25,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335344/BIF-Toy-Store/seed-product/Storm%20Rush%20RC%20Supercar%20Display/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335345/BIF-Toy-Store/seed-product/Storm%20Rush%20RC%20Supercar%20Display/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335346/BIF-Toy-Store/seed-product/Storm%20Rush%20RC%20Supercar%20Display/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Bugatti Chiron RC R76100 Blue",
+        "RetailPrice": 1020000,
+        "ImportPrice": 640000,
+        "StockQuantity": 25,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335307/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Blue/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335308/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Blue/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335309/BIF-Toy-Store/seed-product/Bugatti%20Chiron%20RC%20R76100%20Blue/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "RC Car 1-36 Scale SINO 868",
+        "RetailPrice": 1050000,
+        "ImportPrice": 710000,
+        "StockQuantity": 19,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335823/BIF-Toy-Store/seed-product/RC%20Car%201-36%20Scale%20SINO%20868/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335823/BIF-Toy-Store/seed-product/RC%20Car%201-36%20Scale%20SINO%20868/img_2.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335824/BIF-Toy-Store/seed-product/RC%20Car%201-36%20Scale%20SINO%20868/img_3.png"
+        ]
+      },
+      {
+        "Name": "MINGDI 8708 RC Racing Car",
+        "RetailPrice": 1160000,
+        "ImportPrice": 800000,
+        "StockQuantity": 41,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335334/BIF-Toy-Store/seed-product/MINGDI%208708%20RC%20Racing%20Car/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335335/BIF-Toy-Store/seed-product/MINGDI%208708%20RC%20Racing%20Car/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335336/BIF-Toy-Store/seed-product/MINGDI%208708%20RC%20Racing%20Car/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Duka Supercar RC Veyron",
+        "RetailPrice": 950000,
+        "ImportPrice": 740000,
+        "StockQuantity": 14,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335327/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Veyron/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335328/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Veyron/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335328/BIF-Toy-Store/seed-product/Duka%20Supercar%20RC%20Veyron/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "Cargo Truck Transport RC Toy",
+        "RetailPrice": 1080000,
+        "ImportPrice": 770000,
+        "StockQuantity": 39,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335312/BIF-Toy-Store/seed-product/Cargo%20Truck%20Transport%20RC%20Toy/img_1.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335313/BIF-Toy-Store/seed-product/Cargo%20Truck%20Transport%20RC%20Toy/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335313/BIF-Toy-Store/seed-product/Cargo%20Truck%20Transport%20RC%20Toy/img_3.jpg"
+        ]
+      },
+      {
+        "Name": "DUKA Remote Control Car 24G Upgrade Version",
+        "RetailPrice": 920000,
+        "ImportPrice": 590000,
+        "StockQuantity": 28,
+        "Images": [
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335774/BIF-Toy-Store/seed-product/DUKA%20Remote%20Control%20Car%2024G%20Upgrade%20Version/img_1.png",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335775/BIF-Toy-Store/seed-product/DUKA%20Remote%20Control%20Car%2024G%20Upgrade%20Version/img_2.jpg",
+          "https://res.cloudinary.com/dhazw70up/image/upload/v1778335776/BIF-Toy-Store/seed-product/DUKA%20Remote%20Control%20Car%2024G%20Upgrade%20Version/img_3.jpg"
+        ]
+      }
+    ]
+  }
+]

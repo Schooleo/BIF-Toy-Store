@@ -255,7 +255,7 @@ namespace BIF.ToyStore.WinUI.Views
                         ImportPrice = dialog.ResultProduct.ImportPrice,
                         RetailPrice = dialog.ResultProduct.RetailPrice,
                         StockQuantity = dialog.ResultProduct.StockQuantity,
-                        ImageUrl = dialog.ResultProduct.ImageUrl
+                        Images = dialog.ResultProduct.Images
                     };
 
                     await ViewModel.CreateProductAsync(input);

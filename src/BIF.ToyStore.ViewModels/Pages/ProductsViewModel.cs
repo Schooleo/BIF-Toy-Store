@@ -16,7 +16,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly ILocalSettingsService _localSettingsService;
         private readonly IExcelFilePickerService _excelFilePickerService;
         private nint _windowHandle;
-        private string? _editingProductOriginalImageUrl;
         private Product? _editingProductSnapshot;
 
         public event Func<ImportFeedback, Task>? ImportFeedbackRequested;
@@ -157,7 +156,15 @@ namespace BIF.ToyStore.ViewModels.Pages
                     SortValue = SelectedSort?.Value
                 });
 
-                Products = new ObservableCollection<Product>(result.Items);
+                Products = new ObservableCollection<Product>(result.Items.Select(p => {
+                    if (p.Images != null && p.Images.Count > 3)
+                    {
+                        var trimmed = p.Images.Take(3).ToList();
+                        p.Images.Clear();
+                        foreach(var img in trimmed) p.Images.Add(img);
+                    }
+                    return p;
+                }));
                 ApplyPageInfo(
                     result.TotalCount,
                     result.HasNextPage,
@@ -195,26 +202,39 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task<Product> CreateProductAsync(Product input)
         {
-            var pendingImagePath = ExtractPendingImagePath(input.ImageUrl);
-            input.ImageUrl = null;
+            var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
+            
+            var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
+            input.Images = new ObservableCollection<ProductImage>(safeImages);
 
             var createdProduct = await _productService.CreateProductAsync(input);
-            ProductImageUploadResult? uploadResult = null;
+            var uploadedPublicIds = new List<string>();
 
             try
             {
-                if (!string.IsNullOrWhiteSpace(pendingImagePath))
+                if (pendingImages.Any())
                 {
-                    uploadResult = await _productImageUploadService.UploadProductImageAsync(createdProduct.Id, pendingImagePath);
-                    createdProduct.ImageUrl = uploadResult.ImageUrl;
+                    foreach (var pendingImage in pendingImages)
+                    {
+                        var uploadResult = await _productImageUploadService.UploadProductImageAsync(createdProduct.Id, pendingImage.ImageUrl);
+                        uploadedPublicIds.Add(uploadResult.PublicId);
+                        
+                        createdProduct.Images.Add(new ProductImage 
+                        {
+                            ImageUrl = uploadResult.ImageUrl,
+                            IsPrimary = pendingImage.IsPrimary,
+                            DisplayOrder = pendingImage.DisplayOrder
+                        });
+                    }
+
                     createdProduct = await _productService.UpdateProductAsync(createdProduct);
                 }
             }
             catch
             {
-                if (!string.IsNullOrWhiteSpace(uploadResult?.PublicId))
+                foreach (var publicId in uploadedPublicIds)
                 {
-                    await SafeDeleteProductImageAsync(uploadResult.PublicId);
+                    await SafeDeleteProductImageAsync(publicId);
                 }
 
                 await SafeDeleteProductAsync(createdProduct.Id);
@@ -229,39 +249,41 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task<Product> UpdateProductAsync(Product input)
         {
-            var pendingImagePath = ExtractPendingImagePath(input.ImageUrl);
-            input.ImageUrl = !string.IsNullOrWhiteSpace(pendingImagePath)
-                ? ResolvePersistedImageUrl(input.Id)
-                : input.ImageUrl;
-
+            var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
+            
             var rollbackSnapshot = _editingProductSnapshot is { Id: var snapshotId } && snapshotId == input.Id
                 ? CloneProduct(_editingProductSnapshot)
                 : null;
 
-            var updatedProduct = await _productService.UpdateProductAsync(input);
-            if (!string.IsNullOrWhiteSpace(pendingImagePath))
-            {
-                var previousManagedPublicId = TryExtractManagedPublicId(rollbackSnapshot?.ImageUrl);
-                ProductImageUploadResult? uploadResult = null;
+            var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
+            input.Images = new ObservableCollection<ProductImage>(safeImages);
 
+            var updatedProduct = await _productService.UpdateProductAsync(input);
+            
+            if (pendingImages.Any())
+            {
+                var uploadedPublicIds = new List<string>();
                 try
                 {
-                    uploadResult = await _productImageUploadService.UploadProductImageAsync(updatedProduct.Id, pendingImagePath);
-                    updatedProduct.ImageUrl = uploadResult.ImageUrl;
-                    updatedProduct = await _productService.UpdateProductAsync(updatedProduct);
-
-                    if (!string.IsNullOrWhiteSpace(previousManagedPublicId))
+                    foreach (var pendingImage in pendingImages)
                     {
-                        await SafeDeleteProductImageAsync(previousManagedPublicId);
+                        var uploadResult = await _productImageUploadService.UploadProductImageAsync(updatedProduct.Id, pendingImage.ImageUrl);
+                        uploadedPublicIds.Add(uploadResult.PublicId);
+                        
+                        updatedProduct.Images.Add(new ProductImage 
+                        {
+                            ImageUrl = uploadResult.ImageUrl,
+                            IsPrimary = pendingImage.IsPrimary,
+                            DisplayOrder = pendingImage.DisplayOrder
+                        });
                     }
-
-                    _editingProductOriginalImageUrl = updatedProduct.ImageUrl;
+                    updatedProduct = await _productService.UpdateProductAsync(updatedProduct);
                 }
                 catch
                 {
-                    if (!string.IsNullOrWhiteSpace(uploadResult?.PublicId))
+                    foreach (var publicId in uploadedPublicIds)
                     {
-                        await SafeDeleteProductImageAsync(uploadResult.PublicId);
+                        await SafeDeleteProductImageAsync(publicId);
                     }
 
                     if (rollbackSnapshot is not null)
@@ -295,12 +317,17 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RetailPrice = product.RetailPrice,
                 ImportPrice = product.ImportPrice,
                 StockQuantity = product.StockQuantity,
-                ImageUrl = product.ImageUrl,
+                Images = new ObservableCollection<ProductImage>(product.Images?.Select(i => new ProductImage 
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }) ?? Enumerable.Empty<ProductImage>()),
                 IsDeleted = product.IsDeleted
             };
 
             _editingProductSnapshot = CloneProduct(product);
-            _editingProductOriginalImageUrl = product.ImageUrl;
             EditErrorMessage = string.Empty;
             IsEditingProduct = true;
         }
@@ -343,14 +370,13 @@ namespace BIF.ToyStore.ViewModels.Pages
                     ImportPrice = EditingProduct.ImportPrice,
                     RetailPrice = EditingProduct.RetailPrice,
                     StockQuantity = EditingProduct.StockQuantity,
-                    ImageUrl = EditingProduct.ImageUrl
+                    Images = EditingProduct.Images
                 };
 
                 await UpdateProductAsync(input);
 
                 IsEditingProduct = false;
                 EditingProduct = null;
-                _editingProductOriginalImageUrl = null;
                 _editingProductSnapshot = null;
             }
             catch (Exception ex)
@@ -365,7 +391,6 @@ namespace BIF.ToyStore.ViewModels.Pages
             EditErrorMessage = string.Empty;
             IsEditingProduct = false;
             EditingProduct = null;
-            _editingProductOriginalImageUrl = null;
             _editingProductSnapshot = null;
         }
 
@@ -530,19 +555,15 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RetailPrice = product.RetailPrice,
                 ImportPrice = product.ImportPrice,
                 StockQuantity = product.StockQuantity,
-                ImageUrl = product.ImageUrl,
+                Images = new ObservableCollection<ProductImage>(product.Images?.Select(i => new ProductImage 
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }) ?? Enumerable.Empty<ProductImage>()),
                 IsDeleted = product.IsDeleted
             };
-        }
-
-        private string? ResolvePersistedImageUrl(int productId)
-        {
-            if (!string.IsNullOrWhiteSpace(_editingProductOriginalImageUrl))
-            {
-                return _editingProductOriginalImageUrl;
-            }
-
-            return Products.FirstOrDefault(p => p.Id == productId)?.ImageUrl;
         }
 
         private static string? ExtractPendingImagePath(string? imageValue)

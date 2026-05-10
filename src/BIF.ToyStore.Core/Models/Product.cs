@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
 namespace BIF.ToyStore.Core.Models
 {
     public class Product
@@ -17,7 +20,7 @@ namespace BIF.ToyStore.Core.Models
         // For listing "Low Stock" products
         public int StockQuantity { get; set; }
 
-        public string? ImageUrl { get; set; }
+        public ObservableCollection<ProductImage> Images { get; set; } = new ObservableCollection<ProductImage>();
 
         public bool IsDeleted { get; set; } = false;
     }

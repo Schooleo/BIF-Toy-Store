@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using System.Collections.ObjectModel;
 using BIF.ToyStore.Infrastructure.Data;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
@@ -192,7 +193,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
                 StockQuantity = input.StockQuantity,
-                ImageUrl = input.ImageUrl
+                Images = new ObservableCollection<ProductImage>(input.Images.Select(i => new ProductImage 
+                {
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }).ToList())
             };
             return await repo.AddAsync(product);
         }
@@ -207,7 +213,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 RetailPrice = input.RetailPrice,
                 ImportPrice = input.ImportPrice,
                 StockQuantity = input.StockQuantity,
-                ImageUrl = input.ImageUrl
+                Images = new ObservableCollection<ProductImage>(input.Images.Select(i => new ProductImage 
+                {
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }).ToList())
             };
 
             return await repo.UpdateDetailsAsync(product);

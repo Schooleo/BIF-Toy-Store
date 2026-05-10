@@ -41,7 +41,7 @@
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="CloudinaryDotNet" Version="1.28.0" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.29.0" />
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.RangeSelector" Version="8.2.251219" />
 		<PackageReference Include="CommunityToolkit.WinUI.UI.Controls.DataGrid" Version="7.1.2" />
 		<PackageReference Include="HotChocolate.Data" Version="15.1.12" />
