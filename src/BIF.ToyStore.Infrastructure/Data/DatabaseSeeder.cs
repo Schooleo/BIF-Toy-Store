@@ -272,7 +272,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-45);
 
-            if (users.Count == 0)
+            if (users.Count == 0 || products.Count == 0)
             {
                 return;
             }
@@ -281,25 +281,6 @@ namespace BIF.ToyStore.Infrastructure.Data
             if (saleUsers.Count == 0)
             {
                 saleUsers = users;
-            }
-
-            decimal GetRandomOrderTotal()
-            {
-                if (products.Count == 0)
-                {
-                    return random.Next(120_000, 1_500_000);
-                }
-
-                int lineCount = random.Next(1, 5);
-                decimal total = 0m;
-                for (int i = 0; i < lineCount; i++)
-                {
-                    var product = products[random.Next(products.Count)];
-                    int quantity = random.Next(1, 4);
-                    total += product.RetailPrice * quantity;
-                }
-
-                return Math.Max(total, 50_000m);
             }
 
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
@@ -315,27 +296,53 @@ namespace BIF.ToyStore.Infrastructure.Data
                     var orderDate = date.AddHours(8).AddMinutes(minutesFromOpen);
 
                     var statusRoll = random.Next(100);
-                    var status = statusRoll < 80
+                    var status = statusRoll < 85
                         ? OrderStatus.Paid
-                        : statusRoll < 90
+                        : statusRoll < 95
                             ? OrderStatus.New
                             : OrderStatus.Cancelled;
 
                     var saleUser = saleUsers[random.Next(saleUsers.Count)];
                     int? customerId = null;
-                    if (customers.Count > 0 && random.Next(100) < 70)
+                    bool assignCustomer = customers.Count > 0 && random.Next(100) < 70;
+                    if (assignCustomer)
                     {
                         customerId = customers[random.Next(customers.Count)].Id;
+                    }
+
+                    int lineCount = random.Next(1, Math.Min(4, products.Count) + 1);
+                    var selectedProductIndexes = new HashSet<int>();
+                    while (selectedProductIndexes.Count < lineCount)
+                    {
+                        selectedProductIndexes.Add(random.Next(products.Count));
+                    }
+
+                    var orderDetails = new List<OrderDetail>(lineCount);
+                    decimal totalAmount = 0m;
+                    foreach (var productIndex in selectedProductIndexes)
+                    {
+                        var product = products[productIndex];
+                        int quantity = random.Next(1, 4);
+                        totalAmount += product.RetailPrice * quantity;
+
+                        orderDetails.Add(new OrderDetail
+                        {
+                            ProductId = product.Id,
+                            Quantity = quantity,
+                            UnitPrice = product.RetailPrice,
+                            UnitImportPrice = product.ImportPrice
+                        });
                     }
 
                     var order = new Order
                     {
                         OrderDate = orderDate,
                         Status = status,
-                        TotalAmount = GetRandomOrderTotal(),
+                        TotalAmount = totalAmount,
                         SaleId = saleUser.Id,
                         CustomerId = customerId,
-                        IsDeleted = false
+                        IsDeleted = false,
+                        OrderDetails = orderDetails
                     };
 
                     dbContext.Orders.Add(order);
