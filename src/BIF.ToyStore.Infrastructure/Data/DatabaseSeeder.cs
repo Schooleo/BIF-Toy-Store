@@ -62,6 +62,8 @@ namespace BIF.ToyStore.Infrastructure.Data
             await SeedCategoriesAndProductsAsync(dbContext);
 
             await SeedCustomersAsync(dbContext);
+
+            await EnsureOrdersSeededAsync(dbContext);
         }
 
         private static async Task SeedCategoriesAndProductsAsync(AppDbContext dbContext)
@@ -252,6 +254,31 @@ namespace BIF.ToyStore.Infrastructure.Data
 
             dbContext.Customers.AddRange(customers);
             await dbContext.SaveChangesAsync();
+        }
+
+        private static async Task EnsureOrdersSeededAsync(AppDbContext dbContext)
+        {
+            bool ordersExist = await dbContext.Orders.AnyAsync();
+            if (ordersExist)
+            {
+                return;
+            }
+
+            var products = await dbContext.Products.AsNoTracking().ToListAsync();
+            var users = await dbContext.Users.AsNoTracking().ToListAsync();
+            var customers = await dbContext.Customers.AsNoTracking().ToListAsync();
+
+            var random = new Random();
+            var endDate = DateTime.UtcNow.Date;
+            var startDate = endDate.AddDays(-45);
+
+            // TODO: add order seeding logic (no order details yet).
+            _ = products;
+            _ = users;
+            _ = customers;
+            _ = random;
+            _ = startDate;
+            _ = endDate;
         }
 
         private class CategorySeedDto
