@@ -143,6 +143,8 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.NotEmpty(vm.RevenuePeriodLabel);
             Assert.True(vm.RevenueTrendScrollableWidth > 0);
             Assert.Equal(vm.RevenueTrendPoints.Count, vm.RevenueTrendMarkers.Count);
+            Assert.All(vm.RevenueTrendPoints, point =>
+                Assert.Equal(vm.RevenueTrendScrollableWidth / vm.RevenueTrendPoints.Count, point.LabelWidth, precision: 2));
 
             Assert.Equal(2, vm.OrdersToday);
             Assert.Equal(100m, vm.TodayRevenue);
@@ -255,6 +257,75 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.False(vm.HasBestSellingProducts);
             Assert.True(vm.IsBestSellingProductsEmpty);
             Assert.Equal(string.Empty, vm.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task QuickRestock_SaveChangedStock_UpdatesProductAndClosesPanel()
+        {
+            var graphQlClient = new Mock<IGraphQLClient>();
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardMainQueryData>(
+                    It.Is<string>(q => q.Contains("DashboardMain")),
+                    It.IsAny<object?>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new DashboardMainQueryData
+                {
+                    AppConfig = new DashboardAppConfigNode { CurrencySymbol = "$" },
+                    Products = new DashboardProductConnection
+                    {
+                        TotalCount = 1,
+                        Nodes =
+                        [
+                            new DashboardProductNode
+                            {
+                                Id = 7,
+                                Name = "Dragon Plush",
+                                CategoryId = 3,
+                                Category = new DashboardCategoryNode { Id = 3, Name = "Plushies" },
+                                StockQuantity = 1,
+                                RetailPrice = 15m,
+                                ImportPrice = 8m,
+                                ImageUrl = "https://example.com/dragon.png"
+                            }
+                        ]
+                    },
+                    GetOrders = new DashboardOrderConnection(),
+                    GetTopBestSellingProducts = [],
+                    GetReportTimeSeries = []
+                });
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
+                    It.Is<string>(q => q.Contains("DashboardToday")),
+                    It.IsAny<object?>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new DashboardTodayQueryData());
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardProductNode>(
+                    It.Is<string>(q => q.Contains("QuickRestock")),
+                    It.IsAny<object?>(),
+                    "updateProduct"))
+                .ReturnsAsync(new DashboardProductNode { Id = 7, Name = "Dragon Plush", StockQuantity = 12 });
+
+            var vm = new DashboardViewModel(graphQlClient.Object);
+            await vm.LoadAsync();
+
+            vm.OpenQuickRestockPanelCommand.Execute(null);
+            Assert.True(vm.IsQuickRestockPanelOpen);
+            Assert.Single(vm.QuickRestockItems);
+
+            vm.QuickRestockItems[0].StockQuantity = 12;
+            await vm.SaveQuickRestockCommand.ExecuteAsync(null);
+
+            graphQlClient.Verify(x => x.ExecuteAsync<DashboardProductNode>(
+                It.Is<string>(q => q.Contains("QuickRestock")),
+                It.IsAny<object?>(),
+                "updateProduct"), Times.Once);
+            Assert.False(vm.IsQuickRestockPanelOpen);
+            Assert.Empty(vm.QuickRestockItems);
+            Assert.Equal(string.Empty, vm.QuickRestockErrorMessage);
         }
     }
 }
