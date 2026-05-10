@@ -140,6 +140,45 @@ namespace BIF.ToyStore.Infrastructure.Data
                     await dbContext.SaveChangesAsync();
                 }
             }
+
+            // Force exactly 3 products to have low stock (1-2) for testing low stock warning states
+            var productsToSetToLowStock = new[]
+            {
+                "Silly Face Duck Plush",
+                "Graduation Bear Plush",
+                "Busy Pig Plush 40cm"
+            };
+            foreach (var productName in productsToSetToLowStock)
+            {
+                var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Name == productName);
+                if (product != null && product.StockQuantity > 2)
+                {
+                    product.StockQuantity = 2;
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+
+            // Ensure all remaining products have stock between 15 and 50
+            var allProducts = await dbContext.Products.ToListAsync();
+            var criticalAndLowStockNames = productsToSetToZeroStock.Concat(productsToSetToLowStock).ToHashSet();
+            
+            foreach (var product in allProducts)
+            {
+                // Skip products already configured for critical or low stock
+                if (criticalAndLowStockNames.Contains(product.Name))
+                    continue;
+
+                // Adjust stock to be within 15-50 range
+                if (product.StockQuantity < 15)
+                {
+                    product.StockQuantity = 15;
+                }
+                else if (product.StockQuantity > 50)
+                {
+                    product.StockQuantity = 50;
+                }
+            }
+            await dbContext.SaveChangesAsync();
         }
 
         private class CategorySeedDto
