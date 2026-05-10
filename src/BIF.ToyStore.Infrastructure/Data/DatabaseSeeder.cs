@@ -259,7 +259,8 @@ namespace BIF.ToyStore.Infrastructure.Data
         private static async Task EnsureOrdersSeededAsync(AppDbContext dbContext)
         {
             bool ordersExist = await dbContext.Orders.AnyAsync();
-            if (ordersExist)
+            bool orderDetailsExist = await dbContext.OrderDetails.AnyAsync();
+            if (ordersExist && orderDetailsExist)
             {
                 return;
             }
@@ -331,6 +332,73 @@ namespace BIF.ToyStore.Infrastructure.Data
                 return -1;
             }
 
+            void PopulateOrderDetails(Order order)
+            {
+                int lineCount = random.Next(1, Math.Min(4, products.Count) + 1);
+                var selectedProductIndexes = new HashSet<int>();
+                while (selectedProductIndexes.Count < lineCount)
+                {
+                    int selectedIndex = PickWeightedProductIndex(selectedProductIndexes);
+                    if (selectedIndex < 0)
+                    {
+                        break;
+                    }
+
+                    selectedProductIndexes.Add(selectedIndex);
+                }
+
+                var orderDetails = new List<OrderDetail>(lineCount);
+                decimal totalAmount = 0m;
+                foreach (var productIndex in selectedProductIndexes)
+                {
+                    var product = products[productIndex];
+                    int quantity = random.Next(1, 4);
+                    totalAmount += product.RetailPrice * quantity;
+
+                    orderDetails.Add(new OrderDetail
+                    {
+                        OrderId = order.Id,
+                        ProductId = product.Id,
+                        Quantity = quantity,
+                        UnitPrice = product.RetailPrice,
+                        UnitImportPrice = product.ImportPrice
+                    });
+                }
+
+                order.TotalAmount = totalAmount;
+                order.OrderDetails = orderDetails;
+            }
+
+            if (ordersExist)
+            {
+                var existingOrders = await dbContext.Orders.ToListAsync();
+                int pendingCount = 0;
+
+                foreach (var order in existingOrders)
+                {
+                    if (order.OrderDetails.Count > 0)
+                    {
+                        continue;
+                    }
+
+                    PopulateOrderDetails(order);
+                    dbContext.OrderDetails.AddRange(order.OrderDetails);
+                    pendingCount++;
+
+                    if (pendingCount % 200 == 0)
+                    {
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+
+                if (pendingCount % 200 != 0)
+                {
+                    await dbContext.SaveChangesAsync();
+                }
+
+                return;
+            }
+
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
                 bool isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
@@ -358,47 +426,16 @@ namespace BIF.ToyStore.Infrastructure.Data
                         customerId = customers[random.Next(customers.Count)].Id;
                     }
 
-                    int lineCount = random.Next(1, Math.Min(4, products.Count) + 1);
-                    var selectedProductIndexes = new HashSet<int>();
-                    while (selectedProductIndexes.Count < lineCount)
-                    {
-                        int selectedIndex = PickWeightedProductIndex(selectedProductIndexes);
-                        if (selectedIndex < 0)
-                        {
-                            break;
-                        }
-
-                        selectedProductIndexes.Add(selectedIndex);
-                    }
-
-                    var orderDetails = new List<OrderDetail>(lineCount);
-                    decimal totalAmount = 0m;
-                    foreach (var productIndex in selectedProductIndexes)
-                    {
-                        var product = products[productIndex];
-                        int quantity = random.Next(1, 4);
-                        totalAmount += product.RetailPrice * quantity;
-
-                        orderDetails.Add(new OrderDetail
-                        {
-                            ProductId = product.Id,
-                            Quantity = quantity,
-                            UnitPrice = product.RetailPrice,
-                            UnitImportPrice = product.ImportPrice
-                        });
-                    }
-
                     var order = new Order
                     {
                         OrderDate = orderDate,
                         Status = status,
-                        TotalAmount = totalAmount,
                         SaleId = saleUser.Id,
                         CustomerId = customerId,
-                        IsDeleted = false,
-                        OrderDetails = orderDetails
+                        IsDeleted = false
                     };
 
+                    PopulateOrderDetails(order);
                     dbContext.Orders.Add(order);
                 }
 
