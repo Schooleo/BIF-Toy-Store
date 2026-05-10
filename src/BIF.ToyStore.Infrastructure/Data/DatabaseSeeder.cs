@@ -25,6 +25,7 @@ namespace BIF.ToyStore.Infrastructure.Data
             await EnsureProductSchemaAsync(dbContext);
             await EnsureProductImageSchemaAsync(dbContext);
             await EnsureOrderSchemaAsync(dbContext);
+            await EnsureOrderDetailSchemaAsync(dbContext);
 
             await SeedUsersAsync(dbContext);
 
@@ -666,7 +667,45 @@ namespace BIF.ToyStore.Infrastructure.Data
                     }
                 }
 
+                await EnsureColumnAsync(connection, tableName, existingColumns, "OrderDate", "TEXT NOT NULL DEFAULT '1970-01-01T00:00:00Z'");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "Status", "INTEGER NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "SaleId", "INTEGER NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "CustomerId", "INTEGER NULL");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "TotalAmount", "REAL NOT NULL DEFAULT 0");
                 await EnsureColumnAsync(connection, tableName, existingColumns, "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        private static async Task EnsureOrderDetailSchemaAsync(AppDbContext dbContext)
+        {
+            const string tableName = "OrderDetails";
+
+            var connection = dbContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            try
+            {
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                await EnsureColumnAsync(connection, tableName, existingColumns, "OrderId", "INTEGER NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "ProductId", "INTEGER NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "UnitPrice", "REAL NOT NULL DEFAULT 0");
+                await EnsureColumnAsync(connection, tableName, existingColumns, "UnitImportPrice", "REAL NOT NULL DEFAULT 0");
             }
             finally
             {
