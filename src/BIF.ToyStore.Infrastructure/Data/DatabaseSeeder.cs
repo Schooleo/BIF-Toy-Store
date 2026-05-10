@@ -272,13 +272,77 @@ namespace BIF.ToyStore.Infrastructure.Data
             var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-45);
 
-            // TODO: add order seeding logic (no order details yet).
-            _ = products;
-            _ = users;
-            _ = customers;
-            _ = random;
-            _ = startDate;
-            _ = endDate;
+            if (users.Count == 0)
+            {
+                return;
+            }
+
+            var saleUsers = users.Where(u => u.Role == UserRole.Sale).ToList();
+            if (saleUsers.Count == 0)
+            {
+                saleUsers = users;
+            }
+
+            decimal GetRandomOrderTotal()
+            {
+                if (products.Count == 0)
+                {
+                    return random.Next(120_000, 1_500_000);
+                }
+
+                int lineCount = random.Next(1, 5);
+                decimal total = 0m;
+                for (int i = 0; i < lineCount; i++)
+                {
+                    var product = products[random.Next(products.Count)];
+                    int quantity = random.Next(1, 4);
+                    total += product.RetailPrice * quantity;
+                }
+
+                return Math.Max(total, 50_000m);
+            }
+
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                bool isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                int orderCount = isWeekend
+                    ? random.Next(15, 26)
+                    : random.Next(5, 13);
+
+                for (int i = 0; i < orderCount; i++)
+                {
+                    int minutesFromOpen = random.Next(0, 12 * 60 + 1);
+                    var orderDate = date.AddHours(8).AddMinutes(minutesFromOpen);
+
+                    var statusRoll = random.Next(100);
+                    var status = statusRoll < 80
+                        ? OrderStatus.Paid
+                        : statusRoll < 90
+                            ? OrderStatus.New
+                            : OrderStatus.Cancelled;
+
+                    var saleUser = saleUsers[random.Next(saleUsers.Count)];
+                    int? customerId = null;
+                    if (customers.Count > 0 && random.Next(100) < 70)
+                    {
+                        customerId = customers[random.Next(customers.Count)].Id;
+                    }
+
+                    var order = new Order
+                    {
+                        OrderDate = orderDate,
+                        Status = status,
+                        TotalAmount = GetRandomOrderTotal(),
+                        SaleId = saleUser.Id,
+                        CustomerId = customerId,
+                        IsDeleted = false
+                    };
+
+                    dbContext.Orders.Add(order);
+                }
+
+                await dbContext.SaveChangesAsync();
+            }
         }
 
         private class CategorySeedDto
