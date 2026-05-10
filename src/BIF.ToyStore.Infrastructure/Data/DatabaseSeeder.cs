@@ -60,6 +60,8 @@ namespace BIF.ToyStore.Infrastructure.Data
             }
 
             await SeedCategoriesAndProductsAsync(dbContext);
+
+            await SeedCustomersAsync(dbContext);
         }
 
         private static async Task SeedCategoriesAndProductsAsync(AppDbContext dbContext)
@@ -217,6 +219,38 @@ namespace BIF.ToyStore.Infrastructure.Data
             };
 
             dbContext.Users.AddRange(staffUsers);
+            await dbContext.SaveChangesAsync();
+        }
+
+        private static async Task SeedCustomersAsync(AppDbContext dbContext)
+        {
+            // Only seed customers if the customer table is empty
+            bool customersExist = await dbContext.Customers.AnyAsync();
+            if (customersExist)
+            {
+                return;
+            }
+
+            var customers = new List<Customer>
+            {
+                new Customer { FullName = "Nguyễn Thị Hương", PhoneNumber = "0912345678", LoyaltyPoints = 150 },
+                new Customer { FullName = "Trần Văn Minh", PhoneNumber = "0913456789", LoyaltyPoints = 320 },
+                new Customer { FullName = "Phạm Đức Anh", PhoneNumber = "0914567890", LoyaltyPoints = 85 },
+                new Customer { FullName = "Lê Thị Mai", PhoneNumber = "0915678901", LoyaltyPoints = 510 },
+                new Customer { FullName = "Vũ Tuấn Hùng", PhoneNumber = "0916789012", LoyaltyPoints = 200 },
+                new Customer { FullName = "Đặng Thị Linh", PhoneNumber = "0917890123", LoyaltyPoints = 420 },
+                new Customer { FullName = "Hoàng Văn Khoa", PhoneNumber = "0918901234", LoyaltyPoints = 175 },
+                new Customer { FullName = "Bùi Thị Hoa", PhoneNumber = "0919012345", LoyaltyPoints = 350 },
+                new Customer { FullName = "Dương Văn Sơn", PhoneNumber = "0920123456", LoyaltyPoints = 95 },
+                new Customer { FullName = "Tô Thị Xuân", PhoneNumber = "0921234567", LoyaltyPoints = 280 },
+                new Customer { FullName = "Mạc Văn Hải", PhoneNumber = "0922345678", LoyaltyPoints = 450 },
+                new Customer { FullName = "Nhan Thị Yến", PhoneNumber = "0923456789", LoyaltyPoints = 125 },
+                new Customer { FullName = "Cao Văn Trường", PhoneNumber = "0924567890", LoyaltyPoints = 365 },
+                new Customer { FullName = "Tạ Thị Hương", PhoneNumber = "0925678901", LoyaltyPoints = 210 },
+                new Customer { FullName = "Chu Văn Đạt", PhoneNumber = "0926789012", LoyaltyPoints = 540 }
+            };
+
+            dbContext.Customers.AddRange(customers);
             await dbContext.SaveChangesAsync();
         }
 
