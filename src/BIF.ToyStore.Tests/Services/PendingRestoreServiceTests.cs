@@ -31,7 +31,7 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Equal(RestoreScheduleStatus.Scheduled, result.Status);
             Assert.Equal(latestBackup, local.GetString(AppPreferenceKeys.PendingRestoreBackupPath));
             Assert.Equal(
-                Path.Combine(AppContext.BaseDirectory, "ToyStore.db"),
+                new DatabasePathService().ResolveDatabasePath("ToyStore.db"),
                 local.GetString(AppPreferenceKeys.PendingRestoreTargetPath));
         }
 

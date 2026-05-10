@@ -319,10 +319,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             };
 
             Assert.Equal("15", point.QuantityDisplay);
-            Assert.Equal("VND 1,250.50", point.RevenueDisplay);
-            Assert.Equal("VND 300.00", point.ProfitDisplay);
+            Assert.Equal("0 MIL", point.RevenueDisplay);
+            Assert.Equal("0 MIL", point.ProfitDisplay);
             Assert.Contains("Mar W1", point.TooltipText, StringComparison.Ordinal);
-            Assert.Contains("VND 1,250.50", point.TooltipText, StringComparison.Ordinal);
+            Assert.Contains("0 MIL", point.TooltipText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -340,10 +340,10 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             Assert.Equal("2", item.RankDisplay);
             Assert.Equal("8 units", item.QuantityDisplay);
-            Assert.Equal("$999.99", item.RevenueDisplay);
-            Assert.Equal("$321.45", item.ProfitDisplay);
+            Assert.Equal("0 MIL", item.RevenueDisplay);
+            Assert.Equal("0 MIL", item.ProfitDisplay);
             Assert.Contains("Robot", item.TooltipText, StringComparison.Ordinal);
-            Assert.Contains("Revenue: $999.99", item.TooltipText, StringComparison.Ordinal);
+            Assert.Contains("Revenue: 0 MIL", item.TooltipText, StringComparison.Ordinal);
         }
     }
 }
