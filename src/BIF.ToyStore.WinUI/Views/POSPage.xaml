@@ -20,6 +20,10 @@
                          Color="{StaticResource FluentPlaySecondaryContainerColor}"/>
         <SolidColorBrush x:Key="LowStockBadgeForegroundBrush"
                          Color="{StaticResource FluentPlayOnSecondaryContainerColor}"/>
+        <SolidColorBrush x:Key="ResetFiltersButtonBrush"
+                         Color="{StaticResource FluentPlaySecondaryContainerColor}"/>
+        <SolidColorBrush x:Key="ResetFiltersButtonForegroundBrush"
+                         Color="{StaticResource FluentPlayOnSecondaryContainerColor}"/>
     </Page.Resources>
 
     <Grid Background="{StaticResource FluentPlaySurfaceBrush}">
@@ -60,19 +64,40 @@
                                Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
                 </StackPanel>
 
-                <!-- Category + Sort buttons -->
+                <!-- Search + Category + Sort buttons -->
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
-                            Spacing="12"
-                            VerticalAlignment="Center">
+                            Spacing="24"
+                            VerticalAlignment="Bottom">
+                    <Grid Width="240"
+                          Height="40"
+                          VerticalAlignment="Center">
+                        <TextBox Height="40"
+                                 Padding="40,10,12,0"
+                                 VerticalContentAlignment="Center"
+                                 Background="White"
+                                 BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                 BorderThickness="1"
+                                 CornerRadius="6"
+                                 PlaceholderText="Enter product name..."
+                                 Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        <FontIcon Glyph="&#xE11A;"
+                                  Margin="12,0,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  IsHitTestVisible="False"
+                                  Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                    </Grid>
+
                     <Button x:Name="CategoryFilterButton"
+                            Height="40"
                             MinWidth="160"
                             HorizontalContentAlignment="Left"
                             Background="White"
                             BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                             BorderThickness="1"
                             CornerRadius="6"
-                            Padding="12,7">
+                            Padding="12,0">
                         <StackPanel Orientation="Horizontal"
                                     Spacing="6">
                             <PathIcon Width="14"
@@ -115,13 +140,14 @@
                     </Button>
 
                     <Button x:Name="SortFilterButton"
+                            Height="40"
                             MinWidth="160"
                             HorizontalContentAlignment="Left"
                             Background="White"
                             BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
                             BorderThickness="1"
                             CornerRadius="6"
-                            Padding="12,7">
+                            Padding="12,0">
                         <StackPanel Orientation="Horizontal"
                                     Spacing="6">
                             <PathIcon Width="14"
@@ -143,7 +169,7 @@
                                                CharacterSpacing="100"
                                                Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
                                                Margin="0,0,0,6"/>
-                                    <ListView ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneWay}"
+                                    <ListView ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneTime}"
                                               SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}"
                                               SelectionChanged="SortFlyout_SelectionChanged"
                                               SelectionMode="Single"
@@ -162,175 +188,209 @@
                             </Flyout>
                         </Button.Flyout>
                     </Button>
+
+                    <Button Width="36"
+                            Height="36"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Background="{StaticResource ResetFiltersButtonBrush}"
+                            BorderThickness="0"
+                            Command="{x:Bind ViewModel.ClearFilterCommand}"
+                            CornerRadius="6"
+                            ToolTipService.ToolTip="Reset Filters">
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
+                                             Color="#FFFFC94A"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed"
+                                             Color="#FFFFB300"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver"
+                                             Color="{StaticResource FluentPlayOnSecondaryContainerColor}"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPressed"
+                                             Color="{StaticResource FluentPlayOnSecondaryContainerColor}"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver"
+                                             Color="#FFFFC94A"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed"
+                                             Color="#FFFFB300"/>
+                        </Button.Resources>
+                        <SymbolIcon Symbol="Cancel"
+                                    Foreground="{StaticResource ResetFiltersButtonForegroundBrush}"/>
+                    </Button>
                 </StackPanel>
             </Grid>
 
             <!-- Product Grid -->
-            <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          Padding="28,0,28,24">
-                <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}"
-                              MaxWidth="1040"
-                              HorizontalAlignment="Center">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <ItemsWrapGrid Orientation="Horizontal"
-                                           ItemWidth="232"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="pages:ProductItemViewModel">
-                            <Border Background="White"
-                                    CornerRadius="12"
-                                    BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
-                                    BorderThickness="1"
-                                    Width="220"
-                                    Margin="0,0,12,12">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="164"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+            <Grid Grid.Row="1"
+                  Padding="28,0,28,24">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.FilteredProducts, Mode=OneWay}"
+                                  HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"
+                                               ItemWidth="232"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="pages:ProductItemViewModel">
+                                <Border Background="White"
+                                        CornerRadius="12"
+                                        BorderBrush="{StaticResource FluentPlayOutlineVariantBrush}"
+                                        BorderThickness="1"
+                                        Width="220"
+                                        Margin="0,0,12,12">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="164"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                    <!-- Image area placeholder -->
-                                    <Border Grid.Row="0"
-                                            Background="{StaticResource FluentPlaySurfaceBrush}"
-                                            CornerRadius="12,12,0,0">
-                                        <Grid>
-                                            <!-- Badge: Low Stock -->
-                                            <Border HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top"
-                                                    Margin="8,8,0,0"
-                                                    Background="{StaticResource LowStockBadgeBackgroundBrush}"
-                                                    CornerRadius="4"
-                                                    Padding="7,3"
-                                                    Visibility="{x:Bind IsLowStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="{x:Bind LowStockBadgeLabel, Mode=OneTime}"
-                                                           FontSize="9"
-                                                           FontWeight="Bold"
-                                                           CharacterSpacing="80"
-                                                           Foreground="{StaticResource LowStockBadgeForegroundBrush}"/>
-                                            </Border>
+                                        <!-- Image area placeholder -->
+                                        <Border Grid.Row="0"
+                                                Background="{StaticResource FluentPlaySurfaceBrush}"
+                                                CornerRadius="12,12,0,0">
+                                            <Grid>
+                                                <!-- Badge: Low Stock -->
+                                                <Border HorizontalAlignment="Left"
+                                                        VerticalAlignment="Top"
+                                                        Margin="8,8,0,0"
+                                                        Background="{StaticResource LowStockBadgeBackgroundBrush}"
+                                                        CornerRadius="4"
+                                                        Padding="7,3"
+                                                        Visibility="{x:Bind IsLowStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <TextBlock Text="{x:Bind LowStockBadgeLabel, Mode=OneTime}"
+                                                               FontSize="9"
+                                                               FontWeight="Bold"
+                                                               CharacterSpacing="80"
+                                                               Foreground="{StaticResource LowStockBadgeForegroundBrush}"/>
+                                                </Border>
 
-                                            <!-- Badge: Out Of Stock -->
-                                            <Border HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top"
-                                                    Margin="8,8,0,0"
-                                                    Background="#DC3545"
-                                                    CornerRadius="4"
-                                                    Padding="7,3"
-                                                    Visibility="{x:Bind IsOutOfStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="{x:Bind OutOfStockBadgeLabel, Mode=OneTime}"
-                                                           FontSize="9"
-                                                           FontWeight="Bold"
-                                                           CharacterSpacing="80"
-                                                           Foreground="White"/>
-                                            </Border>
+                                                <!-- Badge: Out Of Stock -->
+                                                <Border HorizontalAlignment="Left"
+                                                        VerticalAlignment="Top"
+                                                        Margin="8,8,0,0"
+                                                        Background="#DC3545"
+                                                        CornerRadius="4"
+                                                        Padding="7,3"
+                                                        Visibility="{x:Bind IsOutOfStock, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <TextBlock Text="{x:Bind OutOfStockBadgeLabel, Mode=OneTime}"
+                                                               FontSize="9"
+                                                               FontWeight="Bold"
+                                                               CharacterSpacing="80"
+                                                               Foreground="White"/>
+                                                </Border>
 
-                                            <Image Source="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                                                   Stretch="UniformToFill"
-                                                   Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}"/>
+                                                <Image Source="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}"/>
 
-                                            <FontIcon Glyph="&#xE7C3;"
-                                                      FontSize="32"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      Opacity="0.45"
-                                                      Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
-                                                      Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}"/>
+                                                <FontIcon Glyph="&#xE7C3;"
+                                                          FontSize="32"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Opacity="0.45"
+                                                          Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                                                          Visibility="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}"/>
 
-                                            <!-- Stock chip (bottom-left on image) -->
-                                            <Border HorizontalAlignment="Left"
-                                                    VerticalAlignment="Bottom"
-                                                    Margin="8,0,0,8"
-                                                    Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
-                                                    CornerRadius="999"
-                                                    Padding="7,3">
-                                                <StackPanel Orientation="Horizontal"
-                                                            Spacing="4">
-                                                    <Ellipse Width="6"
-                                                             Height="6"
-                                                             Fill="{StaticResource FluentPlayPrimaryBrush}"
-                                                             VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{x:Bind StockDisplay, Mode=OneTime}"
-                                                               FontSize="10"
-                                                               Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
+                                                <!-- Stock chip (bottom-left on image) -->
+                                                <Border HorizontalAlignment="Left"
+                                                        VerticalAlignment="Bottom"
+                                                        Margin="8,0,0,8"
+                                                        Background="{StaticResource FluentPlaySurfaceContainerLowBrush}"
+                                                        CornerRadius="999"
+                                                        Padding="7,3">
+                                                    <StackPanel Orientation="Horizontal"
+                                                                Spacing="4">
+                                                        <Ellipse Width="6"
+                                                                 Height="6"
+                                                                 Fill="{StaticResource FluentPlayPrimaryBrush}"
+                                                                 VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{x:Bind StockDisplay, Mode=OneTime}"
+                                                                   FontSize="10"
+                                                                   Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
 
-                                    <!-- Product info -->
-                                    <StackPanel Grid.Row="1"
-                                                Padding="12,10,12,12"
-                                                Spacing="6">
-                                        <TextBlock Text="{x:Bind Name, Mode=OneTime}"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"
-                                                   TextWrapping="Wrap"
-                                                   MaxLines="2"
-                                                   MinHeight="36"
-                                                   Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{x:Bind PriceDisplay, Mode=OneTime}"
+                                        <!-- Product info -->
+                                        <StackPanel Grid.Row="1"
+                                                    Padding="12,10,12,12"
+                                                    Spacing="6">
+                                            <TextBlock Text="{x:Bind Name, Mode=OneTime}"
                                                        FontSize="15"
-                                                       FontWeight="Bold"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource FluentPlayPrimaryBrush}"/>
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap"
+                                                       MaxLines="2"
+                                                       MinHeight="36"
+                                                       Foreground="{StaticResource FluentPlayOnSurfaceBrush}"/>
 
-                                            <!-- Add to cart button -->
-                                            <Button Grid.Column="1"
-                                                    Width="28"
-                                                    Height="28"
-                                                    Padding="0"
-                                                    CornerRadius="999"
-                                                    Background="{StaticResource FluentPlayPrimaryBrush}"
-                                                    BorderThickness="0"
-                                                    Command="{Binding ViewModel.AddToCartCommand, ElementName=RootPage}"
-                                                    CommandParameter="{Binding}"
-                                                    IsEnabled="{x:Bind CanAddToCart, Mode=OneWay}">
-                                                <Button.Resources>
-                                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
-                                                                     Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonBackgroundPressed"
-                                                                     Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver"
-                                                                     Color="{StaticResource FluentPlayOnPrimaryColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonForegroundPressed"
-                                                                     Color="{StaticResource FluentPlayOnPrimaryColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver"
-                                                                     Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed"
-                                                                     Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
-                                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled"
-                                                                     Color="#E0E0E0"/>
-                                                    <SolidColorBrush x:Key="ButtonForegroundDisabled"
-                                                                     Color="#A0A0A0"/>
-                                                </Button.Resources>
-                                                <TextBlock Text="+"
-                                                           FontSize="18"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="White"
-                                                           Padding="0,0,0,3"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"/>
-                                            </Button>
-                                        </Grid>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{x:Bind PriceDisplay, Mode=OneTime}"
+                                                           FontSize="15"
+                                                           FontWeight="Bold"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{StaticResource FluentPlayPrimaryBrush}"/>
+
+                                                <!-- Add to cart button -->
+                                                <Button Grid.Column="1"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="0"
+                                                        CornerRadius="999"
+                                                        Background="{StaticResource FluentPlayPrimaryBrush}"
+                                                        BorderThickness="0"
+                                                        Command="{Binding ViewModel.AddToCartCommand, ElementName=RootPage}"
+                                                        CommandParameter="{Binding}"
+                                                        IsEnabled="{x:Bind CanAddToCart, Mode=OneWay}">
+                                                    <Button.Resources>
+                                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
+                                                                         Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonBackgroundPressed"
+                                                                         Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonForegroundPointerOver"
+                                                                         Color="{StaticResource FluentPlayOnPrimaryColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonForegroundPressed"
+                                                                         Color="{StaticResource FluentPlayOnPrimaryColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver"
+                                                                         Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonBorderBrushPressed"
+                                                                         Color="{StaticResource FluentPlayPrimaryPressedColor}"/>
+                                                        <SolidColorBrush x:Key="ButtonBackgroundDisabled"
+                                                                         Color="#E0E0E0"/>
+                                                        <SolidColorBrush x:Key="ButtonForegroundDisabled"
+                                                                         Color="#A0A0A0"/>
+                                                    </Button.Resources>
+                                                    <TextBlock Text="+"
+                                                               FontSize="18"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="White"
+                                                               Padding="0,0,0,3"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock Text="No products match your current search or filters."
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="14"
+                           Foreground="{StaticResource FluentPlayOnSurfaceVariantBrush}"
+                           Visibility="{x:Bind ViewModel.IsFilteredProductsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            </Grid>
         </Grid>
 
         <!-- RIGHT: Active Cart Panel -->
@@ -672,3 +732,4 @@
         </Grid>
     </Grid>
 </Page>
+

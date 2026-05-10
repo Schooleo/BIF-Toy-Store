@@ -111,6 +111,31 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
+        public async Task LoadProductsAsync_EmptyResponse_SetsEmptyResultsState()
+        {
+            _graphQLClientMock
+                .Setup(x => x.ExecuteAsync<ProductAppConfigNode>(
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    "appConfig"))
+                .ReturnsAsync(new ProductAppConfigNode { CurrencySymbol = "USD" });
+
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(new ProductListResult
+                {
+                    TotalCount = 0,
+                    Items = new List<Product>()
+                });
+
+            await _viewModel.LoadProductsAsync();
+
+            Assert.Empty(_viewModel.Products);
+            Assert.True(_viewModel.IsProductsEmpty);
+            Assert.False(_viewModel.HasProducts);
+        }
+
+        [Fact]
         public async Task ApplyFilterAsync_WhenCalled_ResetsCursorsAndReloads()
         {
             // Arrange

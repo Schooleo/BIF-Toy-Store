@@ -19,6 +19,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly ILocalSettingsService _localSettingsService;
         private List<ProductItemViewModel> _allProducts = new();
 
+
+        [RelayCommand]
+        private void ClearFilter()
+        {
+            SearchText = string.Empty;
+            SelectedCategory = "All Categories";
+            SelectedSort = "Newest";
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+        }
+
         // ── Bound collections ─────────────────────────────────────────────────
         [ObservableProperty]
         private ObservableCollection<ProductItemViewModel> _filteredProducts = new();
@@ -34,6 +45,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _selectedSort = "Newest";
+
+        [ObservableProperty]
+        private string _searchText = string.Empty;
 
         // ── Totals ────────────────────────────────────────────────────────────
         [ObservableProperty]
@@ -55,6 +69,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string TaxDisplay => FormatCurrency(Tax);
         public string TotalDueDisplay => FormatCurrency(TotalDue);
         public string TaxLabel => $"Tax ({ConfiguredTaxRate * 100m:0.##}%)";
+        public bool HasFilteredProducts => FilteredProducts.Count > 0;
+        public bool IsFilteredProductsEmpty => !HasFilteredProducts;
 
         // ── Sort options ──────────────────────────────────────────────────────
         public ObservableCollection<string> SortOptions { get; } = new()
@@ -178,10 +194,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                             id
                             name
                             categoryId
-                             category {
-                                 id
-                                 name
-                             }
+                             categoryName
                              retailPrice
                              stockQuantity
                              imageUrl
@@ -221,15 +234,22 @@ namespace BIF.ToyStore.ViewModels.Pages
         // ── Filter / Sort ─────────────────────────────────────────────────────
         partial void OnSelectedCategoryChanged(string value) => ApplyFilterAndSort();
         partial void OnSelectedSortChanged(string value) => ApplyFilterAndSort();
+        partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
 
         private void ApplyFilterAndSort()
         {
             IEnumerable<ProductItemViewModel> query = _allProducts;
             string currentCategory = string.IsNullOrWhiteSpace(SelectedCategory) ? "All Categories" : SelectedCategory;
+            string currentSearch = SearchText?.Trim() ?? string.Empty;
 
             if (!string.Equals(currentCategory, "All Categories", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(p => p.CategoryName == currentCategory);
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentSearch))
+            {
+                query = query.Where(p => p.Name.Contains(currentSearch, StringComparison.OrdinalIgnoreCase));
             }
 
             query = SelectedSort switch
@@ -247,6 +267,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 FilteredProducts.Add(p);
             }
+
+            OnPropertyChanged(nameof(HasFilteredProducts));
+            OnPropertyChanged(nameof(IsFilteredProductsEmpty));
         }
 
         // ── Cart commands ─────────────────────────────────────────────────────
@@ -530,7 +553,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             Name = p.Name;
             Price = p.RetailPrice;
             StockQuantity = p.StockQuantity;
-            CategoryName = p.Category?.Name ?? string.Empty;
+            CategoryName = string.IsNullOrWhiteSpace(p.CategoryName)
+                ? p.Category?.Name ?? string.Empty
+                : p.CategoryName;
             ImageUrl = p.ImageUrl;
             CurrencySymbol = currencySymbol;
             CartQuantity = 0;
@@ -593,3 +618,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal TaxRate { get; set; } = 0.08m;
     }
 }
+
+
+

@@ -80,6 +80,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
+        public bool HasProducts => Products.Count > 0;
+        public bool IsProductsEmpty => !HasProducts;
         public string SelectedCategoryLabel => SelectedCategory?.Name ?? "All Categories";
         public string SelectedSortLabel => SelectedSort?.Name ?? "Newest";
 
@@ -112,6 +114,11 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnImportSuccessMessageChanged(string value) => OnPropertyChanged(nameof(HasImportSuccessMessage));
         partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
         partial void OnEditErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasEditErrorMessage));
+        partial void OnProductsChanged(ObservableCollection<Product> value)
+        {
+            OnPropertyChanged(nameof(HasProducts));
+            OnPropertyChanged(nameof(IsProductsEmpty));
+        }
 
         partial void OnSelectedCategoryChanged(Category? value) => OnPropertyChanged(nameof(SelectedCategoryLabel));
 
