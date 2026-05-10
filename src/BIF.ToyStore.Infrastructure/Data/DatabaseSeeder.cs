@@ -1,5 +1,7 @@
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
+using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace BIF.ToyStore.Infrastructure.Data
@@ -22,6 +24,8 @@ namespace BIF.ToyStore.Infrastructure.Data
             await EnsureProductSchemaAsync(dbContext);
             await EnsureProductImageSchemaAsync(dbContext);
             await EnsureOrderSchemaAsync(dbContext);
+
+            await SeedUsersAsync(dbContext);
 
             bool configExists = await dbContext.AppConfigs.AnyAsync(c => c.Id == 1);
             if (!configExists)
@@ -178,6 +182,41 @@ namespace BIF.ToyStore.Infrastructure.Data
                     product.StockQuantity = 50;
                 }
             }
+            await dbContext.SaveChangesAsync();
+        }
+
+        private static async Task SeedUsersAsync(AppDbContext dbContext)
+        {
+            // Only seed users if the database is empty
+            bool usersExist = await dbContext.Users.AnyAsync();
+            if (usersExist)
+            {
+                return;
+            }
+
+            var staffUsers = new List<User>
+            {
+                new User
+                {
+                    Username = "admin",
+                    PasswordHash = PasswordCipher.Encrypt("admin123"),
+                    Role = UserRole.Admin
+                },
+                new User
+                {
+                    Username = "cashier_a",
+                    PasswordHash = PasswordCipher.Encrypt("cashier123"),
+                    Role = UserRole.Sale
+                },
+                new User
+                {
+                    Username = "cashier_b",
+                    PasswordHash = PasswordCipher.Encrypt("cashier123"),
+                    Role = UserRole.Sale
+                }
+            };
+
+            dbContext.Users.AddRange(staffUsers);
             await dbContext.SaveChangesAsync();
         }
 
