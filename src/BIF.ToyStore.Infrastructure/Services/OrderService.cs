@@ -1,113 +1,29 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
-using BIF.ToyStore.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 
 namespace BIF.ToyStore.Infrastructure.Services
 {
-    public class OrderService(AppDbContext dbContext) : IOrderService
+    public class OrderService(IOrderRepository orderRepository) : IOrderService
     {
-        private readonly AppDbContext _dbContext = dbContext;
+        private readonly IOrderRepository _orderRepository = orderRepository;
 
         public async Task<Order> CreateOrderAsync(
             int saleId,
             int? customerId,
             List<(int ProductId, int Quantity, decimal UnitPrice)> items)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            try
-            {
-                var order = new Order
-                {
-                    SaleId = saleId,
-                    CustomerId = customerId,
-                    OrderDate = DateTime.Now,
-                    Status = OrderStatus.New
-                };
-
-                _dbContext.Orders.Add(order);
-                await _dbContext.SaveChangesAsync();
-
-                decimal totalAmount = 0m;
-
-                foreach (var item in items)
-                {
-                    var product = await _dbContext.Products.FindAsync(item.ProductId)
-                        ?? throw new InvalidOperationException(
-                            $"Product with ID {item.ProductId} not found.");
-
-                    if (product.StockQuantity < item.Quantity)
-                    {
-                        throw new InvalidOperationException(
-                            $"Insufficient stock for product '{product.Name}'. " +
-                            $"Available: {product.StockQuantity}, Requested: {item.Quantity}.");
-                    }
-
-                    var detail = new OrderDetail
-                    {
-                        OrderId = order.Id,
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        UnitPrice = item.UnitPrice,
-                        UnitImportPrice = product.ImportPrice
-                    };
-
-                    _dbContext.OrderDetails.Add(detail);
-                    totalAmount += item.Quantity * item.UnitPrice;
-
-                    // Deduct stock
-                    product.StockQuantity -= item.Quantity;
-                }
-
-                order.TotalAmount = totalAmount;
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // Reload with navigation properties
-                return (await GetOrderByIdAsync(order.Id))!;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            return await _orderRepository.CreateOrderAsync(saleId, customerId, items);
         }
 
         public async Task<Order> UpdateOrderAsync(int id, OrderStatus? status, int? customerId)
         {
-            var order = await _dbContext.Orders.FindAsync(id)
-                ?? throw new InvalidOperationException($"Order with ID {id} not found.");
-
-            if (status.HasValue)
-            {
-                order.Status = status.Value;
-            }
-
-            if (customerId.HasValue)
-            {
-                order.CustomerId = customerId.Value;
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            return (await GetOrderByIdAsync(order.Id))!;
+            return await _orderRepository.UpdateOrderAsync(id, status, customerId);
         }
 
         public async Task<bool> DeleteOrderAsync(int id)
         {
-            var order = await _dbContext.Orders.FindAsync(id);
-            if (order is null)
-            {
-                return false;
-            }
-
-            // Soft-delete: hide the row instead of removing it
-            order.IsDeleted = true;
-            await _dbContext.SaveChangesAsync();
-            return true;
+            return await _orderRepository.DeleteOrderAsync(id);
         }
 
         public async Task<(List<Order> Items, int TotalCount)> GetOrdersAsync(
@@ -117,176 +33,27 @@ namespace BIF.ToyStore.Infrastructure.Services
             DateTime? toDate,
             int? employeeId = null)
         {
-            var query = _dbContext.Orders
-                .Include(o => o.Sale)
-                .Include(o => o.Customer)
-                .AsQueryable();
-
-            if (fromDate.HasValue)
-            {
-                query = query.Where(o => o.OrderDate >= fromDate.Value);
-            }
-
-            if (toDate.HasValue)
-            {
-                query = query.Where(o => o.OrderDate <= toDate.Value);
-            }
-
-            if (employeeId.HasValue)
-            {
-                query = query.Where(o => o.SaleId == employeeId.Value);
-            }
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .OrderByDescending(o => o.OrderDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return (items, totalCount);
+            return await _orderRepository.GetOrdersAsync(page, pageSize, fromDate, toDate, employeeId);
         }
 
         public async Task<Order?> GetOrderByIdAsync(int id)
         {
-            return await _dbContext.Orders
-                .Include(o => o.Sale)
-                .Include(o => o.Customer)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(d => d.Product)
-                .FirstOrDefaultAsync(o => o.Id == id);
+            return await _orderRepository.GetOrderByIdAsync(id);
         }
 
         public async Task<List<SaleKpiRanking>> GetSaleKpiRankingAsync(DateTime? fromDate, DateTime? toDate)
         {
-            var sales = await _dbContext.Users
-                .AsNoTracking()
-                .Where(u => u.Role == UserRole.Sale)
-                .Select(u => new { u.Id, u.Username })
-                .ToListAsync();
-
-            var orders = _dbContext.Orders.AsNoTracking().AsQueryable();
-
-            if (fromDate.HasValue)
-            {
-                orders = orders.Where(o => o.OrderDate >= fromDate.Value);
-            }
-
-            if (toDate.HasValue)
-            {
-                orders = orders.Where(o => o.OrderDate <= toDate.Value);
-            }
-
-            var salesStats = await orders
-                .GroupBy(o => o.SaleId)
-                .Select(g => new
-                {
-                    SaleId = g.Key,
-                    TotalOrders = g.Count(),
-                    TotalRevenue = g.Sum(x => x.TotalAmount)
-                })
-                .ToListAsync();
-
-            var ranking = sales
-                .Select(sale =>
-                {
-                    var stat = salesStats.FirstOrDefault(x => x.SaleId == sale.Id);
-
-                    return new SaleKpiRanking
-                    {
-                        SaleId = sale.Id,
-                        SaleName = sale.Username,
-                        TotalOrders = stat?.TotalOrders ?? 0,
-                        TotalRevenue = stat?.TotalRevenue ?? 0m
-                    };
-                })
-                .OrderByDescending(x => x.TotalRevenue)
-                .ThenByDescending(x => x.TotalOrders)
-                .ThenBy(x => x.SaleId)
-                .ToList();
-
-            for (int i = 0; i < ranking.Count; i++)
-            {
-                ranking[i].Rank = i + 1;
-            }
-
-            return ranking;
+            return await _orderRepository.GetSaleKpiRankingAsync(fromDate, toDate);
         }
 
         public async Task<List<RevenueTrendPoint>> GetRevenueTrendAsync(int days)
         {
-            int safeDays = Math.Clamp(days, 1, 62);
-            var endDate = DateTime.Today;
-            var startDate = endDate.AddDays(-(safeDays - 1));
-
-            var dailyRevenue = await _dbContext.Orders
-                .AsNoTracking()
-                .Where(o => !o.IsDeleted && o.OrderDate.Date >= startDate && o.OrderDate.Date <= endDate)
-                .GroupBy(o => o.OrderDate.Date)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Revenue = g.Sum(x => x.TotalAmount)
-                })
-                .ToListAsync();
-
-            var revenueByDate = dailyRevenue.ToDictionary(x => x.Date, x => x.Revenue);
-
-            var result = new List<RevenueTrendPoint>(safeDays);
-            for (int i = 0; i < safeDays; i++)
-            {
-                var date = startDate.AddDays(i);
-                revenueByDate.TryGetValue(date, out var revenue);
-
-                result.Add(new RevenueTrendPoint
-                {
-                    Date = date,
-                    Revenue = revenue
-                });
-            }
-
-            return result;
+            return await _orderRepository.GetRevenueTrendAsync(days);
         }
 
         public async Task<List<BestSellingProductStat>> GetTopBestSellingProductsAsync(int take)
         {
-            int safeTake = Math.Clamp(take, 1, 20);
-
-            var rows = await (
-                from detail in _dbContext.OrderDetails.AsNoTracking()
-                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
-                join product in _dbContext.Products.AsNoTracking() on detail.ProductId equals product.Id
-                join category in _dbContext.Categories.AsNoTracking()
-                    on product.CategoryId equals category.Id into categoryGroup
-                from category in categoryGroup.DefaultIfEmpty()
-                where !order.IsDeleted
-                group new { detail, product, category } by new
-                {
-                    product.Id,
-                    product.Name,
-                    product.RetailPrice,
-                    CategoryName = category != null ? category.Name : "Unknown"
-                }
-                into g
-                orderby g.Sum(x => x.detail.Quantity) descending, g.Key.Name
-                select new BestSellingProductStat
-                {
-                    ProductId = g.Key.Id,
-                    ProductName = g.Key.Name,
-                    CategoryName = g.Key.CategoryName,
-                    RetailPrice = g.Key.RetailPrice,
-                    UnitsSold = g.Sum(x => x.detail.Quantity)
-                })
-                .Take(safeTake)
-                .ToListAsync();
-
-            for (int i = 0; i < rows.Count; i++)
-            {
-                rows[i].Rank = i + 1;
-            }
-
-            return rows;
+            return await _orderRepository.GetTopBestSellingProductsAsync(take);
         }
 
         public async Task<List<ReportTimeSeriesPoint>> GetReportTimeSeriesAsync(
@@ -294,62 +61,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             DateTime endDate,
             ReportGroupBy groupBy)
         {
-            if (endDate < startDate)
-            {
-                (startDate, endDate) = (endDate, startDate);
-            }
-
-            var safeStartDate = startDate.Date;
-            var safeEndDate = endDate.Date;
-            var safeEndTimestamp = safeEndDate.AddDays(1).AddTicks(-1);
-
-            var dailyPoints = await (
-                from detail in _dbContext.OrderDetails.AsNoTracking()
-                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
-                where !order.IsDeleted
-                    && order.Status == OrderStatus.Paid
-                    && order.OrderDate >= safeStartDate
-                    && order.OrderDate <= safeEndTimestamp
-                group detail by order.OrderDate.Date
-                into g
-                select new
-                {
-                    Date = g.Key,
-                    TotalQuantity = g.Sum(x => x.Quantity),
-                    TotalRevenue = g.Sum(x => x.Quantity * x.UnitPrice),
-                    TotalProfit = g.Sum(x => x.Quantity * (x.UnitPrice - x.UnitImportPrice))
-                })
-                .ToListAsync();
-
-            var aggregated = dailyPoints
-                .GroupBy(x => GetBucketStart(x.Date, groupBy))
-                .ToDictionary(
-                    g => g.Key,
-                    g => new
-                    {
-                        TotalQuantity = g.Sum(x => x.TotalQuantity),
-                        TotalRevenue = g.Sum(x => x.TotalRevenue),
-                        TotalProfit = g.Sum(x => x.TotalProfit)
-                    });
-
-            var bucketStarts = BuildBucketStarts(safeStartDate, safeEndDate, groupBy);
-            var result = new List<ReportTimeSeriesPoint>(bucketStarts.Count);
-
-            foreach (var bucketStart in bucketStarts)
-            {
-                aggregated.TryGetValue(bucketStart, out var value);
-
-                result.Add(new ReportTimeSeriesPoint
-                {
-                    PeriodStart = bucketStart,
-                    PeriodLabel = GetBucketLabel(bucketStart, groupBy),
-                    TotalQuantity = value?.TotalQuantity ?? 0,
-                    TotalRevenue = value?.TotalRevenue ?? 0m,
-                    TotalProfit = value?.TotalProfit ?? 0m
-                });
-            }
-
-            return result;
+            return await _orderRepository.GetReportTimeSeriesAsync(startDate, endDate, groupBy);
         }
 
         public async Task<List<ReportTopProductPoint>> GetReportTopProductsAsync(
@@ -357,104 +69,7 @@ namespace BIF.ToyStore.Infrastructure.Services
             DateTime endDate,
             int take)
         {
-            if (endDate < startDate)
-            {
-                (startDate, endDate) = (endDate, startDate);
-            }
-
-            int safeTake = Math.Clamp(take, 1, 20);
-            var safeStartDate = startDate.Date;
-            var safeEndTimestamp = endDate.Date.AddDays(1).AddTicks(-1);
-
-            var rows = await (
-                from detail in _dbContext.OrderDetails.AsNoTracking()
-                join order in _dbContext.Orders.AsNoTracking() on detail.OrderId equals order.Id
-                join product in _dbContext.Products.AsNoTracking() on detail.ProductId equals product.Id
-                join category in _dbContext.Categories.AsNoTracking() on product.CategoryId equals category.Id into categoryGroup
-                from category in categoryGroup.DefaultIfEmpty()
-                where !order.IsDeleted
-                    && order.Status == OrderStatus.Paid
-                    && order.OrderDate >= safeStartDate
-                    && order.OrderDate <= safeEndTimestamp
-                group new { detail, product, category } by new
-                {
-                    product.Id,
-                    product.Name,
-                    CategoryName = category != null ? category.Name : "Unknown"
-                }
-                into g
-                orderby g.Sum(x => x.detail.Quantity) descending, g.Key.Name
-                select new ReportTopProductPoint
-                {
-                    ProductId = g.Key.Id,
-                    ProductName = g.Key.Name,
-                    CategoryName = g.Key.CategoryName,
-                    TotalQuantity = g.Sum(x => x.detail.Quantity),
-                    TotalRevenue = g.Sum(x => x.detail.Quantity * x.detail.UnitPrice),
-                    TotalProfit = g.Sum(x => x.detail.Quantity * (x.detail.UnitPrice - x.detail.UnitImportPrice))
-                })
-                .Take(safeTake)
-                .ToListAsync();
-
-            for (int i = 0; i < rows.Count; i++)
-            {
-                rows[i].Rank = i + 1;
-            }
-
-            return rows;
-        }
-
-        private static DateTime GetBucketStart(DateTime date, ReportGroupBy groupBy)
-        {
-            return groupBy switch
-            {
-                ReportGroupBy.Day => date.Date,
-                ReportGroupBy.Week => StartOfWeek(date),
-                ReportGroupBy.Month => new DateTime(date.Year, date.Month, 1),
-                ReportGroupBy.Year => new DateTime(date.Year, 1, 1),
-                _ => date.Date
-            };
-        }
-
-        private static List<DateTime> BuildBucketStarts(DateTime startDate, DateTime endDate, ReportGroupBy groupBy)
-        {
-            var normalizedStart = GetBucketStart(startDate, groupBy);
-            var normalizedEnd = GetBucketStart(endDate, groupBy);
-
-            var buckets = new List<DateTime>();
-            var cursor = normalizedStart;
-            while (cursor <= normalizedEnd)
-            {
-                buckets.Add(cursor);
-                cursor = groupBy switch
-                {
-                    ReportGroupBy.Day => cursor.AddDays(1),
-                    ReportGroupBy.Week => cursor.AddDays(7),
-                    ReportGroupBy.Month => cursor.AddMonths(1),
-                    ReportGroupBy.Year => cursor.AddYears(1),
-                    _ => cursor.AddDays(1)
-                };
-            }
-
-            return buckets;
-        }
-
-        private static string GetBucketLabel(DateTime bucketStart, ReportGroupBy groupBy)
-        {
-            return groupBy switch
-            {
-                ReportGroupBy.Day => bucketStart.ToString("dd MMM", CultureInfo.InvariantCulture),
-                ReportGroupBy.Week => $"Week {ISOWeek.GetWeekOfYear(bucketStart)}",
-                ReportGroupBy.Month => bucketStart.ToString("MMM yyyy", CultureInfo.InvariantCulture),
-                ReportGroupBy.Year => bucketStart.ToString("yyyy", CultureInfo.InvariantCulture),
-                _ => bucketStart.ToString("dd MMM", CultureInfo.InvariantCulture)
-            };
-        }
-
-        private static DateTime StartOfWeek(DateTime date)
-        {
-            int offset = ((int)date.DayOfWeek + 6) % 7;
-            return date.Date.AddDays(-offset);
+            return await _orderRepository.GetReportTopProductsAsync(startDate, endDate, take);
         }
     }
 }

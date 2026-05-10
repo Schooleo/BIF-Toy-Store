@@ -7,56 +7,44 @@ namespace BIF.ToyStore.Tests.Services
     public class ProductServiceTests
     {
         [Fact]
-        public async Task GetCategoriesAsync_DefaultTake_Uses250AsFirstVariable()
+        public async Task GetCategoriesAsync_UsesDefaultTakeValue()
         {
-            var graphQLClient = new RecordingGraphQLClient
-            {
-                ExecuteFactory = type => CreateCategoryConnection(type, nodes: [new Category { Id = 1, Name = "Other" }])
-            };
-
-            var service = new ProductService(graphQLClient);
+            var expectedCategories = new List<Category> { new() { Id = 1, Name = "Other" } };
+            var repository = new RecordingProductApiRepository(expectedCategories);
+            var service = new ProductService(repository);
 
             var result = await service.GetCategoriesAsync();
 
-            Assert.Single(result);
-            Assert.NotNull(graphQLClient.LastVariables);
-            Assert.Equal(250, GetVariableValue<int>(graphQLClient.LastVariables, "first"));
+            Assert.Same(expectedCategories, result);
+            Assert.Equal(250, repository.LastTake);
         }
 
-        private static T GetVariableValue<T>(object source, string propertyName)
+        private sealed class RecordingProductApiRepository : IProductApiRepository
         {
-            var property = source.GetType().GetProperty(propertyName);
-            Assert.NotNull(property);
+            private readonly IReadOnlyList<Category> _categories;
 
-            return (T)property.GetValue(source)!;
-        }
-
-        private static object CreateCategoryConnection(Type connectionType, List<Category>? nodes)
-        {
-            var connection = Activator.CreateInstance(connectionType)
-                ?? throw new InvalidOperationException("Cannot create category connection instance.");
-            var nodesProperty = connectionType.GetProperty("Nodes")
-                ?? throw new InvalidOperationException("Missing Nodes property.");
-            nodesProperty.SetValue(connection, nodes);
-            return connection;
-        }
-
-        private sealed class RecordingGraphQLClient : IGraphQLClient
-        {
-            public object? LastVariables { get; private set; }
-            public Func<Type, object?>? ExecuteFactory { get; init; }
-
-            public Task<T?> ExecuteAsync<T>(string query, object? variables = null, string dataKey = "")
+            public RecordingProductApiRepository(IReadOnlyList<Category> categories)
             {
-                LastVariables = variables;
-                var result = ExecuteFactory?.Invoke(typeof(T));
-                return Task.FromResult((T?)result);
+                _categories = categories;
             }
 
-            public Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
+            public int? LastTake { get; private set; }
+
+            public Task<IReadOnlyList<Category>> GetCategoriesAsync(int take = 50)
             {
-                throw new NotSupportedException("Upload is not used in these tests.");
+                LastTake = take;
+                return Task.FromResult(_categories);
             }
+
+            public Task<ProductListResult> GetProductsAsync(ProductListQuery query) => throw new NotSupportedException();
+
+            public Task<Product> CreateProductAsync(Product product) => throw new NotSupportedException();
+
+            public Task<Product> UpdateProductAsync(Product product) => throw new NotSupportedException();
+
+            public Task<bool> DeleteProductAsync(int id) => throw new NotSupportedException();
+
+            public Task<ProductImportResult> ImportProductsAsync(string filePath) => throw new NotSupportedException();
         }
     }
 }

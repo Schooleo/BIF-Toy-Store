@@ -15,6 +15,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly ILocalSettingsService _localSettingsService;
         private readonly bool _isAdminUser;
         private readonly string _currentUsername;
+        private readonly int _currentUserId;
+        private readonly string _currentUserRole;
         private int? _currentEmployeeId;
 
         // ── Bound collections ─────────────────────────────────────────────────
@@ -36,6 +38,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private bool _isEmployeeFilterVisible = true;
+
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
 
         public string PaginationLabel => $"Showing {Orders.Count} of {TotalCount} ORDERS";
         public string SelectedEmployeeDisplay => SelectedEmployee?.Username ?? "All Employees";
@@ -69,9 +74,10 @@ namespace BIF.ToyStore.ViewModels.Pages
             Title = "Order Management";
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
 
+            _currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
+            _currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
             _currentUsername = _localSettingsService.GetString("LastUsername", string.Empty);
-            var roleValue = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
-            _isAdminUser = Enum.TryParse<UserRole>(roleValue, true, out var role) && role == UserRole.Admin;
+            _isAdminUser = Enum.TryParse<UserRole>(_currentUserRole, true, out var role) && role == UserRole.Admin;
             IsEmployeeFilterVisible = _isAdminUser;
         }
 
@@ -185,9 +191,19 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
+                const string configQuery = @"
+                    query GetOrderAppConfig {
+                        appConfig {
+                            currencySymbol
+                        }
+                    }";
+
+                var config = await _graphQLClient.ExecuteAsync<OrderAppConfigNode>(configQuery, dataKey: "appConfig");
+                CurrencySymbol = string.IsNullOrWhiteSpace(config?.CurrencySymbol) ? "USD" : config.CurrencySymbol;
+
                 const string query = @"
-                    query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int) {
-                        orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId) {
+                    query GetOrdersPage($first: Int, $last: Int, $after: String, $before: String, $fromDate: DateTime, $toDate: DateTime, $employeeId: Int, $currentUserId: Int, $currentUserRole: String) {
+                        orders(first: $first, last: $last, after: $after, before: $before, fromDate: $fromDate, toDate: $toDate, employeeId: $employeeId, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             totalCount
                             pageInfo {
                                 hasNextPage
@@ -247,7 +263,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                     before = beforeVar,
                     fromDate = FromDate?.LocalDateTime.Date,
                     toDate = ToDate?.LocalDateTime.Date.AddDays(1).AddTicks(-1),
-                    employeeId = _isAdminUser ? SelectedEmployee?.Id : _currentEmployeeId
+                    employeeId = _isAdminUser ? SelectedEmployee?.Id : _currentEmployeeId,
+                    currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                    currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
                 };
 
                 var payload = await _graphQLClient.ExecuteAsync<OrderConnectionResponse>(query, variables, dataKey: "orders")
@@ -256,7 +274,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 Orders.Clear();
                 foreach (var item in payload.Nodes)
                 {
-                    Orders.Add(OrderItemViewModel.FromPayload(item));
+                    Orders.Add(OrderItemViewModel.FromPayload(item, CurrencySymbol));
                 }
 
                 ApplyPageInfo(
@@ -288,8 +306,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string query = @"
-                    query GetOrderById($id: Int!) {
-                        getOrderById: orderById(id: $id) {
+                    query GetOrderById($id: Int!, $currentUserId: Int, $currentUserRole: String) {
+                        getOrderById: orderById(id: $id, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             orderDate
                             status
@@ -308,10 +326,17 @@ namespace BIF.ToyStore.ViewModels.Pages
                         }
                     }";
 
-                var result = await _graphQLClient.ExecuteAsync<GetOrderByIdResponse>(query, new { id = order.Id });
+                var result = await _graphQLClient.ExecuteAsync<GetOrderByIdResponse>(
+                    query,
+                    new
+                    {
+                        id = order.Id,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    });
                 if (result?.GetOrderById is { } detail)
                 {
-                    SelectedOrder = OrderDetailsViewModel.FromPayload(detail);
+                    SelectedOrder = OrderDetailsViewModel.FromPayload(detail, CurrencySymbol);
                     IsDetailsPanelOpen = true;
                 }
             }
@@ -345,15 +370,23 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation UpdateOrder($input: UpdateOrderInput!) {
-                        updateOrder(input: $input) {
+                    mutation UpdateOrder($input: UpdateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                        updateOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             status
                         }
                     }";
 
                 var input = new { id = SelectedOrder.Id, status = status.ToString().ToUpperInvariant(), customerId = (int?)null };
-                var updated = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(mutation, new { input }, dataKey: "updateOrder");
+                var updated = await _graphQLClient.ExecuteAsync<OrderStatusUpdateResponse>(
+                    mutation,
+                    new
+                    {
+                        input,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    },
+                    dataKey: "updateOrder");
                 var updatedStatus = updated?.Status ?? status.ToString();
 
                 StatusMessage = $"Order #{SelectedOrder.Id} status updated to {updatedStatus}.";
@@ -386,11 +419,19 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation DeleteOrder($id: Int!) {
-                        deleteOrder(id: $id)
+                    mutation DeleteOrder($id: Int!, $currentUserId: Int, $currentUserRole: String) {
+                        deleteOrder(id: $id, currentUserId: $currentUserId, currentUserRole: $currentUserRole)
                     }";
 
-                await _graphQLClient.ExecuteAsync<bool>(mutation, new { id = orderId }, dataKey: "deleteOrder");
+                await _graphQLClient.ExecuteAsync<bool>(
+                    mutation,
+                    new
+                    {
+                        id = orderId,
+                        currentUserId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, _currentUserId),
+                        currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole)
+                    },
+                    dataKey: "deleteOrder");
 
                 StatusMessage = $"Order #{orderId} has been deleted.";
                 IsDetailsPanelOpen = false;
@@ -417,6 +458,23 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
         partial void OnStatusMessageChanged(string value) => OnPropertyChanged(nameof(HasStatusMessage));
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            foreach (var order in Orders)
+            {
+                order.CurrencySymbol = value;
+            }
+
+            if (SelectedOrder is not null)
+            {
+                SelectedOrder.CurrencySymbol = value;
+                foreach (var line in SelectedOrder.Lines)
+                {
+                    line.CurrencySymbol = value;
+                }
+            }
+        }
     }
 
     // ── Item ViewModels ────────────────────────────────────────────────────────
@@ -428,25 +486,39 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _status = string.Empty;
+
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal TotalAmount { get; set; }
         public string? EmployeeName { get; set; }
         public string? CustomerName { get; set; }
 
         public string IdDisplay => $"#TY-{Id:D4}";
         public string DateDisplay => OrderDate.ToString("MMM dd, yyyy HH:mm", CultureInfo.InvariantCulture);
-        public string TotalDisplay => $"${TotalAmount:N2}";
+        public string TotalDisplay => FormatCurrency(TotalAmount, CurrencySymbol);
         public string EmployeeDisplay => string.IsNullOrWhiteSpace(EmployeeName) ? "Unknown" : EmployeeName;
         public string CustomerDisplay => string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in" : CustomerName;
 
-        public static OrderItemViewModel FromPayload(OrderItemNode node) => new()
+        partial void OnCurrencySymbolChanged(string value) => OnPropertyChanged(nameof(TotalDisplay));
+
+        public static OrderItemViewModel FromPayload(OrderItemNode node, string currencySymbol) => new()
         {
             Id = node.Id,
             OrderDate = node.OrderDate,
             Status = node.Status,
             TotalAmount = node.TotalAmount,
             EmployeeName = node.Sale?.Username,
-            CustomerName = node.Customer?.FullName
+            CustomerName = node.Customer?.FullName,
+            CurrencySymbol = currencySymbol
         };
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public partial class OrderDetailsViewModel : ObservableObject
@@ -460,6 +532,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _statusBadgeClass = string.Empty;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal TotalAmount { get; set; }
         public string? EmployeeName { get; set; }
         public string? CustomerName { get; set; }
@@ -467,12 +542,14 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string IdDisplay => $"#TY-{Id:D4}";
         public string DateDisplay => OrderDate.ToString("MMM dd, yyyy HH:mm", CultureInfo.InvariantCulture);
-        public string TotalDisplay => $"${TotalAmount:N2}";
+        public string TotalDisplay => FormatCurrency(TotalAmount, CurrencySymbol);
         public string EmployeeDisplay => string.IsNullOrWhiteSpace(EmployeeName) ? "Unknown" : EmployeeName;
         public string CustomerDisplay => string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in Customer" : CustomerName;
         public int ItemCount => Lines.Sum(l => l.Quantity);
 
-        public static OrderDetailsViewModel FromPayload(OrderDetailPayload p)
+        partial void OnCurrencySymbolChanged(string value) => OnPropertyChanged(nameof(TotalDisplay));
+
+        public static OrderDetailsViewModel FromPayload(OrderDetailPayload p, string currencySymbol)
         {
             var vm = new OrderDetailsViewModel
             {
@@ -482,7 +559,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                 StatusBadgeClass = p.Status,
                 TotalAmount = p.TotalAmount,
                 EmployeeName = p.SaleName,
-                CustomerName = p.CustomerName
+                CustomerName = p.CustomerName,
+                CurrencySymbol = currencySymbol
             };
 
             if (p.OrderDetails != null)
@@ -493,23 +571,48 @@ namespace BIF.ToyStore.ViewModels.Pages
                     {
                         ProductName = d.Product?.Name ?? "Unknown Product",
                         Quantity = d.Quantity,
-                        UnitPrice = d.UnitPrice
+                        UnitPrice = d.UnitPrice,
+                        CurrencySymbol = currencySymbol
                     });
                 }
             }
             return vm;
         }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
-    public sealed class OrderDetailLineViewModel
+    public sealed partial class OrderDetailLineViewModel : ObservableObject
     {
         public string ProductName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
         public decimal LineTotal => Quantity * UnitPrice;
         public string QtyDisplay => $"x{Quantity}";
-        public string UnitPriceDisplay => $"${UnitPrice:N2}";
-        public string LineTotalDisplay => $"${LineTotal:N2}";
+        public string UnitPriceDisplay => FormatCurrency(UnitPrice, CurrencySymbol);
+        public string LineTotalDisplay => FormatCurrency(LineTotal, CurrencySymbol);
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            OnPropertyChanged(nameof(UnitPriceDisplay));
+            OnPropertyChanged(nameof(LineTotalDisplay));
+        }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class EmployeeListItem
@@ -608,5 +711,10 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         public int Id { get; set; }
         public string Status { get; set; } = string.Empty;
+    }
+
+    public sealed class OrderAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "USD";
     }
 }

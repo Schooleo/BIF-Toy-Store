@@ -1,7 +1,9 @@
 using BIF.ToyStore.Core.Interfaces;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
 using BIF.ToyStore.ViewModels.Pages;
+using BIF.ToyStore.ViewModels.Utils;
 using Moq;
 using Xunit;
 using System.Collections.Generic;
@@ -12,12 +14,17 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
     public class CategoriesViewModelTests
     {
         private readonly Mock<ICategoryService> _categoryServiceMock;
+        private readonly Mock<ILocalSettingsService> _localSettingsServiceMock;
         private readonly CategoriesViewModel _viewModel;
 
         public CategoriesViewModelTests()
         {
             _categoryServiceMock = new Mock<ICategoryService>();
-            _viewModel = new CategoriesViewModel(_categoryServiceMock.Object);
+            _localSettingsServiceMock = new Mock<ILocalSettingsService>();
+            _localSettingsServiceMock
+                .Setup(x => x.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns(UserRole.Admin.ToString());
+            _viewModel = new CategoriesViewModel(_categoryServiceMock.Object, _localSettingsServiceMock.Object);
         }
 
         // ─── Constructor defaults ────────────────────────────────────────────────
@@ -181,6 +188,22 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
 
             // Assert
             _categoryServiceMock.Verify(x => x.RestoreCategoryAsync(5), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateCategoryAsync_SaleUser_ThrowsAndSkipsServiceCall()
+        {
+            _localSettingsServiceMock
+                .Setup(x => x.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns(UserRole.Sale.ToString());
+
+            var saleViewModel = new CategoriesViewModel(_categoryServiceMock.Object, _localSettingsServiceMock.Object);
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                saleViewModel.CreateCategoryAsync(new Category { Name = "Blocked" }));
+
+            Assert.Equal("Only admin users can add new categories.", ex.Message);
+            _categoryServiceMock.Verify(x => x.CreateCategoryAsync(It.IsAny<Category>()), Times.Never);
         }
     }
 }

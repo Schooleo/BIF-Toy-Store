@@ -151,14 +151,33 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         }
         public async Task<OrderPayload> CreateOrder(
             CreateOrderInput input,
-            [Service] IOrderService orderService)
+            [Service] IOrderService orderService,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            var resolvedSaleId = input.SaleId;
+
+            if (HasActorContext(currentUserId, currentUserRole) && !IsAdminRole(currentUserRole))
+            {
+                if (!currentUserId.HasValue || currentUserId.Value <= 0)
+                {
+                    throw new InvalidOperationException("Current sales user context is required.");
+                }
+
+                if (input.SaleId != currentUserId.Value)
+                {
+                    throw new InvalidOperationException("Sales users can only create their own orders.");
+                }
+
+                resolvedSaleId = currentUserId.Value;
+            }
+
             var items = input.Items
                 .Select(i => (i.ProductId, i.Quantity, i.UnitPrice))
                 .ToList();
 
             var order = await orderService.CreateOrderAsync(
-                input.SaleId,
+                resolvedSaleId,
                 input.CustomerId,
                 items);
 
@@ -167,8 +186,21 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<OrderPayload> UpdateOrder(
             UpdateOrderInput input,
-            [Service] IOrderService orderService)
+            [Service] IOrderService orderService,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            if (HasActorContext(currentUserId, currentUserRole))
+            {
+                var existingOrder = await orderService.GetOrderByIdAsync(input.Id)
+                    ?? throw new InvalidOperationException($"Order with ID {input.Id} not found.");
+
+                if (!CanManageOrder(existingOrder, currentUserId, currentUserRole))
+                {
+                    throw new InvalidOperationException("Sales users can only update their own orders.");
+                }
+            }
+
             var order = await orderService.UpdateOrderAsync(
                 input.Id,
                 input.Status,
@@ -179,13 +211,32 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<bool> DeleteOrder(
             int id,
-            [Service] IOrderService orderService)
+            [Service] IOrderService orderService,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            if (HasActorContext(currentUserId, currentUserRole))
+            {
+                var existingOrder = await orderService.GetOrderByIdAsync(id)
+                    ?? throw new InvalidOperationException($"Order with ID {id} not found.");
+
+                if (!CanManageOrder(existingOrder, currentUserId, currentUserRole))
+                {
+                    throw new InvalidOperationException("Sales users can only delete their own orders.");
+                }
+            }
+
             return await orderService.DeleteOrderAsync(id);
         }
 
-        public async Task<Product> CreateProduct(CreateProductInput input, [Service] IProductRepository repo)
+        public async Task<Product> CreateProduct(
+            CreateProductInput input,
+            [Service] IProductRepository repo,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "create products");
+
             var product = new Product
             {
                 Name = input.Name,
@@ -232,8 +283,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public async Task<ImportProductsPayload> ImportProducts(
             IFile file,
             [Service] IProductRepository repo,
-            [Service] AppDbContext dbContext)
+            [Service] AppDbContext dbContext,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "import products");
+
             var payload = new ImportProductsPayload();
             var products = new List<Product>();
 
@@ -325,8 +380,14 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return payload;
         }
 
-        public async Task<Category> CreateCategory(CreateCategoryInput input, [Service] ICategoryRepository repo)
+        public async Task<Category> CreateCategory(
+            CreateCategoryInput input,
+            [Service] ICategoryRepository repo,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
+            EnsureAdminAccess(currentUserId, currentUserRole, "create categories");
+
             var category = new Category
             {
                 Name = input.Name
@@ -347,6 +408,34 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public async Task<Category> RestoreCategory(int id, [Service] ICategoryRepository repo)
         {
             return await repo.RestoreAsync(id);
+        }
+
+        private static bool HasActorContext(int? currentUserId, string? currentUserRole)
+        {
+            return currentUserId.HasValue || !string.IsNullOrWhiteSpace(currentUserRole);
+        }
+
+        private static bool IsAdminRole(string? currentUserRole)
+        {
+            return string.Equals(currentUserRole, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool CanManageOrder(Order order, int? currentUserId, string? currentUserRole)
+        {
+            if (IsAdminRole(currentUserRole))
+            {
+                return true;
+            }
+
+            return currentUserId.HasValue && currentUserId.Value > 0 && order.SaleId == currentUserId.Value;
+        }
+
+        private static void EnsureAdminAccess(int? currentUserId, string? currentUserRole, string action)
+        {
+            if (HasActorContext(currentUserId, currentUserRole) && !IsAdminRole(currentUserRole))
+            {
+                throw new InvalidOperationException($"Only admin users can {action}.");
+            }
         }
     }
 }

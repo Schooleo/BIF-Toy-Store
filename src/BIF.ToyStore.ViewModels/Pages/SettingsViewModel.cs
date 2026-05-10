@@ -3,7 +3,6 @@ using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Data.Sqlite;
 using System.Globalization;
 
 namespace BIF.ToyStore.ViewModels.Pages
@@ -14,6 +13,8 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         private readonly IGraphQLClient _graphQLClient;
         private readonly ILocalSettingsService _localSettingsService;
+        private readonly IBackupService _backupService;
+        private readonly IPendingRestoreService _pendingRestoreService;
 
         private string _databasePath = "ToyStore.db";
         private int _originalCommunicationPort = 5000;
@@ -29,7 +30,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private double _taxRate = 10.0;
 
         [ObservableProperty]
-        private string _selectedCurrency = "VND";
+        private string _selectedCurrency = "USD";
 
         [ObservableProperty]
         private string _storeName = string.Empty;
@@ -64,10 +65,16 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public IReadOnlyList<int> ItemsPerPageOptions { get; } = [5, 10, 15, 20];
 
-        public SettingsViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService)
+        public SettingsViewModel(
+            IGraphQLClient graphQLClient,
+            ILocalSettingsService localSettingsService,
+            IBackupService backupService,
+            IPendingRestoreService pendingRestoreService)
         {
             _graphQLClient = graphQLClient;
             _localSettingsService = localSettingsService;
+            _backupService = backupService;
+            _pendingRestoreService = pendingRestoreService;
             Title = "Settings";
         }
 
@@ -134,28 +141,16 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             try
             {
-                var sourcePath = ResolveDatabasePath(_databasePath);
-                if (!File.Exists(sourcePath))
+                var result = await _backupService.CreateBackupAsync(_databasePath);
+                if (result.Status == BackupCreationStatus.DatabaseNotFound)
                 {
                     ErrorMessage = "Database file not found for backup.";
                     return;
                 }
 
-                var backupDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "BIF.ToyStore",
-                    "Backups");
-
-                Directory.CreateDirectory(backupDirectory);
-
-                var backupFileName = $"ToyStore_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
-                var destinationPath = Path.Combine(backupDirectory, backupFileName);
-
-                await CreateVacuumBackupWithRetryAsync(sourcePath, destinationPath);
-
-                var nowUtc = DateTime.UtcNow;
-                _localSettingsService.SetString(AppPreferenceKeys.LastBackupUtc, nowUtc.ToString("o", CultureInfo.InvariantCulture));
-                LastBackupStatus = FormatBackupStatus(nowUtc);
+                var createdAtUtc = result.CreatedAtUtc ?? DateTime.UtcNow;
+                _localSettingsService.SetString(AppPreferenceKeys.LastBackupUtc, createdAtUtc.ToString("o", CultureInfo.InvariantCulture));
+                LastBackupStatus = FormatBackupStatus(createdAtUtc);
 
                 StatusMessage = "Backup created successfully.";
             }
@@ -173,31 +168,18 @@ namespace BIF.ToyStore.ViewModels.Pages
 
             try
             {
-                var backupDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "BIF.ToyStore",
-                    "Backups");
-
-                if (!Directory.Exists(backupDirectory))
+                var result = _pendingRestoreService.ScheduleLatestBackupRestore(_databasePath);
+                if (result.Status == RestoreScheduleStatus.BackupDirectoryMissing)
                 {
                     ErrorMessage = "No backup directory found.";
                     return;
                 }
 
-                var latestBackup = new DirectoryInfo(backupDirectory)
-                    .GetFiles("*.bak")
-                    .OrderByDescending(file => file.LastWriteTimeUtc)
-                    .FirstOrDefault();
-
-                if (latestBackup is null)
+                if (result.Status == RestoreScheduleStatus.BackupFileMissing)
                 {
                     ErrorMessage = "No backup file found.";
                     return;
                 }
-
-                var destinationPath = ResolveDatabasePath(_databasePath);
-                _localSettingsService.SetString(AppPreferenceKeys.PendingRestoreBackupPath, latestBackup.FullName);
-                _localSettingsService.SetString(AppPreferenceKeys.PendingRestoreTargetPath, destinationPath);
 
                 StatusMessage = "Restore scheduled. Restart the app to apply restored data.";
             }
@@ -269,7 +251,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             StartOnLastOpened = _localSettingsService.GetBool(AppPreferenceKeys.StartOnLastOpened, false);
 
             var persistedBackupUtc = ParseBackupUtc(_localSettingsService.GetString(AppPreferenceKeys.LastBackupUtc));
-            var latestBackupUtc = GetLatestBackupTimestampUtc();
+            var latestBackupUtc = _backupService.GetLatestBackupTimestampUtc();
             var effectiveBackupUtc = MaxTimestamp(persistedBackupUtc, latestBackupUtc);
 
             if (effectiveBackupUtc.HasValue)
@@ -329,7 +311,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             TaxRate = (double)(config.TaxRate * 100m);
             StoreName = NormalizeStoreName(config.DisplayName);
             _localSettingsService.SetString(AppPreferenceKeys.StoreName, StoreName);
-            SelectedCurrency = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "VND" : config.CurrencySymbol;
+            SelectedCurrency = string.IsNullOrWhiteSpace(config.CurrencySymbol) ? "USD" : config.CurrencySymbol;
             ReceiptHeader = config.ReceiptHeader;
             ReceiptFooter = config.ReceiptFooter;
             SelectedThemePreference = ThemePreferenceOptions.Contains(config.ThemePreference)
@@ -390,16 +372,6 @@ namespace BIF.ToyStore.ViewModels.Pages
                 : normalized;
         }
 
-        private static string ResolveDatabasePath(string configuredPath)
-        {
-            if (Path.IsPathRooted(configuredPath))
-            {
-                return configuredPath;
-            }
-
-            return Path.Combine(AppContext.BaseDirectory, configuredPath);
-        }
-
         private static DateTime? ParseBackupUtc(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -455,117 +427,11 @@ namespace BIF.ToyStore.ViewModels.Pages
             return $"LAST: {days} DAY{(days == 1 ? string.Empty : "S")} AGO";
         }
 
-        private static DateTime? GetLatestBackupTimestampUtc()
-        {
-            var backupDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "BIF.ToyStore",
-                "Backups");
-
-            if (!Directory.Exists(backupDirectory))
-            {
-                return null;
-            }
-
-            var latestBackup = new DirectoryInfo(backupDirectory)
-                .GetFiles("*.bak")
-                .OrderByDescending(file => file.LastWriteTimeUtc)
-                .FirstOrDefault();
-
-            return latestBackup?.LastWriteTimeUtc;
-        }
-
-        private static async Task CopyWithRetryAsync(string sourcePath, string destinationPath)
-        {
-            const int maxAttempts = 5;
-            const int retryDelayMs = 250;
-
-            for (var attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    await using var sourceStream = new FileStream(
-                        sourcePath,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.ReadWrite | FileShare.Delete);
-
-                    await using var destinationStream = new FileStream(
-                        destinationPath,
-                        FileMode.Create,
-                        FileAccess.Write,
-                        FileShare.None);
-
-                    await sourceStream.CopyToAsync(destinationStream);
-                    return;
-                }
-                catch (IOException) when (attempt < maxAttempts)
-                {
-                    await Task.Delay(retryDelayMs);
-                }
-                catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-                {
-                    await Task.Delay(retryDelayMs);
-                }
-            }
-
-            throw new IOException(
-                "The database file is currently in use. Close other tools accessing the database and try backup again.");
-        }
-
-        private static async Task CreateVacuumBackupWithRetryAsync(string sourceDatabasePath, string backupDatabasePath)
-        {
-            const int maxAttempts = 5;
-            const int retryDelayMs = 250;
-
-            for (var attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    if (File.Exists(backupDatabasePath))
-                    {
-                        File.Delete(backupDatabasePath);
-                    }
-
-                    var escapedBackupPath = backupDatabasePath.Replace("'", "''", StringComparison.Ordinal);
-                    var connectionString = new SqliteConnectionStringBuilder
-                    {
-                        DataSource = sourceDatabasePath,
-                        Mode = SqliteOpenMode.ReadWrite
-                    }.ToString();
-
-                    await using var connection = new SqliteConnection(connectionString);
-                    await connection.OpenAsync();
-
-                    await using var command = connection.CreateCommand();
-                    command.CommandText = $"VACUUM INTO '{escapedBackupPath}';";
-                    await command.ExecuteNonQueryAsync();
-                    return;
-                }
-                catch (SqliteException ex) when (
-                    (ex.SqliteErrorCode == 5 || ex.SqliteErrorCode == 6) && attempt < maxAttempts)
-                {
-                    await Task.Delay(retryDelayMs);
-                }
-                catch (IOException) when (attempt < maxAttempts)
-                {
-                    await Task.Delay(retryDelayMs);
-                }
-                catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-                {
-                    await Task.Delay(retryDelayMs);
-                }
-            }
-
-            throw new IOException(
-                "The database is currently busy. Try backup again in a moment.");
-        }
-
         private sealed class StoreSettingsView
         {
             public string DisplayName { get; set; } = string.Empty;
             public decimal TaxRate { get; set; }
-            public string CurrencySymbol { get; set; } = "VND";
+            public string CurrencySymbol { get; set; } = "USD";
             public string ReceiptHeader { get; set; } = string.Empty;
             public string ReceiptFooter { get; set; } = string.Empty;
             public string ThemePreference { get; set; } = "System";

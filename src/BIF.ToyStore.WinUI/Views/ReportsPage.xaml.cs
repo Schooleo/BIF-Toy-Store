@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,8 @@ namespace BIF.ToyStore.WinUI.Views
             ViewModel = App.Current.Services.GetRequiredService<ReportsViewModel>();
             DataContext = ViewModel;
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
+            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -42,6 +45,45 @@ namespace BIF.ToyStore.WinUI.Views
             }
 
             await ViewModel.LoadAsync();
+            QueueChartsScrollToRight();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= OnLoaded;
+            Unloaded -= OnUnloaded;
+            ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        }
+
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ReportsViewModel.TrendScrollableWidth)
+                || e.PropertyName == nameof(ReportsViewModel.HasTimeSeriesData))
+            {
+                QueueChartsScrollToRight();
+            }
+        }
+
+        private void QueueChartsScrollToRight()
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ScrollChartToRight(SalesTrendScrollViewer);
+                    ScrollChartToRight(RevenueProfitScrollViewer);
+                });
+            });
+        }
+
+        private static void ScrollChartToRight(ScrollViewer scrollViewer)
+        {
+            scrollViewer.UpdateLayout();
+
+            if (scrollViewer.ScrollableWidth > 0)
+            {
+                scrollViewer.ChangeView(scrollViewer.ScrollableWidth, null, null, true);
+            }
         }
 
         private void GroupBy_ItemClick(object sender, ItemClickEventArgs e)

@@ -6,6 +6,7 @@
     xmlns:ui="using:Windows.UI"
     xmlns:controls="using:BIF.ToyStore.WinUI.Controls"
     xmlns:converters="using:BIF.ToyStore.WinUI.Converters"
+    xmlns:pages="using:BIF.ToyStore.ViewModels.Pages"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:Name="RootPage"
@@ -427,77 +428,114 @@
                             </Grid.RowDefinitions>
 
                             <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="QUANTITY SOLD OVER TIME"
                                            FontSize="11"
                                            CharacterSpacing="100"
                                            Foreground="{StaticResource ReportsSubtitleBrush}"
                                            FontWeight="SemiBold"/>
-                                <StackPanel Grid.Column="1"
-                                            Orientation="Horizontal"
-                                            Spacing="6"
-                                            VerticalAlignment="Center">
-                                    <Ellipse Width="8"
-                                             Height="8"
-                                             Fill="{StaticResource ReportsRevenueBarBrush}"/>
-                                    <TextBlock Text="Active Toys"
-                                               FontSize="11"
-                                               Foreground="{StaticResource ReportsSubtitleBrush}"/>
-                                </StackPanel>
                             </Grid>
 
-                            <Border Grid.Row="1"
-                                    BorderBrush="#FFE5E7EB"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Background="#FFF8FAFC"
-                                    Height="230"
-                                    Padding="8,8,8,4">
-                                <Viewbox Stretch="Fill">
-                                    <Grid Width="980"
-                                          Height="220">
-                                        <Path Data="{Binding TrendAreaData}"
-                                              Fill="#3B93C5FD"
-                                              Stretch="Fill"/>
-                                        <Path Data="{Binding TrendPathData}"
-                                              Stroke="{StaticResource ReportsRevenueBarBrush}"
-                                              StrokeThickness="3"
-                                              StrokeLineJoin="Round"
-                                              Stretch="Fill"/>
-                                    </Grid>
-                                </Viewbox>
-                            </Border>
+                                <Grid Grid.Row="1"
+                                    Height="288">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="42"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <ScrollViewer Grid.Row="2"
-                                          Margin="4,0,14,0"
-                                          Padding="0,0,0,18"
-                                          HorizontalScrollBarVisibility="Auto"
-                                          HorizontalScrollMode="Enabled"
-                                          VerticalScrollBarVisibility="Disabled"
-                                          VerticalScrollMode="Disabled"
-                                          ZoomMode="Disabled">
-                                <ItemsControl ItemsSource="{Binding TimeSeriesPoints}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Label}"
-                                                       Width="80"
-                                                       FontSize="10"
-                                                       Foreground="{StaticResource ReportsSubtitleBrush}"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0"
+                                               Text="{Binding TrendAxisMaxDisplay}"
+                                               FontSize="10"
+                                               Foreground="{StaticResource ReportsSubtitleBrush}"
+                                               HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding TrendAxisMidDisplay}"
+                                               FontSize="10"
+                                               Foreground="{StaticResource ReportsSubtitleBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2"
+                                               Text="0"
+                                               FontSize="10"
+                                               Foreground="{StaticResource ReportsSubtitleBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Bottom"/>
+                                </Grid>
 
-                            <TextBlock Grid.Row="1"
+                                <Border Grid.Column="1"
+                                        BorderBrush="#FFE5E7EB"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Background="#FFF8FAFC">
+                                    <ScrollViewer x:Name="SalesTrendScrollViewer"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  HorizontalScrollMode="Enabled"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  VerticalScrollMode="Disabled"
+                                                  ZoomMode="Disabled">
+                                        <Grid Width="{Binding TrendScrollableWidth}">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <Grid Grid.Row="0"
+                                                  Height="220"
+                                                  Margin="0,0,0,4">
+                                                <Rectangle Height="1"
+                                                        Fill="#33D1D5DB"
+                                                        VerticalAlignment="Top"
+                                                        Margin="0,12,0,0"/>
+                                                <Rectangle Height="1"
+                                                        Fill="#33D1D5DB"
+                                                        VerticalAlignment="Center"/>
+                                                <Rectangle Height="1"
+                                                        Fill="#33D1D5DB"
+                                                        VerticalAlignment="Bottom"
+                                                        Margin="0,0,0,12"/>
+
+                                                <Path Data="{Binding TrendAreaData}"
+                                                      Fill="#4D60A5FA"
+                                                      Stretch="None"/>
+                                                <Path Data="{Binding TrendPathData}"
+                                                      Stroke="{StaticResource ReportsRevenueBarBrush}"
+                                                      StrokeThickness="4"
+                                                      StrokeLineJoin="Round"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Stretch="None"/>
+                                            </Grid>
+
+                                            <ItemsControl Grid.Row="1"
+                                                          ItemsSource="{Binding TimeSeriesPoints}"
+                                                          Margin="0,4,0,12">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="pages:ReportTimePointViewModel">
+                                                        <TextBlock Text="{x:Bind Label}"
+                                                                   Width="{x:Bind LabelWidth, Mode=OneWay}"
+                                                                   FontSize="10"
+                                                                   Foreground="{StaticResource ReportsSubtitleBrush}"
+                                                                   TextAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+
+                            <TextBlock Grid.Row="2"
                                        Text="No time-series data for the selected range."
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
@@ -674,7 +712,8 @@
                                 </StackPanel>
                             </Grid>
 
-                            <ScrollViewer Grid.Row="1"
+                            <ScrollViewer x:Name="RevenueProfitScrollViewer"
+                                          Grid.Row="1"
                                           HorizontalScrollBarVisibility="Auto"
                                           HorizontalScrollMode="Enabled"
                                           VerticalScrollBarVisibility="Disabled"

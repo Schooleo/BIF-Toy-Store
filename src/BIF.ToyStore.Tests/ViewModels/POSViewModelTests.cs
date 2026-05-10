@@ -302,5 +302,83 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Equal("Tax (12%)", _viewModel.TaxLabel);
             Assert.Equal("$100.00", _viewModel.SubtotalDisplay);
         }
+
+        [Fact]
+        public async Task SearchText_FiltersProductsByName()
+        {
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<PosAppConfigNode>(
+                It.Is<string>(q => q.Contains("GetPosConfig")),
+                It.IsAny<object>(),
+                "appConfig")).ReturnsAsync(new PosAppConfigNode
+                {
+                    CurrencySymbol = "USD",
+                    TaxRate = 0.08m
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoryConnection>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "categories")).ReturnsAsync(new CategoryConnection
+                {
+                    Nodes = new List<Category>()
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductConnectionSimple>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "products")).ReturnsAsync(new ProductConnectionSimple
+                {
+                    Nodes = new List<Product>
+                    {
+                        new Product { Id = 1, Name = "Batman", RetailPrice = 10m, StockQuantity = 5, CategoryName = "Action Figures" },
+                        new Product { Id = 2, Name = "Barbie", RetailPrice = 12m, StockQuantity = 5, CategoryName = "Dolls" }
+                    }
+                });
+
+            await _viewModel.LoadAsync();
+            _viewModel.SearchText = "bat";
+
+            Assert.Single(_viewModel.FilteredProducts);
+            Assert.Equal("Batman", _viewModel.FilteredProducts[0].Name);
+        }
+
+        [Fact]
+        public async Task SearchText_NoMatches_SetsEmptyResultsState()
+        {
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<PosAppConfigNode>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "appConfig")).ReturnsAsync(new PosAppConfigNode
+                {
+                    CurrencySymbol = "USD",
+                    TaxRate = 0.08m
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<CategoryConnection>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "categories")).ReturnsAsync(new CategoryConnection
+                {
+                    Nodes = new List<Category>()
+                });
+
+            _graphQLClientMock.Setup(x => x.ExecuteAsync<ProductConnectionSimple>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                "products")).ReturnsAsync(new ProductConnectionSimple
+                {
+                    Nodes = new List<Product>
+                    {
+                        new Product { Id = 1, Name = "Batman", RetailPrice = 10m, StockQuantity = 5, CategoryName = "Action Figures" }
+                    }
+                });
+
+            await _viewModel.LoadAsync();
+            _viewModel.SearchText = "zzz";
+
+            Assert.Empty(_viewModel.FilteredProducts);
+            Assert.True(_viewModel.IsFilteredProductsEmpty);
+            Assert.False(_viewModel.HasFilteredProducts);
+        }
     }
 }

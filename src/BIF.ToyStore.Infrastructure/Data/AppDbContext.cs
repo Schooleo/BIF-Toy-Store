@@ -7,7 +7,6 @@ namespace BIF.ToyStore.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext() { }
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         // Tables
@@ -20,12 +19,12 @@ namespace BIF.ToyStore.Infrastructure.Data
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<AppConfig> AppConfigs { get; set; }
 
-        // Configure SQLite connection
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlite("Data Source=ToyStore.db");
+                throw new InvalidOperationException(
+                    "AppDbContext requires configured DbContextOptions. Configure the SQLite connection in the composition root.");
             }
         }
 

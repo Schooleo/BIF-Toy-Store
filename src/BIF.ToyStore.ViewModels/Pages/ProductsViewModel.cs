@@ -1,5 +1,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +12,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class ProductsViewModel : PaginatedViewModel
     {
+        private readonly IGraphQLClient _graphQLClient;
         private readonly IProductService _productService;
         private readonly IProductImageUploadService _productImageUploadService;
         private readonly ILocalSettingsService _localSettingsService;
@@ -75,9 +77,18 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _editErrorMessage = string.Empty;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
+        [ObservableProperty]
+        private bool _isAdminUser = true;
+
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
+        public bool HasProducts => Products.Count > 0;
+        public bool IsProductsEmpty => !HasProducts;
+        public bool CanCreateProducts => IsAdminUser;
         public string SelectedCategoryLabel => SelectedCategory?.Name ?? "All Categories";
         public string SelectedSortLabel => SelectedSort?.Name ?? "Newest";
 
@@ -85,16 +96,23 @@ namespace BIF.ToyStore.ViewModels.Pages
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
+            IGraphQLClient graphQLClient,
             IProductService productService,
             IProductImageUploadService productImageUploadService,
             ILocalSettingsService localSettingsService,
             IExcelFilePickerService excelFilePickerService)
         {
+            _graphQLClient = graphQLClient;
             _productService = productService;
             _productImageUploadService = productImageUploadService;
             _localSettingsService = localSettingsService;
             _excelFilePickerService = excelFilePickerService;
             Title = "Product Management";
+            IsAdminUser = Enum.TryParse<UserRole>(
+                _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString()),
+                true,
+                out var currentRole)
+                && currentRole == UserRole.Admin;
             
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
             SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
@@ -108,6 +126,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnImportSuccessMessageChanged(string value) => OnPropertyChanged(nameof(HasImportSuccessMessage));
         partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
         partial void OnEditErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasEditErrorMessage));
+        partial void OnProductsChanged(ObservableCollection<Product> value)
+        {
+            OnPropertyChanged(nameof(HasProducts));
+            OnPropertyChanged(nameof(IsProductsEmpty));
+        }
+
+        partial void OnIsAdminUserChanged(bool value) => OnPropertyChanged(nameof(CanCreateProducts));
 
         partial void OnSelectedCategoryChanged(Category? value) => OnPropertyChanged(nameof(SelectedCategoryLabel));
 
@@ -143,6 +168,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
+                await LoadCurrencySymbolAsync();
+
                 var result = await _productService.GetProductsAsync(new ProductListQuery
                 {
                     PageSize = PageSize,
@@ -156,15 +183,21 @@ namespace BIF.ToyStore.ViewModels.Pages
                     SortValue = SelectedSort?.Value
                 });
 
-                Products = new ObservableCollection<Product>(result.Items.Select(p => {
-                    if (p.Images != null && p.Images.Count > 3)
+                foreach (var product in result.Items)
+                {
+                    product.CurrencySymbol = CurrencySymbol;
+                    if (product.Images is { Count: > 3 })
                     {
-                        var trimmed = p.Images.Take(3).ToList();
-                        p.Images.Clear();
-                        foreach(var img in trimmed) p.Images.Add(img);
+                        var trimmedImages = product.Images.Take(3).ToList();
+                        product.Images.Clear();
+                        foreach (var image in trimmedImages)
+                        {
+                            product.Images.Add(image);
+                        }
                     }
-                    return p;
-                }));
+                }
+
+                Products = new ObservableCollection<Product>(result.Items);
                 ApplyPageInfo(
                     result.TotalCount,
                     result.HasNextPage,
@@ -175,6 +208,26 @@ namespace BIF.ToyStore.ViewModels.Pages
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        private async Task LoadCurrencySymbolAsync()
+        {
+            const string query = @"
+                query GetProductsAppConfig {
+                    appConfig {
+                        currencySymbol
+                    }
+                }";
+
+            try
+            {
+                var config = await _graphQLClient.ExecuteAsync<ProductAppConfigNode>(query, dataKey: "appConfig");
+                CurrencySymbol = string.IsNullOrWhiteSpace(config?.CurrencySymbol) ? "USD" : config.CurrencySymbol;
+            }
+            catch
+            {
+                CurrencySymbol = "USD";
             }
         }
 
@@ -202,6 +255,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task<Product> CreateProductAsync(Product input)
         {
+            EnsureAdminCanCreateProducts();
+
             var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
             
             var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
@@ -404,6 +459,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task ImportExcelAsync()
         {
+            EnsureAdminCanCreateProducts();
+
             ImportSuccessMessage = string.Empty;
             ImportErrorMessage = string.Empty;
 
@@ -663,5 +720,18 @@ namespace BIF.ToyStore.ViewModels.Pages
                 // Best-effort refresh only.
             }
         }
+
+        private void EnsureAdminCanCreateProducts()
+        {
+            if (!CanCreateProducts)
+            {
+                throw new InvalidOperationException("Only admin users can add new products.");
+            }
+        }
+    }
+
+    public sealed class ProductAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "USD";
     }
 }

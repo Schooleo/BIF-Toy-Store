@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace BIF.ToyStore.Core.Models
 {
     public class Category
@@ -6,7 +8,7 @@ namespace BIF.ToyStore.Core.Models
         public string Name { get; set; } = string.Empty;
         public bool IsDeleted { get; set; }
 
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        [NotMapped]
         public int ProductCount { get; set; }
 
         public ICollection<Product> Products { get; set; } = [];

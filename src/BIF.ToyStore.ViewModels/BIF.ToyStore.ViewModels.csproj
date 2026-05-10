@@ -8,11 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BIF.ToyStore.Infrastructure\BIF.ToyStore.Infrastructure.csproj" />
+    <ProjectReference Include="..\BIF.ToyStore.Abstractions\BIF.ToyStore.Abstractions.csproj" />
+    <ProjectReference Include="..\BIF.ToyStore.Core\BIF.ToyStore.Core.csproj" />
   </ItemGroup>
 
 </Project>

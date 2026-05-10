@@ -6,6 +6,9 @@
   <Project Path="BIF.ToyStore.Core/BIF.ToyStore.Core.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="BIF.ToyStore.Abstractions/BIF.ToyStore.Abstractions.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="BIF.ToyStore.Infrastructure/BIF.ToyStore.Infrastructure.csproj" Id="c1c978c2-dee0-424c-82b4-7f31676c5e21">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

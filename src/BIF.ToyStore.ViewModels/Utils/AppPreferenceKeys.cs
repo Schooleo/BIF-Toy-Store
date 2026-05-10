@@ -11,6 +11,7 @@ namespace BIF.ToyStore.ViewModels.Utils
         public const string CommunicationPort = "CommunicationPort";
         public const string AutoReconnect = "AutoReconnect";
         public const string StartOnLastOpened = "StartOnLastOpened";
+        public const string DatabasePath = "DatabasePath";
         public const string LastBackupUtc = "LastBackupUtc";
         public const string PendingRestoreBackupPath = "PendingRestoreBackupPath";
         public const string PendingRestoreTargetPath = "PendingRestoreTargetPath";

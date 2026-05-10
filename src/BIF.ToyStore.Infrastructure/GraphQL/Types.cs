@@ -333,6 +333,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         public string ProductName { get; init; } = string.Empty;
         public string CategoryName { get; init; } = string.Empty;
         public decimal RetailPrice { get; init; }
+        public string? ImageUrl { get; init; }
         public int UnitsSold { get; init; }
         public int Rank { get; init; }
 
@@ -344,6 +345,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 ProductName = model.ProductName,
                 CategoryName = model.CategoryName,
                 RetailPrice = model.RetailPrice,
+                ImageUrl = model.ImageUrl,
                 UnitsSold = model.UnitsSold,
                 Rank = model.Rank
             };

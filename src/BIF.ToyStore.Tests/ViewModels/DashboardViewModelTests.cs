@@ -10,6 +10,28 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         public async Task LoadAsync_ValidGraphQlPayload_MapsDashboardData()
         {
             var graphQlClient = new Mock<IGraphQLClient>();
+            var today = DateTime.Today;
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var reportSeries = new List<DashboardReportTimeSeriesNode>
+            {
+                new DashboardReportTimeSeriesNode
+                {
+                    PeriodStart = monthStart,
+                    PeriodLabel = monthStart.ToString("dd MMM"),
+                    TotalRevenue = 120m
+                }
+            };
+
+            if (today.Day > 1)
+            {
+                var secondDay = monthStart.AddDays(1);
+                reportSeries.Add(new DashboardReportTimeSeriesNode
+                {
+                    PeriodStart = secondDay,
+                    PeriodLabel = secondDay.ToString("dd MMM"),
+                    TotalRevenue = 80m
+                });
+            }
 
             graphQlClient
                 .Setup(x => x.ExecuteAsync<DashboardMainQueryData>(
@@ -24,9 +46,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                         TotalCount = 7,
                         Nodes =
                         [
-                            new DashboardProductNode { Id = 1, Name = "A", StockQuantity = 5, RetailPrice = 10m, Category = new DashboardCategoryNode { Name = "CatA" } },
-                            new DashboardProductNode { Id = 2, Name = "B", StockQuantity = 0, RetailPrice = 11m, Category = null },
-                            new DashboardProductNode { Id = 3, Name = "C", StockQuantity = 2, RetailPrice = 12m, Category = new DashboardCategoryNode { Name = "CatC" } }
+                            new DashboardProductNode { Id = 1, Name = "A", StockQuantity = 5, RetailPrice = 10m, ImageUrl = "https://example.com/a.png", Category = new DashboardCategoryNode { Name = "CatA" } },
+                            new DashboardProductNode { Id = 2, Name = "B", StockQuantity = 0, RetailPrice = 11m, ImageUrl = "https://example.com/b.png", Category = null },
+                            new DashboardProductNode { Id = 3, Name = "C", StockQuantity = 2, RetailPrice = 12m, ImageUrl = null, Category = new DashboardCategoryNode { Name = "CatC" } }
                         ]
                     },
                     GetOrders = new DashboardOrderConnection
@@ -56,31 +78,20 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                     },
                     GetTopBestSellingProducts =
                     [
-                        new DashboardBestSellingProductNode { ProductId = 1, ProductName = "A", CategoryName = "CatA", RetailPrice = 10m, UnitsSold = 90, Rank = 1 }
+                        new DashboardBestSellingProductNode { ProductId = 1, ProductName = "A", CategoryName = "CatA", RetailPrice = 10m, UnitsSold = 90, Rank = 1, ImageUrl = "https://example.com/a.png" }
                     ],
-                    GetRevenueTrend =
-                    [
-                        new DashboardRevenuePointNode { DayLabel = "Mon", Revenue = 120m },
-                        new DashboardRevenuePointNode { DayLabel = "Tue", Revenue = 80m }
-                    ]
+                    GetReportTimeSeries = reportSeries
                 });
 
             graphQlClient
-                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
-                    It.Is<string>(q => q.Contains("DashboardToday")),
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
                     It.IsAny<object?>(),
-                    It.IsAny<string>()))
-                .ReturnsAsync(new DashboardTodayQueryData
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode
                 {
-                    GetOrders = new DashboardOrderConnection
-                    {
-                        TotalCount = 2,
-                        Nodes =
-                        [
-                            new DashboardOrderNode { Status = "Paid", TotalAmount = 100m },
-                            new DashboardOrderNode { Status = "New", TotalAmount = 50m }
-                        ]
-                    }
+                    OrderCount = 2,
+                    Revenue = 100m
                 });
 
             var vm = new DashboardViewModel(graphQlClient.Object);
@@ -104,10 +115,29 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.Single(vm.BestSellingProducts);
             Assert.True(vm.HasBestSellingProducts);
             Assert.False(vm.IsBestSellingProductsEmpty);
-            Assert.Equal(2, vm.RevenueTrendPoints.Count);
+            Assert.Equal("https://example.com/a.png", vm.BestSellingProducts[0].ImageUrl);
+            Assert.Equal(today.Day, vm.RevenueTrendPoints.Count);
+            Assert.Equal(monthStart, vm.RevenueTrendPoints[0].PeriodStart.Date);
+            Assert.Equal(today, vm.RevenueTrendPoints[^1].PeriodStart.Date);
+            Assert.Equal(120m, vm.RevenueTrendPoints[0].Revenue);
+            if (today.Day > 1)
+            {
+                Assert.Equal(80m, vm.RevenueTrendPoints[1].Revenue);
+            }
+
+            if (today.Day > 2)
+            {
+                Assert.All(vm.RevenueTrendPoints.Skip(2), point => Assert.Equal(0m, point.Revenue));
+            }
+
             Assert.NotEqual("M 0,0", vm.RevenueTrendPathData);
             Assert.NotEqual("M 0,0 Z", vm.RevenueTrendAreaData);
             Assert.True(vm.RevenueAxisMax >= 100);
+            Assert.NotEmpty(vm.RevenuePeriodLabel);
+            Assert.True(vm.RevenueTrendScrollableWidth > 0);
+            Assert.Equal(vm.RevenueTrendPoints.Count, vm.RevenueTrendMarkers.Count);
+            Assert.All(vm.RevenueTrendPoints, point =>
+                Assert.Equal(vm.RevenueTrendScrollableWidth / vm.RevenueTrendPoints.Count, point.LabelWidth, precision: 2));
 
             Assert.Equal(2, vm.OrdersToday);
             Assert.Equal(100m, vm.TodayRevenue);
@@ -189,22 +219,15 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                         Nodes = []
                     },
                     GetTopBestSellingProducts = [],
-                    GetRevenueTrend = []
+                    GetReportTimeSeries = []
                 });
 
             graphQlClient
-                .Setup(x => x.ExecuteAsync<DashboardTodayQueryData>(
-                    It.Is<string>(q => q.Contains("DashboardToday")),
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
                     It.IsAny<object?>(),
-                    It.IsAny<string>()))
-                .ReturnsAsync(new DashboardTodayQueryData
-                {
-                    GetOrders = new DashboardOrderConnection
-                    {
-                        TotalCount = 0,
-                        Nodes = []
-                    }
-                });
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode());
 
             var vm = new DashboardViewModel(graphQlClient.Object);
 
@@ -220,6 +243,75 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.False(vm.HasBestSellingProducts);
             Assert.True(vm.IsBestSellingProductsEmpty);
             Assert.Equal(string.Empty, vm.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task QuickRestock_SaveChangedStock_UpdatesProductAndClosesPanel()
+        {
+            var graphQlClient = new Mock<IGraphQLClient>();
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardMainQueryData>(
+                    It.Is<string>(q => q.Contains("DashboardMain")),
+                    It.IsAny<object?>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new DashboardMainQueryData
+                {
+                    AppConfig = new DashboardAppConfigNode { CurrencySymbol = "$" },
+                    Products = new DashboardProductConnection
+                    {
+                        TotalCount = 1,
+                        Nodes =
+                        [
+                            new DashboardProductNode
+                            {
+                                Id = 7,
+                                Name = "Dragon Plush",
+                                CategoryId = 3,
+                                Category = new DashboardCategoryNode { Id = 3, Name = "Plushies" },
+                                StockQuantity = 1,
+                                RetailPrice = 15m,
+                                ImportPrice = 8m,
+                                ImageUrl = "https://example.com/dragon.png"
+                            }
+                        ]
+                    },
+                    GetOrders = new DashboardOrderConnection(),
+                    GetTopBestSellingProducts = [],
+                    GetReportTimeSeries = []
+                });
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardTodaySummaryNode>(
+                    It.Is<string>(q => q.Contains("DashboardTodaySummary")),
+                    It.IsAny<object?>(),
+                    "dashboardTodaySummary"))
+                .ReturnsAsync(new DashboardTodaySummaryNode());
+
+            graphQlClient
+                .Setup(x => x.ExecuteAsync<DashboardProductNode>(
+                    It.Is<string>(q => q.Contains("QuickRestock")),
+                    It.IsAny<object?>(),
+                    "updateProduct"))
+                .ReturnsAsync(new DashboardProductNode { Id = 7, Name = "Dragon Plush", StockQuantity = 12 });
+
+            var vm = new DashboardViewModel(graphQlClient.Object);
+            await vm.LoadAsync();
+
+            vm.OpenQuickRestockPanelCommand.Execute(null);
+            Assert.True(vm.IsQuickRestockPanelOpen);
+            Assert.Single(vm.QuickRestockItems);
+
+            vm.QuickRestockItems[0].StockQuantity = 12;
+            await vm.SaveQuickRestockCommand.ExecuteAsync(null);
+
+            graphQlClient.Verify(x => x.ExecuteAsync<DashboardProductNode>(
+                It.Is<string>(q => q.Contains("QuickRestock")),
+                It.IsAny<object?>(),
+                "updateProduct"), Times.Once);
+            Assert.False(vm.IsQuickRestockPanelOpen);
+            Assert.Empty(vm.QuickRestockItems);
+            Assert.Equal(string.Empty, vm.QuickRestockErrorMessage);
         }
     }
 }

@@ -11,9 +11,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class ReportsViewModel : BaseViewModel
     {
-        private const double TrendChartWidth = 980;
-        private const double TrendChartHeight = 260;
+        private const double TrendChartMinWidth = 760;
+        private const double TrendPointSlotWidth = 80;
+        private const double TrendChartHeight = 220;
         private const double TrendChartPadding = 12;
+        private const double TrendMarkerHitSize = 18;
+        private const double TrendMarkerHitHalf = TrendMarkerHitSize / 2d;
         private const double RevenueProfitBarMaxHeight = 140;
         private const double RevenueProfitBarMinVisibleHeight = 4;
         private const int TopProductsTake = 8;
@@ -25,6 +28,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private ObservableCollection<ReportTopProductViewModel> _topProducts = new();
+
+        [ObservableProperty]
+        private ObservableCollection<ReportTrendMarkerViewModel> _trendMarkers = new();
 
         [ObservableProperty]
         private DateTimeOffset? _fromDate = DateTimeOffset.Now.AddDays(-30);
@@ -49,6 +55,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private int _trendAxisMax;
+
+        [ObservableProperty]
+        private double _trendScrollableWidth = TrendChartMinWidth;
 
         [ObservableProperty]
         private string _currencySymbol = "$";
@@ -92,9 +101,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             ? "Sales in this range."
             : "No sales in this range.";
 
-        public string TotalRevenueDisplay => FormatCurrency(TotalRevenue, CurrencySymbol);
+        public string TotalRevenueDisplay => ReportsFormatting.FormatMil(TotalRevenue);
 
-        public string TotalProfitDisplay => FormatCurrency(TotalProfit, CurrencySymbol);
+        public string TotalProfitDisplay => ReportsFormatting.FormatMil(TotalProfit);
 
         public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
@@ -176,14 +185,21 @@ namespace BIF.ToyStore.ViewModels.Pages
                     : payload.AppConfig.CurrencySymbol;
 
                 TimeSeriesPoints.Clear();
-                decimal maxSeriesRevenue = payload.GetReportTimeSeries.Count == 0
-                    ? 0m
-                    : payload.GetReportTimeSeries.Max(x => x.TotalRevenue);
-                decimal maxSeriesProfit = payload.GetReportTimeSeries.Count == 0
-                    ? 0m
-                    : payload.GetReportTimeSeries.Max(x => x.TotalProfit);
+                var orderedSeries = payload.GetReportTimeSeries
+                    .OrderBy(x => x.PeriodStart)
+                    .ToList();
 
-                foreach (var point in payload.GetReportTimeSeries)
+                decimal maxSeriesRevenue = orderedSeries.Count == 0
+                    ? 0m
+                    : orderedSeries.Max(x => x.TotalRevenue);
+                decimal maxSeriesProfit = orderedSeries.Count == 0
+                    ? 0m
+                    : orderedSeries.Max(x => x.TotalProfit);
+                double pointLabelWidth = orderedSeries.Count == 0
+                    ? TrendPointSlotWidth
+                    : Math.Max(TrendChartMinWidth, orderedSeries.Count * TrendPointSlotWidth) / orderedSeries.Count;
+
+                foreach (var point in orderedSeries)
                 {
                     var revenueBarHeight = maxSeriesRevenue <= 0m
                         ? 0d
@@ -206,13 +222,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                     TimeSeriesPoints.Add(new ReportTimePointViewModel
                     {
                         PeriodStart = point.PeriodStart,
-                        Label = point.PeriodLabel,
+                        Label = FormatPeriodLabel(point.PeriodStart, effectiveGroupBy),
                         Quantity = point.TotalQuantity,
                         Revenue = point.TotalRevenue,
                         Profit = point.TotalProfit,
                         RevenueBarHeight = revenueBarHeight,
                         ProfitBarHeight = profitBarHeight,
-                        CurrencySymbol = CurrencySymbol
+                        CurrencySymbol = CurrencySymbol,
+                        LabelWidth = pointLabelWidth
                     });
                 }
 
@@ -268,9 +285,11 @@ namespace BIF.ToyStore.ViewModels.Pages
                 ErrorMessage = BuildFriendlyErrorMessage(ex);
                 TimeSeriesPoints.Clear();
                 TopProducts.Clear();
+                TrendMarkers.Clear();
                 TrendPathData = "M 0,0";
                 TrendAreaData = "M 0,0 Z";
                 TrendAxisMax = 0;
+                TrendScrollableWidth = TrendChartMinWidth;
                 OnPropertyChanged(nameof(HasTimeSeriesData));
                 OnPropertyChanged(nameof(IsTimeSeriesEmpty));
                 OnPropertyChanged(nameof(HasTopProducts));
@@ -296,6 +315,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                 TrendPathData = "M 0,0";
                 TrendAreaData = "M 0,0 Z";
                 TrendAxisMax = 0;
+                TrendScrollableWidth = TrendChartMinWidth;
+                TrendMarkers.Clear();
                 return;
             }
 
@@ -303,18 +324,23 @@ namespace BIF.ToyStore.ViewModels.Pages
             int axisMax = Math.Max(10, (int)Math.Ceiling(maxQuantityRaw / 10d) * 10);
             TrendAxisMax = axisMax;
 
-            double innerWidth = TrendChartWidth - (TrendChartPadding * 2d);
+            double chartWidth = Math.Max(TrendChartMinWidth, TimeSeriesPoints.Count * TrendPointSlotWidth);
+            TrendScrollableWidth = chartWidth;
+
             double innerHeight = TrendChartHeight - (TrendChartPadding * 2d);
             int count = TimeSeriesPoints.Count;
-            double xStep = count > 1 ? innerWidth / (count - 1) : 0;
+            double pointSlotWidth = chartWidth / count;
 
             var lineBuilder = new StringBuilder();
             var areaBuilder = new StringBuilder();
+            TrendMarkers.Clear();
 
             for (int i = 0; i < count; i++)
             {
                 var item = TimeSeriesPoints[i];
-                double x = TrendChartPadding + (xStep * i);
+                item.LabelWidth = pointSlotWidth;
+
+                double x = (pointSlotWidth / 2d) + (pointSlotWidth * i);
                 double normalized = axisMax == 0 ? 0d : (double)item.Quantity / axisMax;
                 normalized = Math.Clamp(normalized, 0d, 1d);
                 double y = TrendChartPadding + ((1d - normalized) * innerHeight);
@@ -330,15 +356,23 @@ namespace BIF.ToyStore.ViewModels.Pages
                     lineBuilder.Append(" L ").Append(point);
                     areaBuilder.Append(" L ").Append(point);
                 }
+
+                TrendMarkers.Add(new ReportTrendMarkerViewModel
+                {
+                    X = x - TrendMarkerHitHalf,
+                    Y = y - TrendMarkerHitHalf,
+                    Tooltip = item.TooltipText
+                });
             }
 
-            double right = TrendChartPadding + innerWidth;
+            double left = pointSlotWidth / 2d;
+            double right = left + (pointSlotWidth * (count - 1));
             double bottom = TrendChartPadding + innerHeight;
             areaBuilder
                 .Append(" L ")
                 .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", right, bottom))
                 .Append(" L ")
-                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", TrendChartPadding, bottom))
+                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", left, bottom))
                 .Append(" Z");
 
             TrendPathData = lineBuilder.ToString();
@@ -402,8 +436,35 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         partial void OnCurrencySymbolChanged(string value)
         {
+            foreach (var point in TimeSeriesPoints)
+            {
+                point.CurrencySymbol = value;
+            }
+
+            foreach (var product in TopProducts)
+            {
+                product.CurrencySymbol = value;
+            }
+
             OnPropertyChanged(nameof(TotalRevenueDisplay));
             OnPropertyChanged(nameof(TotalProfitDisplay));
+
+            if (TimeSeriesPoints.Count > 0)
+            {
+                RebuildTrendGeometry();
+            }
+        }
+
+        private static string FormatPeriodLabel(DateTime periodStart, ReportGroupBy groupBy)
+        {
+            return groupBy switch
+            {
+                ReportGroupBy.Day => periodStart.ToString("MMM dd", CultureInfo.InvariantCulture),
+                ReportGroupBy.Week => periodStart.ToString("MMM dd", CultureInfo.InvariantCulture),
+                ReportGroupBy.Month => periodStart.ToString("MMM yyyy", CultureInfo.InvariantCulture),
+                ReportGroupBy.Year => periodStart.ToString("yyyy", CultureInfo.InvariantCulture),
+                _ => periodStart.ToString("MMM dd", CultureInfo.InvariantCulture)
+            };
         }
 
         private static string BuildFriendlyErrorMessage(Exception ex)
@@ -436,6 +497,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
     }
 
+    internal static class ReportsFormatting
+    {
+        public static string FormatMil(decimal amount)
+        {
+            var value = amount / 1_000_000m;
+            return string.Concat(value.ToString("0.##", CultureInfo.InvariantCulture), " MIL");
+        }
+    }
+
     public sealed class ReportGroupByOption
     {
         public string Label { get; }
@@ -457,13 +527,14 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal Profit { get; set; }
         public double RevenueBarHeight { get; set; }
         public double ProfitBarHeight { get; set; }
+        public double LabelWidth { get; set; } = 80d;
         public string CurrencySymbol { get; set; } = "$";
 
         public string QuantityDisplay => Quantity.ToString(CultureInfo.InvariantCulture);
 
-        public string RevenueDisplay => FormatCurrency(Revenue, CurrencySymbol);
+        public string RevenueDisplay => ReportsFormatting.FormatMil(Revenue);
 
-        public string ProfitDisplay => FormatCurrency(Profit, CurrencySymbol);
+        public string ProfitDisplay => ReportsFormatting.FormatMil(Profit);
 
         public string TooltipText => $"{Label}: {QuantityDisplay} units\nRevenue: {RevenueDisplay}\nProfit: {ProfitDisplay}";
 
@@ -490,8 +561,8 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         public string RankDisplay => Rank.ToString(CultureInfo.InvariantCulture);
         public string QuantityDisplay => $"{TotalQuantity} units";
-        public string RevenueDisplay => FormatCurrency(TotalRevenue, CurrencySymbol);
-        public string ProfitDisplay => FormatCurrency(TotalProfit, CurrencySymbol);
+        public string RevenueDisplay => ReportsFormatting.FormatMil(TotalRevenue);
+        public string ProfitDisplay => ReportsFormatting.FormatMil(TotalProfit);
         public string TooltipText => $"{ProductName}\n{QuantityDisplay}\nRevenue: {RevenueDisplay}\nProfit: {ProfitDisplay}";
 
         private static string FormatCurrency(decimal amount, string currencySymbol)
@@ -500,6 +571,13 @@ namespace BIF.ToyStore.ViewModels.Pages
             var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
             return string.Concat(currencySymbol, spacing, number);
         }
+    }
+
+    public sealed class ReportTrendMarkerViewModel
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public string Tooltip { get; set; } = string.Empty;
     }
 
     public sealed class ReportsQueryData
