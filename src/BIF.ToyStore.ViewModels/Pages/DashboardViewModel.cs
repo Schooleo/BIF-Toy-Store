@@ -186,6 +186,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     CategoryName = product.CategoryName,
                     RetailPrice = product.RetailPrice,
                     ImportPrice = product.ImportPrice,
+                    Images = product.Images ?? new List<DashboardProductImageNode>(),
                     ImageUrl = product.ImageUrl,
                     CurrencySymbol = CurrencySymbol,
                     OriginalStockQuantity = product.StockQuantity,
@@ -417,6 +418,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     StockQuantity = product.StockQuantity,
                     RetailPrice = product.RetailPrice,
                     ImportPrice = product.ImportPrice,
+                    Images = product.Images ?? new List<DashboardProductImageNode>(),
                     ImageUrl = imageUrl,
                     CurrencySymbol = CurrencySymbol,
                     IsCritical = product.StockQuantity <= CriticalStockThreshold
@@ -592,6 +594,25 @@ namespace BIF.ToyStore.ViewModels.Pages
                 }
             }";
 
+            IEnumerable<object> images = item.Images is { Count: > 0 }
+                ? item.Images.Select(i => (object)new
+                {
+                    imageUrl = i.ImageUrl,
+                    displayOrder = i.DisplayOrder,
+                    isPrimary = i.IsPrimary
+                })
+                : !string.IsNullOrWhiteSpace(item.ImageUrl)
+                    ? new object[]
+                    {
+                        new
+                        {
+                            imageUrl = item.ImageUrl,
+                            displayOrder = 0,
+                            isPrimary = true
+                        }
+                    }
+                    : Array.Empty<object>();
+
             var input = new
             {
                 id = item.Id,
@@ -600,7 +621,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 retailPrice = item.RetailPrice,
                 importPrice = item.ImportPrice,
                 stockQuantity = item.StockQuantity,
-                imageUrl = item.ImageUrl
+                images
             };
 
             _ = await _graphQLClient.ExecuteAsync<DashboardProductNode>(
@@ -690,6 +711,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public int StockQuantity { get; set; }
         public decimal RetailPrice { get; set; }
         public decimal ImportPrice { get; set; }
+        public List<DashboardProductImageNode> Images { get; set; } = new();
         public string? ImageUrl { get; set; }
         public string CurrencySymbol { get; set; } = "$";
         public bool IsCritical { get; set; }
@@ -818,6 +840,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private decimal _importPrice;
+
+        [ObservableProperty]
+        private List<DashboardProductImageNode> _images = new();
 
         [ObservableProperty]
         private string? _imageUrl;
