@@ -204,20 +204,14 @@ namespace BIF.ToyStore.Infrastructure.Data
             {
                 new User
                 {
-                    Username = "admin",
-                    PasswordHash = PasswordCipher.Encrypt("admin123"),
-                    Role = UserRole.Admin
-                },
-                new User
-                {
-                    Username = "cashier_a",
-                    PasswordHash = PasswordCipher.Encrypt("cashier123"),
+                    Username = "sales_1",
+                    PasswordHash = PasswordCipher.Encrypt("sales123"),
                     Role = UserRole.Sale
                 },
                 new User
                 {
-                    Username = "cashier_b",
-                    PasswordHash = PasswordCipher.Encrypt("cashier123"),
+                    Username = "sales_2",
+                    PasswordHash = PasswordCipher.Encrypt("sales123"),
                     Role = UserRole.Sale
                 }
             };

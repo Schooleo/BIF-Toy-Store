@@ -70,14 +70,14 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            Assert.Equal(3, await context.Users.CountAsync());
-            Assert.Contains(context.Users, u => u.Username == "admin");
-            Assert.Contains(context.Users, u => u.Username == "cashier_a");
-            Assert.Contains(context.Users, u => u.Username == "cashier_b");
+            Assert.Equal(2, await context.Users.CountAsync());
+            Assert.Contains(context.Users, u => u.Username == "sales_1");
+            Assert.Contains(context.Users, u => u.Username == "sales_2");
+            Assert.DoesNotContain(context.Users, u => u.Username == "admin");
         }
 
         [Fact]
-        public async Task SeedAsync_NoSaleUser_DoesNotCreateDefaultSaleUser()
+        public async Task SeedAsync_NoUsers_DoesNotCreateAdminAccount()
         {
             const string connectionString = "Data Source=SeederDbSale;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -95,7 +95,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            Assert.DoesNotContain(context.Users, u => u.Username == "sale1");
+            Assert.DoesNotContain(context.Users, u => u.Username == "admin");
         }
 
         [Fact]
@@ -117,7 +117,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = PasswordCipher.Encrypt("123456"),
                 Role = UserRole.Admin
             });
@@ -125,7 +125,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal(UserRole.Admin, saleUser.Role);
         }
 
@@ -150,7 +150,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = wrongPassword,
                 Role = UserRole.Sale
             });
@@ -158,7 +158,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal(wrongPassword, saleUser.PasswordHash);
         }
 
@@ -181,7 +181,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = "123456",
                 Role = UserRole.Sale
             });
@@ -189,7 +189,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal("123456", saleUser.PasswordHash);
         }
 
