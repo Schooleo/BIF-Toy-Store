@@ -19,6 +19,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly IExcelFilePickerService _excelFilePickerService;
         private nint _windowHandle;
         private Product? _editingProductSnapshot;
+        private bool _hasInitializedPriceRange;
 
         public event Func<ImportFeedback, Task>? ImportFeedbackRequested;
 
@@ -49,6 +50,15 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private double _maxPrice = 1000;
+
+        [ObservableProperty]
+        private double _priceRangeMinimum = 0;
+
+        [ObservableProperty]
+        private double _priceRangeMaximum = 1000;
+
+        [ObservableProperty]
+        private double _priceRangeStepFrequency = 10;
 
         [ObservableProperty]
         private SortOption? _selectedSort;
@@ -169,6 +179,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 await LoadCurrencySymbolAsync();
+                await LoadPriceRangeAsync();
 
                 var result = await _productService.GetProductsAsync(new ProductListQuery
                 {
@@ -178,8 +189,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                     BeforeCursor = BeforeCursor,
                     SearchText = SearchText,
                     CategoryId = SelectedCategory is { Id: > 0 } ? SelectedCategory.Id : null,
-                    MinRetailPrice = MinPrice > 0 ? (decimal)MinPrice : null,
-                    MaxRetailPrice = MaxPrice < 1000 ? (decimal)MaxPrice : null,
+                    MinRetailPrice = ShouldApplyMinPriceFilter() ? (decimal)MinPrice : null,
+                    MaxRetailPrice = ShouldApplyMaxPriceFilter() ? (decimal)MaxPrice : null,
                     SortValue = SelectedSort?.Value
                 });
 
@@ -231,6 +242,168 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
+        private async Task LoadPriceRangeAsync()
+        {
+            var previousRangeMinimum = PriceRangeMinimum;
+            var previousRangeMaximum = PriceRangeMaximum;
+            var previousSelectionMinimum = MinPrice;
+            var previousSelectionMaximum = MaxPrice;
+
+            var selectionWasFullRange = !_hasInitializedPriceRange
+                || (previousSelectionMinimum == previousRangeMinimum && previousSelectionMaximum == previousRangeMaximum);
+
+            var priceRangeBaseQuery = new ProductListQuery
+            {
+                PageSize = 1,
+                SearchText = SearchText,
+                CategoryId = SelectedCategory is { Id: > 0 } ? SelectedCategory.Id : null
+            };
+
+            var minResult = await _productService.GetProductsAsync(new ProductListQuery
+            {
+                PageSize = priceRangeBaseQuery.PageSize,
+                SearchText = priceRangeBaseQuery.SearchText,
+                CategoryId = priceRangeBaseQuery.CategoryId,
+                SortValue = "price_asc"
+            });
+
+            var maxResult = await _productService.GetProductsAsync(new ProductListQuery
+            {
+                PageSize = priceRangeBaseQuery.PageSize,
+                SearchText = priceRangeBaseQuery.SearchText,
+                CategoryId = priceRangeBaseQuery.CategoryId,
+                SortValue = "price_desc"
+            });
+
+            if (minResult.Items.Count == 0 || maxResult.Items.Count == 0)
+            {
+                PriceRangeMinimum = 0;
+                PriceRangeMaximum = 0;
+                PriceRangeStepFrequency = 1;
+                _hasInitializedPriceRange = false;
+
+                MinPrice = 0;
+                MaxPrice = 0;
+
+                return;
+            }
+
+            var roundedMinimum = RoundPriceDown(minResult.Items[0].RetailPrice);
+            var roundedMaximum = RoundPriceUp(maxResult.Items[0].RetailPrice);
+
+            PriceRangeMinimum = roundedMinimum;
+            PriceRangeMaximum = roundedMaximum;
+            PriceRangeStepFrequency = CalculatePriceStepFrequency(roundedMinimum, roundedMaximum);
+
+            if (selectionWasFullRange)
+            {
+                MinPrice = roundedMinimum;
+                MaxPrice = roundedMaximum;
+                _hasInitializedPriceRange = true;
+                return;
+            }
+
+            MinPrice = Clamp(MinPrice, PriceRangeMinimum, PriceRangeMaximum);
+            MaxPrice = Clamp(MaxPrice, PriceRangeMinimum, PriceRangeMaximum);
+
+            if (MinPrice > MaxPrice)
+            {
+                MaxPrice = MinPrice;
+            }
+        }
+
+        private bool ShouldApplyMinPriceFilter()
+        {
+            return PriceRangeMinimum > 0 && MinPrice > PriceRangeMinimum;
+        }
+
+        private bool ShouldApplyMaxPriceFilter()
+        {
+            return PriceRangeMaximum > 0 && MaxPrice < PriceRangeMaximum;
+        }
+
+        private static double RoundPriceDown(decimal price)
+        {
+            var value = (double)price;
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            var step = GetPriceRoundingStep(value);
+            return Math.Floor(value / step) * step;
+        }
+
+        private static double RoundPriceUp(decimal price)
+        {
+            var value = (double)price;
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            var step = GetPriceRoundingStep(value);
+            return Math.Ceiling(value / step) * step;
+        }
+
+        private static double GetPriceRoundingStep(double value)
+        {
+            var absValue = Math.Abs(value);
+
+            if (absValue < 100_000)
+            {
+                return 10_000;
+            }
+
+            if (absValue < 10_000_000)
+            {
+                return 100_000;
+            }
+
+            return 1_000_000;
+        }
+
+        private static double CalculatePriceStepFrequency(double minimum, double maximum)
+        {
+            var range = maximum - minimum;
+            if (range <= 0)
+            {
+                return 1;
+            }
+
+            if (range <= 1000)
+            {
+                return 100;
+            }
+
+            if (range <= 10000)
+            {
+                return 1000;
+            }
+
+            if (range <= 100000)
+            {
+                return 10000;
+            }
+
+            return 50000;
+        }
+
+        private static double Clamp(double value, double minimum, double maximum)
+        {
+            if (value < minimum)
+            {
+                return minimum;
+            }
+
+            if (value > maximum)
+            {
+                return maximum;
+            }
+
+            return value;
+        }
+
         [RelayCommand]
         public async Task ApplyFilterAsync()
         {
@@ -244,11 +417,19 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             SearchText = string.Empty;
             SelectedCategory = CategoryFilterOptions.FirstOrDefault(c => c.Id == 0) ?? AllCategoriesOption;
-            MinPrice = 0;
-            MaxPrice = 1000;
             SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
             BeforeCursor = null;
             AfterCursor = null;
+            if (_hasInitializedPriceRange)
+            {
+                MinPrice = PriceRangeMinimum;
+                MaxPrice = PriceRangeMaximum;
+            }
+            else
+            {
+                MinPrice = 0;
+                MaxPrice = 1000;
+            }
             await LoadPageAsync(null);
         }
 
