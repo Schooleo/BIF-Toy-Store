@@ -77,13 +77,13 @@ namespace BIF.ToyStore.WinUI.Views
 
             var result = await CommonDialog.ShowAsync(
                 XamlRoot,
-                CommonDialogType.Warning,
+                CommonDialogType.Confirmation,
                 title: "Confirm Delete",
                 message: $"Are you sure you want to delete order {orderDisplayId}? This action cannot be undone.",
                 primaryButtonText: "Delete",
                 closeButtonText: "Cancel",
                 defaultButton: ContentDialogButton.Primary,
-                destructivePrimary: true);
+                destructivePrimary: false);
 
             if (result == ContentDialogResult.Primary)
             {

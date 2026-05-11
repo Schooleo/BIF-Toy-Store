@@ -26,6 +26,22 @@ namespace BIF.ToyStore.Tests.Repositories
         }
 
         [Fact]
+        public async Task QueryForGraphQL_ExcludesSoftDeletedCategoriesExceptOther()
+        {
+            _dbContext.Categories.AddRange(
+                new Category { Id = 1, Name = "Other", IsDeleted = false },
+                new Category { Id = 2, Name = "Board Games", IsDeleted = false },
+                new Category { Id = 3, Name = "Legacy Toys", IsDeleted = true });
+            await _dbContext.SaveChangesAsync();
+
+            var result = await _repository.QueryForGraphQL().ToListAsync();
+
+            Assert.Contains(result, c => c.Id == 1);
+            Assert.Contains(result, c => c.Id == 2);
+            Assert.DoesNotContain(result, c => c.Id == 3);
+        }
+
+        [Fact]
         public async Task RestoreAsync_ExistingSoftDeletedCategory_RestoresCategory()
         {
             var category = new Category

@@ -16,6 +16,7 @@ namespace BIF.ToyStore.Infrastructure.Repositories
                 .Select(c => c.Id);
 
             return _dbContext.Categories
+                .Where(c => !c.IsDeleted || c.Id == AppConstants.OtherCategoryId)
                 .AsNoTracking()
                 .Select(c => new Category
                 {

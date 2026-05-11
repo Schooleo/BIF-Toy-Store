@@ -117,7 +117,7 @@ namespace BIF.ToyStore.WinUI.Views
 
             var result = await CommonDialog.ShowAsync(
                 XamlRoot,
-                CommonDialogType.Warning,
+                CommonDialogType.Confirmation,
                 "Confirm Delete User",
                 $"Are you sure you want to delete user '{user.Username}'?",
                 primaryButtonText: "Delete",
