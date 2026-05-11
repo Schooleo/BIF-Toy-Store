@@ -415,6 +415,65 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
+        public async Task SaveProductEditAsync_SaleUser_OnlyPersistsStockChange()
+        {
+            _localSettingsServiceMock
+                .Setup(s => s.GetString(AppPreferenceKeys.CurrentUserRole, It.IsAny<string>()))
+                .Returns(UserRole.Sale.ToString());
+
+            var saleViewModel = new ProductsViewModel(
+                _graphQLClientMock.Object,
+                _productServiceMock.Object,
+                _productImageUploadServiceMock.Object,
+                _localSettingsServiceMock.Object,
+                _excelFilePickerServiceMock.Object);
+
+            Product? savedProduct = null;
+            _productServiceMock
+                .Setup(x => x.UpdateProductAsync(It.IsAny<Product>()))
+                .Callback<Product>(input => savedProduct = input)
+                .ReturnsAsync((Product input) => input);
+
+            _productServiceMock
+                .Setup(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()))
+                .ReturnsAsync(new ProductListResult { Items = new List<Product>() });
+
+            saleViewModel.OpenEditPanel(new Product
+            {
+                Id = 51,
+                Name = "Original Name",
+                CategoryId = 7,
+                RetailPrice = 19.99m,
+                ImportPrice = 8.25m,
+                StockQuantity = 4,
+                CurrencySymbol = "VND",
+                Images = new ObservableCollection<ProductImage>
+                {
+                    new ProductImage { Id = 1, ImageUrl = "https://example.com/original.png", IsPrimary = true }
+                }
+            });
+
+            saleViewModel.EditingProduct!.Name = "Changed Name";
+            saleViewModel.EditingProduct.CategoryId = 99;
+            saleViewModel.EditingProduct.RetailPrice = 88.88m;
+            saleViewModel.EditingProduct.ImportPrice = 11.11m;
+            saleViewModel.EditingProduct.StockQuantity = 12;
+            saleViewModel.EditingProduct.Images.Clear();
+
+            await saleViewModel.SaveProductEditCommand.ExecuteAsync(null);
+
+            Assert.NotNull(savedProduct);
+            Assert.Equal(51, savedProduct!.Id);
+            Assert.Equal("Original Name", savedProduct.Name);
+            Assert.Equal(7, savedProduct.CategoryId);
+            Assert.Equal(19.99m, savedProduct.RetailPrice);
+            Assert.Equal(8.25m, savedProduct.ImportPrice);
+            Assert.Equal(12, savedProduct.StockQuantity);
+            Assert.Single(savedProduct.Images);
+            Assert.Equal("https://example.com/original.png", savedProduct.Images[0].ImageUrl);
+        }
+
+        [Fact]
         public async Task Test_Import_AggregatesAllErrorMessages()
         {
             // Arrange

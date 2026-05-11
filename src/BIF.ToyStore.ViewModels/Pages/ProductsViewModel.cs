@@ -379,7 +379,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                     DisplayOrder = i.DisplayOrder,
                     IsPrimary = i.IsPrimary
                 }) ?? Enumerable.Empty<ProductImage>()),
-                IsDeleted = product.IsDeleted
+                IsDeleted = product.IsDeleted,
+                CurrencySymbol = product.CurrencySymbol
             };
 
             _editingProductSnapshot = CloneProduct(product);
@@ -417,16 +418,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return;
                 }
 
-                var input = new Product
-                {
-                    Id = EditingProduct.Id,
-                    Name = EditingProduct.Name,
-                    CategoryId = EditingProduct.CategoryId,
-                    ImportPrice = EditingProduct.ImportPrice,
-                    RetailPrice = EditingProduct.RetailPrice,
-                    StockQuantity = EditingProduct.StockQuantity,
-                    Images = EditingProduct.Images
-                };
+                var input = BuildEditableProductUpdateInput();
 
                 await UpdateProductAsync(input);
 
@@ -619,8 +611,36 @@ namespace BIF.ToyStore.ViewModels.Pages
                     DisplayOrder = i.DisplayOrder,
                     IsPrimary = i.IsPrimary
                 }) ?? Enumerable.Empty<ProductImage>()),
-                IsDeleted = product.IsDeleted
+                IsDeleted = product.IsDeleted,
+                CurrencySymbol = product.CurrencySymbol
             };
+        }
+
+        private Product BuildEditableProductUpdateInput()
+        {
+            if (EditingProduct is null)
+            {
+                throw new InvalidOperationException("No product is selected for editing.");
+            }
+
+            if (IsAdminUser || _editingProductSnapshot is null || _editingProductSnapshot.Id != EditingProduct.Id)
+            {
+                return new Product
+                {
+                    Id = EditingProduct.Id,
+                    Name = EditingProduct.Name,
+                    CategoryId = EditingProduct.CategoryId,
+                    ImportPrice = EditingProduct.ImportPrice,
+                    RetailPrice = EditingProduct.RetailPrice,
+                    StockQuantity = EditingProduct.StockQuantity,
+                    Images = EditingProduct.Images,
+                    CurrencySymbol = EditingProduct.CurrencySymbol
+                };
+            }
+
+            var originalSnapshot = CloneProduct(_editingProductSnapshot);
+            originalSnapshot.StockQuantity = EditingProduct.StockQuantity;
+            return originalSnapshot;
         }
 
         private static string? ExtractPendingImagePath(string? imageValue)

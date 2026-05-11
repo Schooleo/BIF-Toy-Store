@@ -38,6 +38,18 @@ namespace BIF.ToyStore.WinUI.Controls
 
         public Product EditableProduct => Product ?? EmptyProduct;
 
+        public bool IsAdminUser
+        {
+            get => (bool)GetValue(IsAdminUserProperty);
+            set => SetValue(IsAdminUserProperty, value);
+        }
+
+        public static readonly DependencyProperty IsAdminUserProperty = DependencyProperty.Register(
+            nameof(IsAdminUser),
+            typeof(bool),
+            typeof(ProductDetailsForm),
+            new PropertyMetadata(true, OnIsAdminUserChanged));
+
         public string SelectedCategoryDisplay
         {
             get
@@ -183,9 +195,18 @@ namespace BIF.ToyStore.WinUI.Controls
             }
         }
 
+        private static void OnIsAdminUserChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ProductDetailsForm form && form._isFormLoaded)
+            {
+                form.OnPropertyChanged(nameof(IsAdminUser));
+            }
+        }
+
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _isFormLoaded = true;
+            OnPropertyChanged(nameof(IsAdminUser));
             OnPropertyChanged(nameof(EditableProduct));
             OnPropertyChanged(nameof(IsErrorOpen));
             OnPropertyChanged(nameof(IsUploadErrorOpen));
@@ -208,6 +229,11 @@ namespace BIF.ToyStore.WinUI.Controls
 
         private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!IsAdminUser)
+            {
+                return;
+            }
+
             if (Product is not null && sender is ListView { SelectedItem: Category category })
             {
                 Product.CategoryId = category.Id;
@@ -237,6 +263,11 @@ namespace BIF.ToyStore.WinUI.Controls
 
         private async void UploadImageButton_Click(object sender, RoutedEventArgs e)
         {
+            if (!IsAdminUser)
+            {
+                return;
+            }
+
             if (IsUploadingImage)
             {
                 return;
@@ -293,6 +324,11 @@ namespace BIF.ToyStore.WinUI.Controls
 
         private void SetPrimary_Click(object sender, RoutedEventArgs e)
         {
+            if (!IsAdminUser)
+            {
+                return;
+            }
+
             if (Product is null || sender is not Button { DataContext: ProductImage image })
             {
                 return;
@@ -315,6 +351,11 @@ namespace BIF.ToyStore.WinUI.Controls
 
         private void RemoveImage_Click(object sender, RoutedEventArgs e)
         {
+            if (!IsAdminUser)
+            {
+                return;
+            }
+
             if (Product is null || sender is not Button { DataContext: ProductImage image })
             {
                 return;

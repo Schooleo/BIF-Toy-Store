@@ -12,6 +12,7 @@
 
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
         <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringNullOrEmptyToVisibilityConverter" />
         <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter" />
         <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
@@ -39,6 +40,15 @@
             <Setter Property="BorderBrush" Value="{ThemeResource FluentPlayOutlineVariantBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{ThemeResource FluentPlayOnSurfaceBrush}" />
+        </Style>
+
+        <Style x:Key="DetailsReadOnlyContainerStyle" TargetType="Border">
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{ThemeResource FluentPlaySurfaceContainerLowBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource FluentPlayOutlineVariantBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </UserControl.Resources>
 
@@ -95,6 +105,7 @@
                                 HorizontalAlignment="Stretch"
                                 Padding="0"
                                 Click="UploadImageButton_Click"
+                                IsEnabled="{x:Bind IsAdminUser, Mode=OneWay}"
                                 Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
                                 BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                                 BorderThickness="1"
@@ -173,35 +184,17 @@
                         <TextBox
                             Style="{StaticResource DetailsTextBoxStyle}"
                             Text="{x:Bind EditableProduct.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                             TextChanged="FieldChanged_ClearError" />
+                        <Border
+                            Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                            Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <TextBlock
+                                Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                Text="{x:Bind EditableProduct.Name, Mode=OneWay}"
+                                TextWrapping="WrapWholeWords" />
+                        </Border>
                     </StackPanel>
-
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Spacing="6">
-                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="RETAIL PRICE" />
-                            <NumberBox
-                                Minimum="0"
-                                SpinButtonPlacementMode="Hidden"
-                                Style="{StaticResource DetailsNumberBoxStyle}"
-                                Value="{x:Bind EditableProduct.RetailPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
-                                ValueChanged="FieldChanged_ClearError" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Spacing="6">
-                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="IMPORT PRICE" />
-                            <NumberBox
-                                Minimum="0"
-                                SpinButtonPlacementMode="Hidden"
-                                Style="{StaticResource DetailsNumberBoxStyle}"
-                                Value="{x:Bind EditableProduct.ImportPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
-                                ValueChanged="FieldChanged_ClearError" />
-                        </StackPanel>
-                    </Grid>
 
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
@@ -220,7 +213,8 @@
                                 Background="{ThemeResource FluentPlaySurfaceContainerLowBrush}"
                                 BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                                 BorderThickness="1"
-                                CornerRadius="8">
+                                CornerRadius="8"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon
                                         Width="14"
@@ -267,6 +261,14 @@
                                     </Flyout>
                                 </Button.Flyout>
                             </Button>
+                            <Border
+                                Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <TextBlock
+                                    Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                    Text="{x:Bind SelectedCategoryDisplay, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords" />
+                            </Border>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Spacing="6">
@@ -276,6 +278,44 @@
                                 SpinButtonPlacementMode="Hidden"
                                 Style="{StaticResource DetailsNumberBoxStyle}"
                                 Value="{x:Bind EditableProduct.StockQuantity, Mode=TwoWay}"
+                                ValueChanged="FieldChanged_ClearError" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Spacing="6">
+                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="RETAIL PRICE" />
+                            <NumberBox
+                                Minimum="0"
+                                SpinButtonPlacementMode="Hidden"
+                                Style="{StaticResource DetailsNumberBoxStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Value="{x:Bind EditableProduct.RetailPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
+                                ValueChanged="FieldChanged_ClearError" />
+                            <Border
+                                Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <TextBlock
+                                    Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                    Text="{x:Bind EditableProduct.RetailPriceDisplay, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Spacing="6"
+                                    Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="IMPORT PRICE" />
+                            <NumberBox
+                                Minimum="0"
+                                SpinButtonPlacementMode="Hidden"
+                                Style="{StaticResource DetailsNumberBoxStyle}"
+                                Value="{x:Bind EditableProduct.ImportPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
                                 ValueChanged="FieldChanged_ClearError" />
                         </StackPanel>
                     </Grid>
