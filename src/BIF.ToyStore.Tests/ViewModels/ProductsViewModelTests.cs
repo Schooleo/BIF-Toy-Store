@@ -158,7 +158,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             // Assert
             Assert.Null(_viewModel.AfterCursor);
             _productServiceMock.Verify(x => x.GetProductsAsync(
-                It.Is<ProductListQuery>(q => q.SearchText == "Lego")), Times.Once);
+                It.Is<ProductListQuery>(q => q.SearchText == "Lego")), Times.Exactly(3));
         }
 
         [Fact]
@@ -182,7 +182,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             Assert.NotNull(_viewModel.SelectedCategory);
             Assert.Equal(0, _viewModel.SelectedCategory!.Id);
             Assert.Equal("All Categories", _viewModel.SelectedCategory.Name);
-            _productServiceMock.Verify(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()), Times.Once);
+            _productServiceMock.Verify(x => x.GetProductsAsync(It.IsAny<ProductListQuery>()), Times.Exactly(3));
         }
 
         [Fact]

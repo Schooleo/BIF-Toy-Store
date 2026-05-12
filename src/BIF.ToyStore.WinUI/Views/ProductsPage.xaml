@@ -341,12 +341,12 @@
                                 Width="200"
                                 Margin="8,4,8,0"
                                 VerticalAlignment="Center"
-                                Maximum="1000"
-                                Minimum="0"
+                                Maximum="{x:Bind ViewModel.PriceRangeMaximum, Mode=OneWay}"
+                                Minimum="{x:Bind ViewModel.PriceRangeMinimum, Mode=OneWay}"
                                 PointerReleased="Filter_Changed"
                                 RangeEnd="{x:Bind ViewModel.MaxPrice, Mode=TwoWay}"
                                 RangeStart="{x:Bind ViewModel.MinPrice, Mode=TwoWay}"
-                                StepFrequency="10"/>
+                                StepFrequency="{x:Bind ViewModel.PriceRangeStepFrequency, Mode=OneWay}"/>
                         </StackPanel>
                     </StackPanel>
 
