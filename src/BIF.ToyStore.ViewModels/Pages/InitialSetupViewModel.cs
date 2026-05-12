@@ -22,7 +22,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         private string _receiptFooter = "Thank you for your purchase!";
 
         [ObservableProperty]
-        private string _selectedCurrency = "VND";
+        private string _selectedCurrency = "USD";
 
         [ObservableProperty]
         private string _adminUsername = string.Empty;
@@ -85,7 +85,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 ReceiptFooter = config.ReceiptFooter;
                 SelectedCurrency = CurrencyOptions.Contains(config.CurrencySymbol)
                     ? config.CurrencySymbol
-                    : "VND";
+                    : "USD";
                 TaxRate = (double)(config.TaxRate * 100m);
             }
             catch (Exception ex)
@@ -244,7 +244,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             public string DisplayName { get; set; } = string.Empty;
             public string ReceiptHeader { get; set; } = string.Empty;
             public string ReceiptFooter { get; set; } = string.Empty;
-            public string CurrencySymbol { get; set; } = "VND";
+            public string CurrencySymbol { get; set; } = "USD";
             public decimal TaxRate { get; set; }
         }
 

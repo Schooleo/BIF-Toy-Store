@@ -1,6 +1,8 @@
 using BIF.ToyStore.Core.Enums;
+using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Repositories;
 using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +11,7 @@ namespace BIF.ToyStore.Tests.Services
     public class OrderServiceTests : IDisposable
     {
         private readonly AppDbContext _dbContext;
-        private readonly OrderService _orderService;
+        private readonly IOrderService _orderService;
 
         public OrderServiceTests()
         {
@@ -19,7 +21,7 @@ namespace BIF.ToyStore.Tests.Services
                 .Options;
 
             _dbContext = new AppDbContext(options);
-            _orderService = new OrderService(_dbContext);
+            _orderService = new OrderService(new OrderRepository(_dbContext));
 
             // Seed minimal stubs — Product/Category module is owned by another member
             SeedTestData();

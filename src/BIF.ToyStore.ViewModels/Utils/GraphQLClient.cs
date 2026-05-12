@@ -33,7 +33,7 @@ namespace BIF.ToyStore.ViewModels.Utils
             return await ParseGraphQLResponseAsync<T>(response, dataKey);
         }
 
-        public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
+        public async Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "", object? variables = null)
         {
             if (string.IsNullOrWhiteSpace(variableName))
             {
@@ -45,13 +45,21 @@ namespace BIF.ToyStore.ViewModels.Utils
                 throw new FileNotFoundException("The selected file was not found.", filePath);
             }
 
+            var variablesDictionary = new Dictionary<string, object?>();
+            if (variables is not null)
+            {
+                foreach (var property in variables.GetType().GetProperties())
+                {
+                    variablesDictionary[property.Name] = property.GetValue(variables);
+                }
+            }
+
+            variablesDictionary[variableName] = null;
+
             var operations = JsonSerializer.Serialize(new
             {
                 query,
-                variables = new Dictionary<string, object?>
-                {
-                    [variableName] = null
-                }
+                variables = variablesDictionary
             }, _jsonOptions);
 
             var map = JsonSerializer.Serialize(new Dictionary<string, string[]>

@@ -1,7 +1,6 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.ViewModels.Pages;
 using BIF.ToyStore.ViewModels.Utils;
-using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Reflection;
 
@@ -26,7 +25,9 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 receiptFooter: "Footer",
                 databasePath: "ToyStore.db");
 
-            var vm = new SettingsViewModel(graph, local);
+            var backupService = new FakeBackupService();
+            var restoreService = new FakePendingRestoreService();
+            var vm = new SettingsViewModel(graph, local, backupService, restoreService);
 
             await vm.LoadAsync();
 
@@ -47,7 +48,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         {
             var local = new InMemoryLocalSettingsService();
             var graph = new FakeGraphQlClient();
-            var vm = new SettingsViewModel(graph, local)
+            var vm = new SettingsViewModel(
+                graph,
+                local,
+                new FakeBackupService(),
+                new FakePendingRestoreService())
             {
                 CommunicationPort = 0,
                 TaxRate = 10,
@@ -69,7 +74,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             var graph = new FakeGraphQlClient();
             graph.SetStoreSettings(0.1m, "VND", "H", "F", "ToyStore.db");
 
-            var vm = new SettingsViewModel(graph, local);
+            var vm = new SettingsViewModel(
+                graph,
+                local,
+                new FakeBackupService(),
+                new FakePendingRestoreService());
             await vm.LoadAsync();
 
             vm.CommunicationPort = 5050;
@@ -98,12 +107,43 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             var local = new InMemoryLocalSettingsService();
             var graph = new FakeGraphQlClient();
             graph.SetStoreSettings(0.1m, "VND", "H", "F", "missing-db-file.db");
-            var vm = new SettingsViewModel(graph, local);
+
+            var backupService = new FakeBackupService
+            {
+                CreateBackupResult = new BackupCreationResult(BackupCreationStatus.DatabaseNotFound)
+            };
+
+            var vm = new SettingsViewModel(graph, local, backupService, new FakePendingRestoreService());
 
             await vm.LoadAsync();
             await vm.CreateBackupCommand.ExecuteAsync(null);
 
             Assert.Equal("Database file not found for backup.", vm.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task CreateBackup_Success_PersistsBackupTimestampAndStatus()
+        {
+            var local = new InMemoryLocalSettingsService();
+            var graph = new FakeGraphQlClient();
+            graph.SetStoreSettings(0.1m, "VND", "H", "F", "ToyStore.db");
+            var createdAtUtc = new DateTime(2026, 5, 9, 8, 0, 0, DateTimeKind.Utc);
+            var backupService = new FakeBackupService
+            {
+                CreateBackupResult = new BackupCreationResult(
+                    BackupCreationStatus.Success,
+                    BackupPath: "ignored.bak",
+                    CreatedAtUtc: createdAtUtc)
+            };
+
+            var vm = new SettingsViewModel(graph, local, backupService, new FakePendingRestoreService());
+
+            await vm.LoadAsync();
+            await vm.CreateBackupCommand.ExecuteAsync(null);
+
+            Assert.Equal("Backup created successfully.", vm.StatusMessage);
+            Assert.Equal(createdAtUtc.ToString("o", CultureInfo.InvariantCulture), local.GetString(AppPreferenceKeys.LastBackupUtc));
+            Assert.StartsWith("LAST:", vm.LastBackupStatus);
         }
 
         [Fact]
@@ -116,7 +156,11 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             var graph = new FakeGraphQlClient();
             graph.SetStoreSettings(0.1m, "VND", "H", "F", "ToyStore.db");
 
-            var vm = new SettingsViewModel(graph, local);
+            var vm = new SettingsViewModel(
+                graph,
+                local,
+                new FakeBackupService(),
+                new FakePendingRestoreService());
             await vm.LoadAsync();
 
             Assert.False(vm.HasServerConfigurationChanges());
@@ -130,83 +174,46 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task RestoreSystem_LatestBackup_SchedulesPendingRestorePaths()
+        public async Task RestoreSystem_ScheduleSuccess_SetsStatusMessage()
         {
-            using var scope = new LocalAppDataScope();
-
-            var backupDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "BIF.ToyStore",
-                "Backups");
-            Directory.CreateDirectory(backupDirectory);
-
-            var oldBackup = Path.Combine(backupDirectory, "ToyStore_20260101_000000.bak");
-            var latestBackup = Path.Combine(backupDirectory, "ToyStore_20260102_000000.bak");
-            await File.WriteAllTextAsync(oldBackup, "old");
-            await Task.Delay(20);
-            await File.WriteAllTextAsync(latestBackup, "new");
-
             var local = new InMemoryLocalSettingsService();
             var graph = new FakeGraphQlClient();
             graph.SetStoreSettings(0.1m, "VND", "H", "F", "ToyStore.db");
-            var vm = new SettingsViewModel(graph, local);
+            var restoreService = new FakePendingRestoreService
+            {
+                ScheduleResult = new RestoreScheduleResult(
+                    RestoreScheduleStatus.Scheduled,
+                    @"C:\backups\ToyStore_20260102_000000.bak",
+                    Path.Combine(AppContext.BaseDirectory, "ToyStore.db"))
+            };
+
+            var vm = new SettingsViewModel(graph, local, new FakeBackupService(), restoreService);
 
             await vm.LoadAsync();
             await vm.RestoreSystemCommand.ExecuteAsync(null);
 
-            Assert.Equal(latestBackup, local.GetString(AppPreferenceKeys.PendingRestoreBackupPath));
-            Assert.Equal(
-                Path.Combine(AppContext.BaseDirectory, "ToyStore.db"),
-                local.GetString(AppPreferenceKeys.PendingRestoreTargetPath));
+            Assert.Equal("ToyStore.db", restoreService.LastConfiguredDatabasePath);
             Assert.Equal("Restore scheduled. Restart the app to apply restored data.", vm.StatusMessage);
             Assert.Equal(string.Empty, vm.ErrorMessage);
         }
 
         [Fact]
-        public async Task CreateBackup_UsesVacuumInto_AndProducesReadableSnapshot()
+        public async Task RestoreSystem_BackupDirectoryMissing_SetsErrorMessage()
         {
-            using var scope = new LocalAppDataScope();
-
-            var sourceDirectory = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(sourceDirectory);
-            var sourceDbPath = Path.Combine(sourceDirectory, "ToyStore.db");
-
-            await using (var sourceConnection = new SqliteConnection($"Data Source={sourceDbPath}"))
-            {
-                await sourceConnection.OpenAsync();
-                await using var cmd = sourceConnection.CreateCommand();
-                cmd.CommandText = "CREATE TABLE IF NOT EXISTS BackupProbe (Id INTEGER PRIMARY KEY, Name TEXT NOT NULL); INSERT INTO BackupProbe(Name) VALUES ('snapshot-row');";
-                await cmd.ExecuteNonQueryAsync();
-            }
-
             var local = new InMemoryLocalSettingsService();
             var graph = new FakeGraphQlClient();
-            graph.SetStoreSettings(0.1m, "VND", "H", "F", sourceDbPath);
-            var vm = new SettingsViewModel(graph, local);
+            graph.SetStoreSettings(0.1m, "VND", "H", "F", "ToyStore.db");
+            var restoreService = new FakePendingRestoreService
+            {
+                ScheduleResult = new RestoreScheduleResult(RestoreScheduleStatus.BackupDirectoryMissing)
+            };
+
+            var vm = new SettingsViewModel(graph, local, new FakeBackupService(), restoreService);
 
             await vm.LoadAsync();
-            await vm.CreateBackupCommand.ExecuteAsync(null);
+            await vm.RestoreSystemCommand.ExecuteAsync(null);
 
-            var backupDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "BIF.ToyStore",
-                "Backups");
-
-            var backupFile = new DirectoryInfo(backupDirectory)
-                .GetFiles("*.bak")
-                .OrderByDescending(file => file.LastWriteTimeUtc)
-                .FirstOrDefault();
-
-            Assert.NotNull(backupFile);
-
-            await using var backupConnection = new SqliteConnection($"Data Source={backupFile!.FullName}");
-            await backupConnection.OpenAsync();
-            await using var verify = backupConnection.CreateCommand();
-            verify.CommandText = "SELECT Name FROM BackupProbe LIMIT 1;";
-            var value = await verify.ExecuteScalarAsync();
-
-            Assert.Equal("snapshot-row", value as string);
-            Assert.Equal(string.Empty, vm.ErrorMessage);
+            Assert.Equal("No backup directory found.", vm.ErrorMessage);
         }
 
         private sealed class InMemoryLocalSettingsService : ILocalSettingsService
@@ -249,6 +256,43 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
             }
         }
 
+        private sealed class FakeBackupService : IBackupService
+        {
+            public DateTime? LatestBackupTimestampUtc { get; set; }
+
+            public BackupCreationResult CreateBackupResult { get; set; }
+                = new(BackupCreationStatus.Success, @"C:\backups\ToyStore.bak", DateTime.UtcNow);
+
+            public Task<BackupCreationResult> CreateBackupAsync(string configuredDatabasePath)
+            {
+                return Task.FromResult(CreateBackupResult);
+            }
+
+            public DateTime? GetLatestBackupTimestampUtc()
+            {
+                return LatestBackupTimestampUtc;
+            }
+        }
+
+        private sealed class FakePendingRestoreService : IPendingRestoreService
+        {
+            public RestoreScheduleResult ScheduleResult { get; set; }
+                = new(RestoreScheduleStatus.Scheduled);
+
+            public string? LastConfiguredDatabasePath { get; private set; }
+
+            public PendingRestoreApplyResult ApplyPendingRestoreIfScheduled()
+            {
+                return new PendingRestoreApplyResult(false);
+            }
+
+            public RestoreScheduleResult ScheduleLatestBackupRestore(string configuredDatabasePath)
+            {
+                LastConfiguredDatabasePath = configuredDatabasePath;
+                return ScheduleResult;
+            }
+        }
+
         private sealed class FakeGraphQlClient : IGraphQLClient
         {
             private decimal _taxRate;
@@ -272,7 +316,7 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 return Task.FromResult(result);
             }
 
-            public Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "")
+            public Task<T?> UploadFileAsync<T>(string query, string variableName, string filePath, string dataKey = "", object? variables = null)
             {
                 return Task.FromResult(default(T));
             }
@@ -311,29 +355,6 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
                 if (property.PropertyType == typeof(string) && value is string s)
                 {
                     property.SetValue(target, s);
-                }
-            }
-        }
-
-        private sealed class LocalAppDataScope : IDisposable
-        {
-            private readonly string? _originalLocalAppData;
-            private readonly string _tempRoot;
-
-            public LocalAppDataScope()
-            {
-                _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-                _tempRoot = Path.Combine(Path.GetTempPath(), "BIFToyStoreTests", Guid.NewGuid().ToString("N"));
-                Directory.CreateDirectory(_tempRoot);
-                Environment.SetEnvironmentVariable("LOCALAPPDATA", _tempRoot);
-            }
-
-            public void Dispose()
-            {
-                Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
-                if (Directory.Exists(_tempRoot))
-                {
-                    Directory.Delete(_tempRoot, recursive: true);
                 }
             }
         }

@@ -1,22 +1,27 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Text;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
     public partial class ProductsViewModel : PaginatedViewModel
     {
+        private readonly IGraphQLClient _graphQLClient;
         private readonly IProductService _productService;
         private readonly IProductImageUploadService _productImageUploadService;
         private readonly ILocalSettingsService _localSettingsService;
         private readonly IExcelFilePickerService _excelFilePickerService;
         private nint _windowHandle;
-        private string? _editingProductOriginalImageUrl;
         private Product? _editingProductSnapshot;
+        private bool _hasInitializedPriceRange;
+
+        public event Func<ImportFeedback, Task>? ImportFeedbackRequested;
 
         [ObservableProperty]
         private ObservableCollection<Product> _products = [];
@@ -47,6 +52,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         private double _maxPrice = 1000;
 
         [ObservableProperty]
+        private double _priceRangeMinimum = 0;
+
+        [ObservableProperty]
+        private double _priceRangeMaximum = 1000;
+
+        [ObservableProperty]
+        private double _priceRangeStepFrequency = 10;
+
+        [ObservableProperty]
         private SortOption? _selectedSort;
 
         public ObservableCollection<SortOption> SortOptions { get; } = new()
@@ -73,9 +87,18 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _editErrorMessage = string.Empty;
 
+        [ObservableProperty]
+        private string _currencySymbol = "USD";
+
+        [ObservableProperty]
+        private bool _isAdminUser = true;
+
         public bool HasImportSuccessMessage => !string.IsNullOrWhiteSpace(ImportSuccessMessage);
         public bool HasImportErrorMessage => !string.IsNullOrWhiteSpace(ImportErrorMessage);
         public bool HasEditErrorMessage => !string.IsNullOrWhiteSpace(EditErrorMessage);
+        public bool HasProducts => Products.Count > 0;
+        public bool IsProductsEmpty => !HasProducts;
+        public bool CanCreateProducts => IsAdminUser;
         public string SelectedCategoryLabel => SelectedCategory?.Name ?? "All Categories";
         public string SelectedSortLabel => SelectedSort?.Name ?? "Newest";
 
@@ -83,16 +106,23 @@ namespace BIF.ToyStore.ViewModels.Pages
         public new string TotalCountLabel => $"Total items in catalog: {TotalCount} Units";
 
         public ProductsViewModel(
+            IGraphQLClient graphQLClient,
             IProductService productService,
             IProductImageUploadService productImageUploadService,
             ILocalSettingsService localSettingsService,
             IExcelFilePickerService excelFilePickerService)
         {
+            _graphQLClient = graphQLClient;
             _productService = productService;
             _productImageUploadService = productImageUploadService;
             _localSettingsService = localSettingsService;
             _excelFilePickerService = excelFilePickerService;
             Title = "Product Management";
+            IsAdminUser = Enum.TryParse<UserRole>(
+                _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString()),
+                true,
+                out var currentRole)
+                && currentRole == UserRole.Admin;
             
             PageSize = _localSettingsService.GetInt(AppPreferenceKeys.ProductsItemsPerPage, 20);
             SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
@@ -106,6 +136,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         partial void OnImportSuccessMessageChanged(string value) => OnPropertyChanged(nameof(HasImportSuccessMessage));
         partial void OnImportErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasImportErrorMessage));
         partial void OnEditErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasEditErrorMessage));
+        partial void OnProductsChanged(ObservableCollection<Product> value)
+        {
+            OnPropertyChanged(nameof(HasProducts));
+            OnPropertyChanged(nameof(IsProductsEmpty));
+        }
+
+        partial void OnIsAdminUserChanged(bool value) => OnPropertyChanged(nameof(CanCreateProducts));
 
         partial void OnSelectedCategoryChanged(Category? value) => OnPropertyChanged(nameof(SelectedCategoryLabel));
 
@@ -141,6 +178,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             IsBusy = true;
             try
             {
+                await LoadCurrencySymbolAsync();
+                await LoadPriceRangeAsync();
+
                 var result = await _productService.GetProductsAsync(new ProductListQuery
                 {
                     PageSize = PageSize,
@@ -149,10 +189,24 @@ namespace BIF.ToyStore.ViewModels.Pages
                     BeforeCursor = BeforeCursor,
                     SearchText = SearchText,
                     CategoryId = SelectedCategory is { Id: > 0 } ? SelectedCategory.Id : null,
-                    MinRetailPrice = MinPrice > 0 ? (decimal)MinPrice : null,
-                    MaxRetailPrice = MaxPrice < 1000 ? (decimal)MaxPrice : null,
+                    MinRetailPrice = ShouldApplyMinPriceFilter() ? (decimal)MinPrice : null,
+                    MaxRetailPrice = ShouldApplyMaxPriceFilter() ? (decimal)MaxPrice : null,
                     SortValue = SelectedSort?.Value
                 });
+
+                foreach (var product in result.Items)
+                {
+                    product.CurrencySymbol = CurrencySymbol;
+                    if (product.Images is { Count: > 3 })
+                    {
+                        var trimmedImages = product.Images.Take(3).ToList();
+                        product.Images.Clear();
+                        foreach (var image in trimmedImages)
+                        {
+                            product.Images.Add(image);
+                        }
+                    }
+                }
 
                 Products = new ObservableCollection<Product>(result.Items);
                 ApplyPageInfo(
@@ -168,6 +222,188 @@ namespace BIF.ToyStore.ViewModels.Pages
             }
         }
 
+        private async Task LoadCurrencySymbolAsync()
+        {
+            const string query = @"
+                query GetProductsAppConfig {
+                    appConfig {
+                        currencySymbol
+                    }
+                }";
+
+            try
+            {
+                var config = await _graphQLClient.ExecuteAsync<ProductAppConfigNode>(query, dataKey: "appConfig");
+                CurrencySymbol = string.IsNullOrWhiteSpace(config?.CurrencySymbol) ? "USD" : config.CurrencySymbol;
+            }
+            catch
+            {
+                CurrencySymbol = "USD";
+            }
+        }
+
+        private async Task LoadPriceRangeAsync()
+        {
+            var previousRangeMinimum = PriceRangeMinimum;
+            var previousRangeMaximum = PriceRangeMaximum;
+            var previousSelectionMinimum = MinPrice;
+            var previousSelectionMaximum = MaxPrice;
+
+            var selectionWasFullRange = !_hasInitializedPriceRange
+                || (previousSelectionMinimum == previousRangeMinimum && previousSelectionMaximum == previousRangeMaximum);
+
+            var priceRangeBaseQuery = new ProductListQuery
+            {
+                PageSize = 1,
+                SearchText = SearchText,
+                CategoryId = SelectedCategory is { Id: > 0 } ? SelectedCategory.Id : null
+            };
+
+            var minResult = await _productService.GetProductsAsync(new ProductListQuery
+            {
+                PageSize = priceRangeBaseQuery.PageSize,
+                SearchText = priceRangeBaseQuery.SearchText,
+                CategoryId = priceRangeBaseQuery.CategoryId,
+                SortValue = "price_asc"
+            });
+
+            var maxResult = await _productService.GetProductsAsync(new ProductListQuery
+            {
+                PageSize = priceRangeBaseQuery.PageSize,
+                SearchText = priceRangeBaseQuery.SearchText,
+                CategoryId = priceRangeBaseQuery.CategoryId,
+                SortValue = "price_desc"
+            });
+
+            if (minResult.Items.Count == 0 || maxResult.Items.Count == 0)
+            {
+                PriceRangeMinimum = 0;
+                PriceRangeMaximum = 0;
+                PriceRangeStepFrequency = 1;
+                _hasInitializedPriceRange = false;
+
+                MinPrice = 0;
+                MaxPrice = 0;
+
+                return;
+            }
+
+            var roundedMinimum = RoundPriceDown(minResult.Items[0].RetailPrice);
+            var roundedMaximum = RoundPriceUp(maxResult.Items[0].RetailPrice);
+
+            PriceRangeMinimum = roundedMinimum;
+            PriceRangeMaximum = roundedMaximum;
+            PriceRangeStepFrequency = CalculatePriceStepFrequency(roundedMinimum, roundedMaximum);
+
+            if (selectionWasFullRange)
+            {
+                MinPrice = roundedMinimum;
+                MaxPrice = roundedMaximum;
+                _hasInitializedPriceRange = true;
+                return;
+            }
+
+            MinPrice = Clamp(MinPrice, PriceRangeMinimum, PriceRangeMaximum);
+            MaxPrice = Clamp(MaxPrice, PriceRangeMinimum, PriceRangeMaximum);
+
+            if (MinPrice > MaxPrice)
+            {
+                MaxPrice = MinPrice;
+            }
+        }
+
+        private bool ShouldApplyMinPriceFilter()
+        {
+            return PriceRangeMinimum > 0 && MinPrice > PriceRangeMinimum;
+        }
+
+        private bool ShouldApplyMaxPriceFilter()
+        {
+            return PriceRangeMaximum > 0 && MaxPrice < PriceRangeMaximum;
+        }
+
+        private static double RoundPriceDown(decimal price)
+        {
+            var value = (double)price;
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            var step = GetPriceRoundingStep(value);
+            return Math.Floor(value / step) * step;
+        }
+
+        private static double RoundPriceUp(decimal price)
+        {
+            var value = (double)price;
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            var step = GetPriceRoundingStep(value);
+            return Math.Ceiling(value / step) * step;
+        }
+
+        private static double GetPriceRoundingStep(double value)
+        {
+            var absValue = Math.Abs(value);
+
+            if (absValue < 100_000)
+            {
+                return 10_000;
+            }
+
+            if (absValue < 10_000_000)
+            {
+                return 100_000;
+            }
+
+            return 1_000_000;
+        }
+
+        private static double CalculatePriceStepFrequency(double minimum, double maximum)
+        {
+            var range = maximum - minimum;
+            if (range <= 0)
+            {
+                return 1;
+            }
+
+            if (range <= 1000)
+            {
+                return 100;
+            }
+
+            if (range <= 10000)
+            {
+                return 1000;
+            }
+
+            if (range <= 100000)
+            {
+                return 10000;
+            }
+
+            return 50000;
+        }
+
+        private static double Clamp(double value, double minimum, double maximum)
+        {
+            if (value < minimum)
+            {
+                return minimum;
+            }
+
+            if (value > maximum)
+            {
+                return maximum;
+            }
+
+            return value;
+        }
+
         [RelayCommand]
         public async Task ApplyFilterAsync()
         {
@@ -181,37 +417,60 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             SearchText = string.Empty;
             SelectedCategory = CategoryFilterOptions.FirstOrDefault(c => c.Id == 0) ?? AllCategoriesOption;
-            MinPrice = 0;
-            MaxPrice = 1000;
             SelectedSort = SortOptions.FirstOrDefault(option => option.Value == "id_desc") ?? SortOptions.FirstOrDefault();
             BeforeCursor = null;
             AfterCursor = null;
+            if (_hasInitializedPriceRange)
+            {
+                MinPrice = PriceRangeMinimum;
+                MaxPrice = PriceRangeMaximum;
+            }
+            else
+            {
+                MinPrice = 0;
+                MaxPrice = 1000;
+            }
             await LoadPageAsync(null);
         }
 
         [RelayCommand]
         public async Task<Product> CreateProductAsync(Product input)
         {
-            var pendingImagePath = ExtractPendingImagePath(input.ImageUrl);
-            input.ImageUrl = null;
+            EnsureAdminCanCreateProducts();
+
+            var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
+            
+            var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
+            input.Images = new ObservableCollection<ProductImage>(safeImages);
 
             var createdProduct = await _productService.CreateProductAsync(input);
-            ProductImageUploadResult? uploadResult = null;
+            var uploadedPublicIds = new List<string>();
 
             try
             {
-                if (!string.IsNullOrWhiteSpace(pendingImagePath))
+                if (pendingImages.Any())
                 {
-                    uploadResult = await _productImageUploadService.UploadProductImageAsync(createdProduct.Id, pendingImagePath);
-                    createdProduct.ImageUrl = uploadResult.ImageUrl;
+                    foreach (var pendingImage in pendingImages)
+                    {
+                        var uploadResult = await _productImageUploadService.UploadProductImageAsync(createdProduct.Id, pendingImage.ImageUrl);
+                        uploadedPublicIds.Add(uploadResult.PublicId);
+                        
+                        createdProduct.Images.Add(new ProductImage 
+                        {
+                            ImageUrl = uploadResult.ImageUrl,
+                            IsPrimary = pendingImage.IsPrimary,
+                            DisplayOrder = pendingImage.DisplayOrder
+                        });
+                    }
+
                     createdProduct = await _productService.UpdateProductAsync(createdProduct);
                 }
             }
             catch
             {
-                if (!string.IsNullOrWhiteSpace(uploadResult?.PublicId))
+                foreach (var publicId in uploadedPublicIds)
                 {
-                    await SafeDeleteProductImageAsync(uploadResult.PublicId);
+                    await SafeDeleteProductImageAsync(publicId);
                 }
 
                 await SafeDeleteProductAsync(createdProduct.Id);
@@ -226,39 +485,41 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task<Product> UpdateProductAsync(Product input)
         {
-            var pendingImagePath = ExtractPendingImagePath(input.ImageUrl);
-            input.ImageUrl = !string.IsNullOrWhiteSpace(pendingImagePath)
-                ? ResolvePersistedImageUrl(input.Id)
-                : input.ImageUrl;
-
+            var pendingImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) != null).ToList() ?? new List<ProductImage>();
+            
             var rollbackSnapshot = _editingProductSnapshot is { Id: var snapshotId } && snapshotId == input.Id
                 ? CloneProduct(_editingProductSnapshot)
                 : null;
 
-            var updatedProduct = await _productService.UpdateProductAsync(input);
-            if (!string.IsNullOrWhiteSpace(pendingImagePath))
-            {
-                var previousManagedPublicId = TryExtractManagedPublicId(rollbackSnapshot?.ImageUrl);
-                ProductImageUploadResult? uploadResult = null;
+            var safeImages = input.Images?.Where(i => ExtractPendingImagePath(i.ImageUrl) == null).ToList() ?? new List<ProductImage>();
+            input.Images = new ObservableCollection<ProductImage>(safeImages);
 
+            var updatedProduct = await _productService.UpdateProductAsync(input);
+            
+            if (pendingImages.Any())
+            {
+                var uploadedPublicIds = new List<string>();
                 try
                 {
-                    uploadResult = await _productImageUploadService.UploadProductImageAsync(updatedProduct.Id, pendingImagePath);
-                    updatedProduct.ImageUrl = uploadResult.ImageUrl;
-                    updatedProduct = await _productService.UpdateProductAsync(updatedProduct);
-
-                    if (!string.IsNullOrWhiteSpace(previousManagedPublicId))
+                    foreach (var pendingImage in pendingImages)
                     {
-                        await SafeDeleteProductImageAsync(previousManagedPublicId);
+                        var uploadResult = await _productImageUploadService.UploadProductImageAsync(updatedProduct.Id, pendingImage.ImageUrl);
+                        uploadedPublicIds.Add(uploadResult.PublicId);
+                        
+                        updatedProduct.Images.Add(new ProductImage 
+                        {
+                            ImageUrl = uploadResult.ImageUrl,
+                            IsPrimary = pendingImage.IsPrimary,
+                            DisplayOrder = pendingImage.DisplayOrder
+                        });
                     }
-
-                    _editingProductOriginalImageUrl = updatedProduct.ImageUrl;
+                    updatedProduct = await _productService.UpdateProductAsync(updatedProduct);
                 }
                 catch
                 {
-                    if (!string.IsNullOrWhiteSpace(uploadResult?.PublicId))
+                    foreach (var publicId in uploadedPublicIds)
                     {
-                        await SafeDeleteProductImageAsync(uploadResult.PublicId);
+                        await SafeDeleteProductImageAsync(publicId);
                     }
 
                     if (rollbackSnapshot is not null)
@@ -292,12 +553,18 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RetailPrice = product.RetailPrice,
                 ImportPrice = product.ImportPrice,
                 StockQuantity = product.StockQuantity,
-                ImageUrl = product.ImageUrl,
-                IsDeleted = product.IsDeleted
+                Images = new ObservableCollection<ProductImage>(product.Images?.Select(i => new ProductImage 
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }) ?? Enumerable.Empty<ProductImage>()),
+                IsDeleted = product.IsDeleted,
+                CurrencySymbol = product.CurrencySymbol
             };
 
             _editingProductSnapshot = CloneProduct(product);
-            _editingProductOriginalImageUrl = product.ImageUrl;
             EditErrorMessage = string.Empty;
             IsEditingProduct = true;
         }
@@ -332,22 +599,12 @@ namespace BIF.ToyStore.ViewModels.Pages
                     return;
                 }
 
-                var input = new Product
-                {
-                    Id = EditingProduct.Id,
-                    Name = EditingProduct.Name,
-                    CategoryId = EditingProduct.CategoryId,
-                    ImportPrice = EditingProduct.ImportPrice,
-                    RetailPrice = EditingProduct.RetailPrice,
-                    StockQuantity = EditingProduct.StockQuantity,
-                    ImageUrl = EditingProduct.ImageUrl
-                };
+                var input = BuildEditableProductUpdateInput();
 
                 await UpdateProductAsync(input);
 
                 IsEditingProduct = false;
                 EditingProduct = null;
-                _editingProductOriginalImageUrl = null;
                 _editingProductSnapshot = null;
             }
             catch (Exception ex)
@@ -362,7 +619,6 @@ namespace BIF.ToyStore.ViewModels.Pages
             EditErrorMessage = string.Empty;
             IsEditingProduct = false;
             EditingProduct = null;
-            _editingProductOriginalImageUrl = null;
             _editingProductSnapshot = null;
         }
 
@@ -376,6 +632,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task ImportExcelAsync()
         {
+            EnsureAdminCanCreateProducts();
+
             ImportSuccessMessage = string.Empty;
             ImportErrorMessage = string.Empty;
 
@@ -399,31 +657,115 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 if (result is null)
                 {
-                    ImportErrorMessage = "Import failed: server did not return a result.";
+                    var noResultFeedback = new ImportFeedback
+                    {
+                        ImportedCount = 0,
+                        ErrorCount = 1,
+                        HasErrors = true,
+                        SummaryMessage = "Import failed: server did not return a result.",
+                        DetailMessage = "Import failed: server did not return a result."
+                    };
+
+                    ImportErrorMessage = noResultFeedback.SummaryMessage;
+                    await NotifyImportFeedbackAsync(noResultFeedback);
                     return;
                 }
 
-                if (result.Errors.Count > 0)
+                var feedback = BuildImportFeedback(result);
+
+                if (feedback.HasErrors)
                 {
-                    var firstError = result.Errors[0];
-                    ImportErrorMessage =
-                        $"Imported {result.ImportedCount} products with {result.Errors.Count} error(s). First error: {firstError}";
+                    ImportErrorMessage = feedback.SummaryMessage;
+                    await NotifyImportFeedbackAsync(feedback);
                 }
                 else
                 {
-                    ImportSuccessMessage = $"Imported {result.ImportedCount} product(s) successfully.";
+                    ImportSuccessMessage = feedback.SummaryMessage;
                 }
 
                 await LoadProductsAsync();
             }
             catch (Exception ex)
             {
-                ImportErrorMessage = $"Import failed: {ex.Message}";
+                var failedFeedback = new ImportFeedback
+                {
+                    ImportedCount = 0,
+                    ErrorCount = 1,
+                    HasErrors = true,
+                    SummaryMessage = $"Import failed: {ex.Message}",
+                    DetailMessage = $"Import failed: {ex.Message}"
+                };
+
+                ImportErrorMessage = failedFeedback.SummaryMessage;
+                await NotifyImportFeedbackAsync(failedFeedback);
             }
             finally
             {
                 IsBusy = false;
             }
+        }
+
+        private static ImportFeedback BuildImportFeedback(ProductImportResult result)
+        {
+            var errorCount = result.Errors.Count;
+            var hasErrors = errorCount > 0;
+
+            var summary = hasErrors
+                ? $"Imported {result.ImportedCount} product(s). Failed rows: {errorCount}."
+                : $"Imported {result.ImportedCount} product(s) successfully.";
+
+            var detailsBuilder = new StringBuilder();
+            detailsBuilder.AppendLine($"Successful rows: {result.ImportedCount}");
+            detailsBuilder.AppendLine($"Failed rows: {errorCount}");
+
+            if (hasErrors)
+            {
+                detailsBuilder.AppendLine();
+                detailsBuilder.AppendLine("Failed row details:");
+
+                foreach (var error in result.Errors)
+                {
+                    detailsBuilder.Append("- ");
+                    detailsBuilder.AppendLine(error);
+                }
+            }
+
+            return new ImportFeedback
+            {
+                ImportedCount = result.ImportedCount,
+                ErrorCount = errorCount,
+                HasErrors = hasErrors,
+                SummaryMessage = summary,
+                DetailMessage = detailsBuilder.ToString().TrimEnd(),
+                RequiresScrollableDialog = errorCount > 3
+            };
+        }
+
+        private async Task NotifyImportFeedbackAsync(ImportFeedback feedback)
+        {
+            var handlers = ImportFeedbackRequested;
+            if (handlers is null)
+            {
+                return;
+            }
+
+            foreach (var handler in handlers.GetInvocationList())
+            {
+                if (handler is Func<ImportFeedback, Task> asyncHandler)
+                {
+                    await asyncHandler(feedback);
+                }
+            }
+        }
+
+        public sealed class ImportFeedback
+        {
+            public int ImportedCount { get; set; }
+            public int ErrorCount { get; set; }
+            public bool HasErrors { get; set; }
+            public bool RequiresScrollableDialog { get; set; }
+            public string SummaryMessage { get; set; } = string.Empty;
+            public string DetailMessage { get; set; } = string.Empty;
         }
 
         public class SortOption
@@ -443,19 +785,43 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RetailPrice = product.RetailPrice,
                 ImportPrice = product.ImportPrice,
                 StockQuantity = product.StockQuantity,
-                ImageUrl = product.ImageUrl,
-                IsDeleted = product.IsDeleted
+                Images = new ObservableCollection<ProductImage>(product.Images?.Select(i => new ProductImage 
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    IsPrimary = i.IsPrimary
+                }) ?? Enumerable.Empty<ProductImage>()),
+                IsDeleted = product.IsDeleted,
+                CurrencySymbol = product.CurrencySymbol
             };
         }
 
-        private string? ResolvePersistedImageUrl(int productId)
+        private Product BuildEditableProductUpdateInput()
         {
-            if (!string.IsNullOrWhiteSpace(_editingProductOriginalImageUrl))
+            if (EditingProduct is null)
             {
-                return _editingProductOriginalImageUrl;
+                throw new InvalidOperationException("No product is selected for editing.");
             }
 
-            return Products.FirstOrDefault(p => p.Id == productId)?.ImageUrl;
+            if (IsAdminUser || _editingProductSnapshot is null || _editingProductSnapshot.Id != EditingProduct.Id)
+            {
+                return new Product
+                {
+                    Id = EditingProduct.Id,
+                    Name = EditingProduct.Name,
+                    CategoryId = EditingProduct.CategoryId,
+                    ImportPrice = EditingProduct.ImportPrice,
+                    RetailPrice = EditingProduct.RetailPrice,
+                    StockQuantity = EditingProduct.StockQuantity,
+                    Images = EditingProduct.Images,
+                    CurrencySymbol = EditingProduct.CurrencySymbol
+                };
+            }
+
+            var originalSnapshot = CloneProduct(_editingProductSnapshot);
+            originalSnapshot.StockQuantity = EditingProduct.StockQuantity;
+            return originalSnapshot;
         }
 
         private static string? ExtractPendingImagePath(string? imageValue)
@@ -555,5 +921,18 @@ namespace BIF.ToyStore.ViewModels.Pages
                 // Best-effort refresh only.
             }
         }
+
+        private void EnsureAdminCanCreateProducts()
+        {
+            if (!CanCreateProducts)
+            {
+                throw new InvalidOperationException("Only admin users can add new products.");
+            }
+        }
+    }
+
+    public sealed class ProductAppConfigNode
+    {
+        public string CurrencySymbol { get; set; } = "USD";
     }
 }

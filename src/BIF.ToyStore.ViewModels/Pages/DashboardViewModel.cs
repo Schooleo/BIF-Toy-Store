@@ -1,5 +1,4 @@
 using BIF.ToyStore.Core.Interfaces;
-using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,14 +13,15 @@ namespace BIF.ToyStore.ViewModels.Pages
         private const int LowStockTake = 5;
         private const int RecentOrdersTake = 3;
         private const int BestSellerTake = 5;
-        private const int RevenueTrendDays = 26;
-        private const int DashboardTodayBatchSize = 50;
         private const int CriticalStockThreshold = 0;
         private const int WarningStockThreshold = 3;
 
-        private const double RevenueChartWidth = 1000;
-        private const double RevenueChartHeight = 260;
+        private const double RevenueChartMinWidth = 760;
+        private const double RevenuePointSlotWidth = 40;
+        private const double RevenueChartHeight = 220;
         private const double RevenueChartPadding = 12;
+        private const double RevenueMarkerHitSize = 18;
+        private const double RevenueMarkerHitHalf = RevenueMarkerHitSize / 2d;
 
         private readonly IGraphQLClient _graphQLClient;
 
@@ -36,6 +36,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private ObservableCollection<RevenueTrendPointViewModel> _revenueTrendPoints = new();
+
+        [ObservableProperty]
+        private ObservableCollection<RevenueTrendMarkerViewModel> _revenueTrendMarkers = new();
+
+        [ObservableProperty]
+        private ObservableCollection<QuickRestockProductViewModel> _quickRestockItems = new();
 
         [ObservableProperty]
         private int _totalProducts;
@@ -59,10 +65,25 @@ namespace BIF.ToyStore.ViewModels.Pages
         private int _revenueAxisMax;
 
         [ObservableProperty]
+        private double _revenueTrendScrollableWidth = RevenueChartMinWidth;
+
+        [ObservableProperty]
+        private string _revenuePeriodLabel = string.Empty;
+
+        [ObservableProperty]
+        private string _revenuePeriodBadge = "CURRENT MONTH";
+
+        [ObservableProperty]
         private int _lowStockAlertCount;
 
         [ObservableProperty]
         private string _currencySymbol = "$";
+
+        [ObservableProperty]
+        private bool _isQuickRestockPanelOpen;
+
+        [ObservableProperty]
+        private string _quickRestockErrorMessage = string.Empty;
 
         public string TotalProductsDisplay => TotalProducts.ToString(CultureInfo.InvariantCulture);
 
@@ -83,6 +104,12 @@ namespace BIF.ToyStore.ViewModels.Pages
         public bool HasLowStockProducts => LowStockProducts.Count > 0;
 
         public bool IsLowStockProductsEmpty => !HasLowStockProducts;
+
+        public bool HasQuickRestockItems => QuickRestockItems.Count > 0;
+
+        public bool IsQuickRestockItemsEmpty => !HasQuickRestockItems;
+
+        public bool HasQuickRestockErrorMessage => !string.IsNullOrWhiteSpace(QuickRestockErrorMessage);
 
         public bool HasRecentOrders => RecentOrders.Count > 0;
 
@@ -115,10 +142,13 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 ErrorMessage = "Unable to load dashboard data: " + ex.Message;
                 LowStockProducts.Clear();
+                QuickRestockItems.Clear();
                 RecentOrders.Clear();
                 BestSellingProducts.Clear();
                 NotifyCollectionStateChanged();
+                NotifyQuickRestockStateChanged();
                 RevenueTrendPoints.Clear();
+                RevenueTrendMarkers.Clear();
                 TotalProducts = 0;
                 OrdersToday = 0;
                 TodayRevenue = 0m;
@@ -126,6 +156,7 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RevenueTrendPathData = "M 0,0";
                 RevenueTrendAreaData = "M 0,0 Z";
                 RevenueAxisMax = 0;
+                RevenueTrendScrollableWidth = RevenueChartMinWidth;
             }
             finally
             {
@@ -137,6 +168,94 @@ namespace BIF.ToyStore.ViewModels.Pages
         private async Task RefreshAsync()
         {
             await LoadAsync();
+        }
+
+        [RelayCommand]
+        private void OpenQuickRestockPanel()
+        {
+            QuickRestockErrorMessage = string.Empty;
+            QuickRestockItems.Clear();
+
+            foreach (var product in LowStockProducts.OrderBy(x => x.StockQuantity).ThenBy(x => x.Name))
+            {
+                QuickRestockItems.Add(new QuickRestockProductViewModel
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    CategoryId = product.CategoryId,
+                    CategoryName = product.CategoryName,
+                    RetailPrice = product.RetailPrice,
+                    ImportPrice = product.ImportPrice,
+                    Images = product.Images ?? new List<DashboardProductImageNode>(),
+                    ImageUrl = product.ImageUrl,
+                    CurrencySymbol = CurrencySymbol,
+                    OriginalStockQuantity = product.StockQuantity,
+                    StockQuantity = product.StockQuantity
+                });
+            }
+
+            NotifyQuickRestockStateChanged();
+            IsQuickRestockPanelOpen = true;
+        }
+
+        [RelayCommand]
+        private void CancelQuickRestockPanel()
+        {
+            QuickRestockErrorMessage = string.Empty;
+            IsQuickRestockPanelOpen = false;
+            QuickRestockItems.Clear();
+            NotifyQuickRestockStateChanged();
+        }
+
+        [RelayCommand]
+        private async Task SaveQuickRestockAsync()
+        {
+            if (QuickRestockItems.Count == 0)
+            {
+                IsQuickRestockPanelOpen = false;
+                return;
+            }
+
+            var invalidItem = QuickRestockItems.FirstOrDefault(x => x.StockQuantity < 0);
+            if (invalidItem is not null)
+            {
+                QuickRestockErrorMessage = $"{invalidItem.Name} cannot have negative stock.";
+                return;
+            }
+
+            var changedItems = QuickRestockItems
+                .Where(x => x.StockQuantity != x.OriginalStockQuantity)
+                .ToList();
+
+            if (changedItems.Count == 0)
+            {
+                IsQuickRestockPanelOpen = false;
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                QuickRestockErrorMessage = string.Empty;
+
+                foreach (var item in changedItems)
+                {
+                    await UpdateQuickRestockItemAsync(item);
+                }
+
+                IsQuickRestockPanelOpen = false;
+                QuickRestockItems.Clear();
+                NotifyQuickRestockStateChanged();
+                await LoadLowStockAndRecentOrdersAsync();
+            }
+            catch (Exception ex)
+            {
+                QuickRestockErrorMessage = "Unable to update stock: " + ex.Message;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         partial void OnTotalProductsChanged(int value)
@@ -175,6 +294,16 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 product.CurrencySymbol = value;
             }
+
+            foreach (var product in QuickRestockItems)
+            {
+                product.CurrencySymbol = value;
+            }
+
+            if (RevenueTrendPoints.Count > 0)
+            {
+                RebuildRevenueGeometry();
+            }
         }
 
         partial void OnRevenueAxisMaxChanged(int value)
@@ -188,17 +317,37 @@ namespace BIF.ToyStore.ViewModels.Pages
             OnPropertyChanged(nameof(InventoryAlertSummary));
         }
 
+        partial void OnQuickRestockErrorMessageChanged(string value)
+        {
+            OnPropertyChanged(nameof(HasQuickRestockErrorMessage));
+        }
+
         private async Task LoadLowStockAndRecentOrdersAsync()
         {
-            const string query = @"query DashboardMain($lowStockTake: Int!, $recentOrdersTake: Int!, $bestSellerTake: Int!, $revenueDays: Int!) {
+            var now = DateTime.Now;
+            var revenueFrom = new DateTime(now.Year, now.Month, 1);
+            var revenueTo = now.Date;
+
+            RevenuePeriodLabel = $"Daily Revenue ({revenueFrom:MMMM yyyy})";
+            RevenuePeriodBadge = "CURRENT MONTH";
+
+            const string query = @"query DashboardMain($lowStockTake: Int!, $recentOrdersTake: Int!, $bestSellerTake: Int!, $revenueFrom: DateTime!, $revenueTo: DateTime!, $revenueGroupBy: ReportGroupBy!) {
                 products(first: $lowStockTake, order: { stockQuantity: ASC }) {
                     totalCount
                     nodes {
                         id
                         name
+                        categoryId
                         stockQuantity
                         retailPrice
+                        importPrice
+                        images {
+                            imageUrl
+                            displayOrder
+                            isPrimary
+                        }
                         category {
+                            id
                             name
                         }
                     }
@@ -224,10 +373,12 @@ namespace BIF.ToyStore.ViewModels.Pages
                     retailPrice
                     unitsSold
                     rank
+                    imageUrl
                 }
-                getRevenueTrend: revenueTrend(days: $revenueDays) {
-                    dayLabel
-                    revenue
+                getReportTimeSeries: reportTimeSeries(startDate: $revenueFrom, endDate: $revenueTo, groupBy: $revenueGroupBy) {
+                    periodStart
+                    periodLabel
+                    totalRevenue
                 }
                 appConfig {
                     currencySymbol
@@ -239,7 +390,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                 lowStockTake = LowStockTake,
                 recentOrdersTake = RecentOrdersTake,
                 bestSellerTake = BestSellerTake,
-                revenueDays = RevenueTrendDays
+                revenueFrom = new DateTimeOffset(DateTime.SpecifyKind(revenueFrom, DateTimeKind.Utc)),
+                revenueTo = new DateTimeOffset(DateTime.SpecifyKind(revenueTo.AddDays(1).AddTicks(-1), DateTimeKind.Utc)),
+                revenueGroupBy = "DAY"
             };
 
             var payload = await _graphQLClient.ExecuteAsync<DashboardMainQueryData>(query, variables)
@@ -254,13 +407,19 @@ namespace BIF.ToyStore.ViewModels.Pages
                 .OrderBy(x => x.StockQuantity)
                 .Take(LowStockTake))
             {
+                var imageUrl = ResolvePrimaryImageUrl(product);
+
                 LowStockProducts.Add(new LowStockProductViewModel
                 {
                     Id = product.Id,
                     Name = product.Name,
+                    CategoryId = product.CategoryId,
                     CategoryName = product.Category?.Name ?? "Unknown",
                     StockQuantity = product.StockQuantity,
                     RetailPrice = product.RetailPrice,
+                    ImportPrice = product.ImportPrice,
+                    Images = product.Images ?? new List<DashboardProductImageNode>(),
+                    ImageUrl = imageUrl,
                     CurrencySymbol = CurrencySymbol,
                     IsCritical = product.StockQuantity <= CriticalStockThreshold
                 });
@@ -305,20 +464,24 @@ namespace BIF.ToyStore.ViewModels.Pages
                     RetailPrice = item.RetailPrice,
                     CurrencySymbol = CurrencySymbol,
                     UnitsSold = item.UnitsSold,
-                    Rank = item.Rank
+                    Rank = item.Rank,
+                    ImageUrl = item.ImageUrl
                 });
             }
 
             OnPropertyChanged(nameof(HasBestSellingProducts));
             OnPropertyChanged(nameof(IsBestSellingProductsEmpty));
 
+            var monthlySeries = BuildCurrentMonthElapsedSeries(payload.GetReportTimeSeries, revenueFrom, revenueTo);
+
             RevenueTrendPoints.Clear();
-            foreach (var point in payload.GetRevenueTrend)
+            foreach (var point in monthlySeries)
             {
                 RevenueTrendPoints.Add(new RevenueTrendPointViewModel
                 {
-                    DayLabel = point.DayLabel,
-                    Revenue = point.Revenue
+                    PeriodStart = point.PeriodStart,
+                    DayLabel = point.PeriodStart.ToString("MMM dd", CultureInfo.InvariantCulture),
+                    Revenue = point.TotalRevenue
                 });
             }
 
@@ -327,59 +490,19 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         private async Task LoadTodaySummaryAsync()
         {
-            var todayStart = DateTime.Today;
-            var todayEnd = todayStart.AddDays(1).AddTicks(-1);
-
-            const string todayQuery = @"query DashboardToday($fromDate: DateTime, $toDate: DateTime, $first: Int!, $after: String) {
-                getOrders: orders(first: $first, after: $after, fromDate: $fromDate, toDate: $toDate) {
-                    totalCount
-                    pageInfo {
-                        hasNextPage
-                        endCursor
-                    }
-                    nodes {
-                        status
-                        totalAmount
-                    }
+            const string summaryQuery = @"query DashboardTodaySummary {
+                dashboardTodaySummary {
+                    orderCount
+                    revenue
                 }
             }";
 
-            var allTodayOrders = new List<DashboardOrderNode>();
-            int? totalCount = null;
-            string? afterCursor = null;
+            var payload = await _graphQLClient.ExecuteAsync<DashboardTodaySummaryNode>(
+                summaryQuery,
+                dataKey: "dashboardTodaySummary");
 
-            while (true)
-            {
-                var variables = new
-                {
-                    fromDate = todayStart,
-                    toDate = todayEnd,
-                    first = DashboardTodayBatchSize,
-                    after = afterCursor
-                };
-
-                var payload = await _graphQLClient.ExecuteAsync<DashboardTodayQueryData>(todayQuery, variables)
-                    ?? new DashboardTodayQueryData();
-
-                totalCount ??= payload.GetOrders.TotalCount;
-                allTodayOrders.AddRange(payload.GetOrders.Nodes);
-
-                if (payload.GetOrders.PageInfo?.HasNextPage == true
-                    && !string.IsNullOrWhiteSpace(payload.GetOrders.PageInfo.EndCursor))
-                {
-                    afterCursor = payload.GetOrders.PageInfo.EndCursor;
-                    continue;
-                }
-
-                break;
-            }
-
-            OrdersToday = totalCount.GetValueOrDefault() > 0
-                ? totalCount.Value
-                : allTodayOrders.Count;
-            TodayRevenue = allTodayOrders
-                .Where(x => string.Equals(x.Status, OrderStatus.Paid.ToString(), StringComparison.OrdinalIgnoreCase))
-                .Sum(x => x.TotalAmount);
+            OrdersToday = payload?.OrderCount ?? 0;
+            TodayRevenue = payload?.Revenue ?? 0m;
         }
 
         private void RebuildRevenueGeometry()
@@ -389,6 +512,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                 RevenueTrendPathData = "M 0,0";
                 RevenueTrendAreaData = "M 0,0 Z";
                 RevenueAxisMax = 0;
+                RevenueTrendScrollableWidth = RevenueChartMinWidth;
+                RevenueTrendMarkers.Clear();
                 return;
             }
 
@@ -396,18 +521,23 @@ namespace BIF.ToyStore.ViewModels.Pages
             int axisMax = (int)Math.Ceiling((double)Math.Max(maxRevenueRaw, 100m) / 100d) * 100;
             RevenueAxisMax = axisMax;
 
-            double innerWidth = RevenueChartWidth - (RevenueChartPadding * 2d);
+            double chartWidth = Math.Max(RevenueChartMinWidth, RevenueTrendPoints.Count * RevenuePointSlotWidth);
+            RevenueTrendScrollableWidth = chartWidth;
+
             double innerHeight = RevenueChartHeight - (RevenueChartPadding * 2d);
             int count = RevenueTrendPoints.Count;
-            double xStep = count > 1 ? innerWidth / (count - 1) : 0;
+            double pointSlotWidth = chartWidth / count;
 
             var lineBuilder = new StringBuilder();
             var areaBuilder = new StringBuilder();
+            RevenueTrendMarkers.Clear();
 
             for (int i = 0; i < count; i++)
             {
                 var item = RevenueTrendPoints[i];
-                double x = RevenueChartPadding + (xStep * i);
+                item.LabelWidth = pointSlotWidth;
+
+                double x = (pointSlotWidth / 2d) + (pointSlotWidth * i);
                 double normalized = axisMax == 0 ? 0d : (double)(item.Revenue / axisMax);
                 normalized = Math.Clamp(normalized, 0d, 1d);
                 double y = RevenueChartPadding + ((1d - normalized) * innerHeight);
@@ -423,19 +553,82 @@ namespace BIF.ToyStore.ViewModels.Pages
                     lineBuilder.Append(" L ").Append(point);
                     areaBuilder.Append(" L ").Append(point);
                 }
+
+                RevenueTrendMarkers.Add(new RevenueTrendMarkerViewModel
+                {
+                    X = x - RevenueMarkerHitHalf,
+                    Y = y - RevenueMarkerHitHalf,
+                    Tooltip = string.Concat(item.DayLabel, ": ", FormatCurrency(item.Revenue))
+                });
             }
 
-            double right = RevenueChartPadding + innerWidth;
+            double left = pointSlotWidth / 2d;
+            double right = left + (pointSlotWidth * (count - 1));
             double bottom = RevenueChartPadding + innerHeight;
             areaBuilder
                 .Append(" L ")
                 .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", right, bottom))
                 .Append(" L ")
-                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", RevenueChartPadding, bottom))
+                .Append(string.Format(CultureInfo.InvariantCulture, "{0:0.##},{1:0.##}", left, bottom))
                 .Append(" Z");
 
             RevenueTrendPathData = lineBuilder.ToString();
             RevenueTrendAreaData = areaBuilder.ToString();
+        }
+
+        private async Task UpdateQuickRestockItemAsync(QuickRestockProductViewModel item)
+        {
+            const string mutation = @"mutation QuickRestock($input: UpdateProductInput!) {
+                updateProduct(input: $input) {
+                    id
+                    name
+                    categoryId
+                    retailPrice
+                    importPrice
+                    stockQuantity
+                    imageUrl
+                    category {
+                        id
+                        name
+                    }
+                }
+            }";
+
+            IEnumerable<object> images = item.Images is { Count: > 0 }
+                ? item.Images.Select(i => (object)new
+                {
+                    imageUrl = i.ImageUrl,
+                    displayOrder = i.DisplayOrder,
+                    isPrimary = i.IsPrimary
+                })
+                : !string.IsNullOrWhiteSpace(item.ImageUrl)
+                    ? new object[]
+                    {
+                        new
+                        {
+                            imageUrl = item.ImageUrl,
+                            displayOrder = 0,
+                            isPrimary = true
+                        }
+                    }
+                    : Array.Empty<object>();
+
+            var input = new
+            {
+                id = item.Id,
+                name = item.Name,
+                categoryId = item.CategoryId,
+                retailPrice = item.RetailPrice,
+                importPrice = item.ImportPrice,
+                stockQuantity = item.StockQuantity,
+                images
+            };
+
+            _ = await _graphQLClient.ExecuteAsync<DashboardProductNode>(
+                mutation,
+                new { input },
+                dataKey: "updateProduct")
+                ?? throw new InvalidOperationException($"Failed to update stock for {item.Name}.");
         }
 
         private string FormatCurrency(decimal amount)
@@ -454,15 +647,72 @@ namespace BIF.ToyStore.ViewModels.Pages
             OnPropertyChanged(nameof(HasBestSellingProducts));
             OnPropertyChanged(nameof(IsBestSellingProductsEmpty));
         }
+
+        private void NotifyQuickRestockStateChanged()
+        {
+            OnPropertyChanged(nameof(HasQuickRestockItems));
+            OnPropertyChanged(nameof(IsQuickRestockItemsEmpty));
+        }
+
+        private static List<DashboardReportTimeSeriesNode> BuildCurrentMonthElapsedSeries(
+            IEnumerable<DashboardReportTimeSeriesNode> rawSeries,
+            DateTime monthStart,
+            DateTime monthEnd)
+        {
+            var start = monthStart.Date;
+            var end = monthEnd.Date;
+            if (end < start)
+            {
+                return [];
+            }
+
+            var revenueByDate = rawSeries
+                .Where(x => x.PeriodStart.Date >= start && x.PeriodStart.Date <= end)
+                .GroupBy(x => x.PeriodStart.Date)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalRevenue));
+
+            int totalDays = (end - start).Days + 1;
+            var normalized = new List<DashboardReportTimeSeriesNode>(totalDays);
+
+            for (int i = 0; i < totalDays; i++)
+            {
+                var day = start.AddDays(i);
+                revenueByDate.TryGetValue(day, out var totalRevenue);
+
+                normalized.Add(new DashboardReportTimeSeriesNode
+                {
+                    PeriodStart = day,
+                    PeriodLabel = day.ToString("dd MMM", CultureInfo.InvariantCulture),
+                    TotalRevenue = totalRevenue
+                });
+            }
+
+            return normalized;
+        }
+
+        private static string? ResolvePrimaryImageUrl(DashboardProductNode product)
+        {
+            if (product.Images is { Count: > 0 })
+            {
+                return product.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                    ?? product.Images.FirstOrDefault()?.ImageUrl;
+            }
+
+            return product.ImageUrl;
+        }
     }
 
     public sealed class LowStockProductViewModel
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public int StockQuantity { get; set; }
         public decimal RetailPrice { get; set; }
+        public decimal ImportPrice { get; set; }
+        public List<DashboardProductImageNode> Images { get; set; } = new();
+        public string? ImageUrl { get; set; }
         public string CurrencySymbol { get; set; } = "$";
         public bool IsCritical { get; set; }
 
@@ -532,6 +782,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string ProductName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public decimal RetailPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public string CurrencySymbol { get; set; } = "$";
         public int UnitsSold { get; set; }
         public int Rank { get; set; }
@@ -548,10 +799,108 @@ namespace BIF.ToyStore.ViewModels.Pages
         }
     }
 
-    public sealed class RevenueTrendPointViewModel
+    public sealed partial class RevenueTrendPointViewModel : ObservableObject
     {
-        public string DayLabel { get; set; } = string.Empty;
-        public decimal Revenue { get; set; }
+        [ObservableProperty]
+        private DateTime _periodStart;
+
+        [ObservableProperty]
+        private string _dayLabel = string.Empty;
+
+        [ObservableProperty]
+        private decimal _revenue;
+
+        [ObservableProperty]
+        private double _labelWidth = 40d;
+    }
+
+    public sealed class RevenueTrendMarkerViewModel
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public string Tooltip { get; set; } = string.Empty;
+    }
+
+    public sealed partial class QuickRestockProductViewModel : ObservableObject
+    {
+        [ObservableProperty]
+        private int _id;
+
+        [ObservableProperty]
+        private string _name = string.Empty;
+
+        [ObservableProperty]
+        private int _categoryId;
+
+        [ObservableProperty]
+        private string _categoryName = string.Empty;
+
+        [ObservableProperty]
+        private decimal _retailPrice;
+
+        [ObservableProperty]
+        private decimal _importPrice;
+
+        [ObservableProperty]
+        private List<DashboardProductImageNode> _images = new();
+
+        [ObservableProperty]
+        private string? _imageUrl;
+
+        [ObservableProperty]
+        private string _currencySymbol = "$";
+
+        [ObservableProperty]
+        private int _originalStockQuantity;
+
+        [ObservableProperty]
+        private int _stockQuantity;
+
+        public string PriceDisplay => FormatCurrency(RetailPrice, CurrencySymbol);
+
+        public string OriginalStockDisplay => $"Current: {OriginalStockQuantity}";
+
+        public string StockDeltaDisplay
+        {
+            get
+            {
+                var delta = StockQuantity - OriginalStockQuantity;
+                return delta switch
+                {
+                    > 0 => $"+{delta}",
+                    < 0 => delta.ToString(CultureInfo.InvariantCulture),
+                    _ => "No change"
+                };
+            }
+        }
+
+        partial void OnRetailPriceChanged(decimal value)
+        {
+            OnPropertyChanged(nameof(PriceDisplay));
+        }
+
+        partial void OnCurrencySymbolChanged(string value)
+        {
+            OnPropertyChanged(nameof(PriceDisplay));
+        }
+
+        partial void OnOriginalStockQuantityChanged(int value)
+        {
+            OnPropertyChanged(nameof(OriginalStockDisplay));
+            OnPropertyChanged(nameof(StockDeltaDisplay));
+        }
+
+        partial void OnStockQuantityChanged(int value)
+        {
+            OnPropertyChanged(nameof(StockDeltaDisplay));
+        }
+
+        private static string FormatCurrency(decimal amount, string currencySymbol)
+        {
+            var number = amount.ToString("N2", CultureInfo.GetCultureInfo("en-US"));
+            var spacing = currencySymbol.Length == 1 ? string.Empty : " ";
+            return string.Concat(currencySymbol, spacing, number);
+        }
     }
 
     public sealed class DashboardMainQueryData
@@ -559,7 +908,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         public DashboardProductConnection Products { get; set; } = new();
         public DashboardOrderConnection GetOrders { get; set; } = new();
         public List<DashboardBestSellingProductNode> GetTopBestSellingProducts { get; set; } = new();
-        public List<DashboardRevenuePointNode> GetRevenueTrend { get; set; } = new();
+        public List<DashboardReportTimeSeriesNode> GetReportTimeSeries { get; set; } = new();
         public DashboardAppConfigNode? AppConfig { get; set; }
     }
 
@@ -568,9 +917,10 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string CurrencySymbol { get; set; } = "$";
     }
 
-    public sealed class DashboardTodayQueryData
+    public sealed class DashboardTodaySummaryNode
     {
-        public DashboardOrderConnection GetOrders { get; set; } = new();
+        public int OrderCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 
     public sealed class DashboardProductConnection
@@ -583,13 +933,25 @@ namespace BIF.ToyStore.ViewModels.Pages
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
         public int StockQuantity { get; set; }
         public decimal RetailPrice { get; set; }
+        public decimal ImportPrice { get; set; }
+        public string? ImageUrl { get; set; }
+        public List<DashboardProductImageNode> Images { get; set; } = new();
         public DashboardCategoryNode? Category { get; set; }
+    }
+
+    public sealed class DashboardProductImageNode
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+        public bool IsPrimary { get; set; }
     }
 
     public sealed class DashboardCategoryNode
     {
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 
@@ -634,11 +996,13 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal RetailPrice { get; set; }
         public int UnitsSold { get; set; }
         public int Rank { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
-    public sealed class DashboardRevenuePointNode
+    public sealed class DashboardReportTimeSeriesNode
     {
-        public string DayLabel { get; set; } = string.Empty;
-        public decimal Revenue { get; set; }
+        public DateTime PeriodStart { get; set; }
+        public string PeriodLabel { get; set; } = string.Empty;
+        public decimal TotalRevenue { get; set; }
     }
 }

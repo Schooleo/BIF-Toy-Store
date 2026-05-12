@@ -31,7 +31,7 @@ namespace BIF.ToyStore.WinUI.Views
                 XamlRoot,
                 CommonDialogType.Confirmation,
                 title: "Confirm Initial Configuration",
-                message: "Saving will finalize initial setup and create the owner admin account. You will be redirected to Login. Continue?",
+                message: "Saving will finalize initial setup and create the admin account. You will be redirected to Login. Continue?",
                 primaryButtonText: "Confirm",
                 closeButtonText: "Cancel",
                 defaultButton: ContentDialogButton.Primary);

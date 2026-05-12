@@ -1,10 +1,12 @@
-﻿using BIF.ToyStore.Core.Models;
+using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
 using BIF.ToyStore.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BIF.ToyStore.Tests.Repositories
 {
@@ -38,6 +40,70 @@ namespace BIF.ToyStore.Tests.Repositories
         }
 
         [Fact]
+        public async Task bulkInsertAsync_existingName_updatesRecordAndReturnsChangedCount()
+        {
+            _dbContext.Products.Add(new Product
+            {
+                Name = "Lego",
+                CategoryId = 1,
+                RetailPrice = 20m,
+                ImportPrice = 8m,
+                StockQuantity = 5
+            });
+            await _dbContext.SaveChangesAsync();
+
+            var count = await _repository.BulkInsertAsync(new List<Product>
+            {
+                new Product
+                {
+                    Name = "Lego",
+                    CategoryId = 2,
+                    RetailPrice = 25m,
+                    ImportPrice = 10m,
+                    StockQuantity = 7
+                }
+            });
+
+            var updated = await _dbContext.Products.SingleAsync(p => p.Name == "Lego");
+
+            Assert.Equal(1, count);
+            Assert.Equal(2, updated.CategoryId);
+            Assert.Equal(25m, updated.RetailPrice);
+            Assert.NotEqual(8m, updated.ImportPrice);
+            Assert.True(updated.StockQuantity > 5);
+            Assert.Equal(1, _dbContext.Products.Count(p => p.Name == "Lego"));
+        }
+
+        [Fact]
+        public async Task bulkInsertAsync_unchangedExistingRecord_returnsZero()
+        {
+            _dbContext.Products.Add(new Product
+            {
+                Name = "Robot",
+                CategoryId = 1,
+                RetailPrice = 50m,
+                ImportPrice = 25m,
+                StockQuantity = 4
+            });
+            await _dbContext.SaveChangesAsync();
+
+            var count = await _repository.BulkInsertAsync(new List<Product>
+            {
+                new Product
+                {
+                    Name = "Robot",
+                    CategoryId = 1,
+                    RetailPrice = 50m,
+                    ImportPrice = 25m,
+                    StockQuantity = 4
+                }
+            });
+
+            Assert.Equal(0, count);
+            Assert.Equal(1, _dbContext.Products.Count(p => p.Name == "Robot"));
+        }
+
+        [Fact]
         public async Task UpdateDetailsAsync_UpdatesImageUrl()
         {
             var product = new Product
@@ -61,11 +127,14 @@ namespace BIF.ToyStore.Tests.Repositories
                 RetailPrice = 50m,
                 ImportPrice = 25m,
                 StockQuantity = 4,
-                ImageUrl = "https://example.com/robot.png"
+                Images = new ObservableCollection<ProductImage> 
+                { 
+                    new ProductImage { ImageUrl = "https://example.com/robot.png", IsPrimary = true } 
+                }
             });
 
-            Assert.Equal("https://example.com/robot.png", updated.ImageUrl);
-            Assert.Equal("https://example.com/robot.png", _dbContext.Products.Single(p => p.Id == 10).ImageUrl);
+            Assert.Equal("https://example.com/robot.png", updated.Images.First().ImageUrl);
+            Assert.Equal("https://example.com/robot.png", _dbContext.Products.Include(p => p.Images).Single(p => p.Id == 10).Images.First().ImageUrl);
         }
     }
 }

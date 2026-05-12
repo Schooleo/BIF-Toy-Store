@@ -37,7 +37,12 @@ namespace BIF.ToyStore.Tests.Services
             Assert.Contains("IsInitialSetupCompleted", columns);
 
             var productColumns = await GetTableColumnsAsync(context, "Products");
-            Assert.Contains("ImageUrl", productColumns);
+            Assert.DoesNotContain("ImageUrl", productColumns);
+
+            // Verify ProductImages table exists
+            var productImagesColumns = await GetTableColumnsAsync(context, "ProductImages");
+            Assert.Contains("ImageUrl", productImagesColumns);
+            Assert.Contains("ProductId", productImagesColumns);
 
             var config = await context.AppConfigs.SingleAsync(c => c.Id == 1);
             Assert.False(config.IsInitialSetupCompleted);
@@ -47,7 +52,7 @@ namespace BIF.ToyStore.Tests.Services
         }
 
         [Fact]
-        public async Task SeedAsync_NoUsers_DoesNotCreateDefaultAccounts()
+        public async Task SeedAsync_NoUsers_CreatesDefaultAccounts()
         {
             const string connectionString = "Data Source=SeederDb2;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -65,11 +70,14 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            Assert.Empty(context.Users);
+            Assert.Equal(2, await context.Users.CountAsync());
+            Assert.Contains(context.Users, u => u.Username == "sales_1");
+            Assert.Contains(context.Users, u => u.Username == "sales_2");
+            Assert.DoesNotContain(context.Users, u => u.Username == "admin");
         }
 
         [Fact]
-        public async Task SeedAsync_NoSaleUser_DoesNotCreateDefaultSaleUser()
+        public async Task SeedAsync_NoUsers_DoesNotCreateAdminAccount()
         {
             const string connectionString = "Data Source=SeederDbSale;Mode=Memory;Cache=Shared";
             await using var keeperConnection = new SqliteConnection(connectionString);
@@ -87,7 +95,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            Assert.DoesNotContain(context.Users, u => u.Username == "sale1");
+            Assert.DoesNotContain(context.Users, u => u.Username == "admin");
         }
 
         [Fact]
@@ -109,7 +117,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = PasswordCipher.Encrypt("123456"),
                 Role = UserRole.Admin
             });
@@ -117,7 +125,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal(UserRole.Admin, saleUser.Role);
         }
 
@@ -142,7 +150,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = wrongPassword,
                 Role = UserRole.Sale
             });
@@ -150,7 +158,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal(wrongPassword, saleUser.PasswordHash);
         }
 
@@ -173,7 +181,7 @@ namespace BIF.ToyStore.Tests.Services
 
             context.Users.Add(new BIF.ToyStore.Core.Models.User
             {
-                Username = "sale1",
+                Username = "sales_1",
                 PasswordHash = "123456",
                 Role = UserRole.Sale
             });
@@ -181,7 +189,7 @@ namespace BIF.ToyStore.Tests.Services
 
             await DatabaseSeeder.SeedAsync(context);
 
-            var saleUser = await context.Users.SingleAsync(u => u.Username == "sale1");
+            var saleUser = await context.Users.SingleAsync(u => u.Username == "sales_1");
             Assert.Equal("123456", saleUser.PasswordHash);
         }
 
@@ -206,19 +214,25 @@ namespace BIF.ToyStore.Tests.Services
             // Run Seeder
             await DatabaseSeeder.SeedAsync(context);
 
-            // Assert: 3 default categories + protected "Other" category, and 15 products
+            // Assert: 3 default categories + protected "Other" category, and 66 products
             var categoriesCount = await context.Categories.CountAsync();
             var productsCount = await context.Products.CountAsync();
 
             Assert.Equal(4, categoriesCount);
-            Assert.Equal(15, productsCount);
+            Assert.Equal(66, productsCount);
 
-            // Validate mapping by checking English category
-            var legoCategory = await context.Categories
+            // Validate mapping by checking a category from seed_data.json
+            var stuffedAnimalsCategory = await context.Categories
                 .Include(c => c.Products)
-                .SingleAsync(c => c.Name == "Lego Sets");
+                .SingleAsync(c => c.Name == "Stuffed Animals");
 
-            Assert.Equal(5, legoCategory.Products.Count);
+            Assert.Equal(22, stuffedAnimalsCategory.Products.Count);
+
+            // Verify images are seeded
+            var productWithImages = await context.Products
+                .Include(p => p.Images)
+                .FirstAsync(p => p.CategoryId == stuffedAnimalsCategory.Id);
+            Assert.NotEmpty(productWithImages.Images);
         }
 
         private static async Task CreateLegacySchemaAsync(AppDbContext context)

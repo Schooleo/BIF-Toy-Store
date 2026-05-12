@@ -12,10 +12,12 @@
 
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
         <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringNullOrEmptyToVisibilityConverter" />
         <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter" />
         <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
         <converters:DecimalToDoubleConverter x:Key="DecimalToDoubleConverter" />
+        <converters:PrimaryBorderThicknessConverter x:Key="PrimaryBorderThicknessConverter" />
 
         <Style x:Key="DetailsLabelStyle" TargetType="TextBlock">
             <Setter Property="CharacterSpacing" Value="100" />
@@ -38,6 +40,15 @@
             <Setter Property="BorderBrush" Value="{ThemeResource FluentPlayOutlineVariantBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{ThemeResource FluentPlayOnSurfaceBrush}" />
+        </Style>
+
+        <Style x:Key="DetailsReadOnlyContainerStyle" TargetType="Border">
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{ThemeResource FluentPlaySurfaceContainerLowBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource FluentPlayOutlineVariantBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </UserControl.Resources>
 
@@ -89,76 +100,101 @@
                         Message="{x:Bind UploadErrorMessage, Mode=OneWay}"
                         Severity="Error" />
 
-                    <Button Height="168"
-                            HorizontalAlignment="Stretch"
-                            Padding="0"
-                            Click="UploadImageButton_Click"
-                            Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                            BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12">
-                        <Grid>
-                            <Image Source="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                                   Stretch="UniformToFill"
-                                   Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
+                    <StackPanel Spacing="12">
+                        <Button Height="360"
+                                HorizontalAlignment="Stretch"
+                                Padding="0"
+                                Click="UploadImageButton_Click"
+                                IsEnabled="{x:Bind IsAdminUser, Mode=OneWay}"
+                                Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                                BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12">
+                            <Grid>
+                                <Image Source="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Stretch="UniformToFill"
+                                       Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}" />
 
-                            <StackPanel HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Spacing="8"
-                                        Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
-                                <FontIcon FontSize="28"
-                                          Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                                          Glyph="&#xE7C3;" />
-                                <TextBlock FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                                           Text="UPLOAD IMAGE" />
-                            </StackPanel>
+                                <StackPanel HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Spacing="8"
+                                            Visibility="{x:Bind CurrentImageUrl, Mode=OneWay, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                    <FontIcon FontSize="28"
+                                              Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                              Glyph="&#xE7C3;" />
+                                    <TextBlock FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                                               Text="UPLOAD IMAGE" />
+                                </StackPanel>
 
-                            <ProgressRing Width="32"
-                                          Height="32"
-                                          IsActive="{x:Bind IsUploadingImage, Mode=OneWay}"
-                                          Foreground="{ThemeResource FluentPlayPrimaryBrush}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Visibility="{x:Bind IsUploadingImage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        </Grid>
-                    </Button>
+                                <ProgressRing Width="32"
+                                              Height="32"
+                                              IsActive="{x:Bind IsUploadingImage, Mode=OneWay}"
+                                              Foreground="{ThemeResource FluentPlayPrimaryBrush}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Visibility="{x:Bind IsUploadingImage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Thumbnails Gallery -->
+                        <ItemsControl ItemsSource="{x:Bind Product.Images, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ProductImage">
+                                    <Grid Width="72" Height="72">
+                                        <Border BorderThickness="{x:Bind IsPrimary, Mode=OneWay, Converter={StaticResource PrimaryBorderThicknessConverter}}"
+                                                BorderBrush="{ThemeResource FluentPlayPrimaryBrush}"
+                                                CornerRadius="4">
+                                            <Button Padding="0" 
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Stretch"
+                                                    AllowFocusOnInteraction="False"
+                                                    BorderThickness="0"
+                                                    CornerRadius="2"
+                                                    Background="Transparent"
+                                                    Click="SetPrimary_Click">
+                                                <Image Source="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                                       Stretch="UniformToFill"/>
+                                            </Button>
+                                        </Border>
+                                        <Button VerticalAlignment="Top" HorizontalAlignment="Right"
+                                                Width="16" Height="16" Padding="0"
+                                                Margin="0,-4,-4,0"
+                                                Background="{ThemeResource FluentPlaySurfaceBrush}"
+                                                BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Click="RemoveImage_Click">
+                                            <FontIcon Glyph="&#xE711;" FontSize="8" Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"/>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
 
                     <StackPanel Spacing="6">
                         <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="NAME" />
                         <TextBox
                             Style="{StaticResource DetailsTextBoxStyle}"
                             Text="{x:Bind EditableProduct.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                             TextChanged="FieldChanged_ClearError" />
+                        <Border
+                            Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                            Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <TextBlock
+                                Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                Text="{x:Bind EditableProduct.Name, Mode=OneWay}"
+                                TextWrapping="WrapWholeWords" />
+                        </Border>
                     </StackPanel>
-
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Spacing="6">
-                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="RETAIL PRICE" />
-                            <NumberBox
-                                Minimum="0"
-                                SpinButtonPlacementMode="Hidden"
-                                Style="{StaticResource DetailsNumberBoxStyle}"
-                                Value="{x:Bind EditableProduct.RetailPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
-                                ValueChanged="FieldChanged_ClearError" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Spacing="6">
-                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="IMPORT PRICE" />
-                            <NumberBox
-                                Minimum="0"
-                                SpinButtonPlacementMode="Hidden"
-                                Style="{StaticResource DetailsNumberBoxStyle}"
-                                Value="{x:Bind EditableProduct.ImportPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
-                                ValueChanged="FieldChanged_ClearError" />
-                        </StackPanel>
-                    </Grid>
 
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
@@ -177,7 +213,8 @@
                                 Background="{ThemeResource FluentPlaySurfaceContainerLowBrush}"
                                 BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                                 BorderThickness="1"
-                                CornerRadius="8">
+                                CornerRadius="8"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <PathIcon
                                         Width="14"
@@ -224,6 +261,14 @@
                                     </Flyout>
                                 </Button.Flyout>
                             </Button>
+                            <Border
+                                Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <TextBlock
+                                    Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                    Text="{x:Bind SelectedCategoryDisplay, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords" />
+                            </Border>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Spacing="6">
@@ -233,6 +278,44 @@
                                 SpinButtonPlacementMode="Hidden"
                                 Style="{StaticResource DetailsNumberBoxStyle}"
                                 Value="{x:Bind EditableProduct.StockQuantity, Mode=TwoWay}"
+                                ValueChanged="FieldChanged_ClearError" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Spacing="6">
+                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="RETAIL PRICE" />
+                            <NumberBox
+                                Minimum="0"
+                                SpinButtonPlacementMode="Hidden"
+                                Style="{StaticResource DetailsNumberBoxStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Value="{x:Bind EditableProduct.RetailPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
+                                ValueChanged="FieldChanged_ClearError" />
+                            <Border
+                                Style="{StaticResource DetailsReadOnlyContainerStyle}"
+                                Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <TextBlock
+                                    Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
+                                    Text="{x:Bind EditableProduct.RetailPriceDisplay, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Spacing="6"
+                                    Visibility="{x:Bind IsAdminUser, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Style="{StaticResource DetailsLabelStyle}" Text="IMPORT PRICE" />
+                            <NumberBox
+                                Minimum="0"
+                                SpinButtonPlacementMode="Hidden"
+                                Style="{StaticResource DetailsNumberBoxStyle}"
+                                Value="{x:Bind EditableProduct.ImportPrice, Mode=TwoWay, Converter={StaticResource DecimalToDoubleConverter}}"
                                 ValueChanged="FieldChanged_ClearError" />
                         </StackPanel>
                     </Grid>

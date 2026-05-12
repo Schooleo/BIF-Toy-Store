@@ -4,8 +4,6 @@ using BIF.ToyStore.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 
 namespace BIF.ToyStore.WinUI.Views
 {
@@ -24,22 +22,6 @@ namespace BIF.ToyStore.WinUI.Views
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
             await ViewModel.LoadAsync();
-        }
-
-        private void SettingsRoot_PointerPressed(object sender, PointerRoutedEventArgs e)
-        {
-            if (e.OriginalSource is not DependencyObject source || IsTextInputElement(source))
-            {
-                return;
-            }
-
-            if (FocusManager.GetFocusedElement(XamlRoot) is not DependencyObject focused
-                || !IsTextInputElement(focused))
-            {
-                return;
-            }
-
-            PageFocusSink.Focus(FocusState.Programmatic);
         }
 
         private async void SaveChangesButton_Click(object sender, RoutedEventArgs e)
@@ -137,25 +119,6 @@ namespace BIF.ToyStore.WinUI.Views
                 ViewModel.SelectedItemsPerPage = parsedValue;
                 CommonFlyout.CloseParentFlyout(menuItem);
             }
-        }
-
-        private static bool IsTextInputElement(DependencyObject? element)
-        {
-            while (element is not null)
-            {
-                if (element is TextBox
-                    || element is PasswordBox
-                    || element is AutoSuggestBox
-                    || element is NumberBox
-                    || element is RichEditBox)
-                {
-                    return true;
-                }
-
-                element = VisualTreeHelper.GetParent(element);
-            }
-
-            return false;
         }
     }
 }

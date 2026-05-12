@@ -5,12 +5,15 @@ using BIF.ToyStore.ViewModels.Utils;
 using BIF.ToyStore.WinUI.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.IO;
 using System.Threading.Tasks;
+using WinRT.Interop;
 
 namespace BIF.ToyStore.WinUI
 {
@@ -79,6 +82,8 @@ namespace BIF.ToyStore.WinUI
                 UIElement.PointerPressedEvent,
                 new PointerEventHandler(WindowRoot_PointerPressed),
                 true);
+
+            ConfigureWindowBranding();
         }
 
         private void WindowRoot_PointerPressed(object sender, PointerRoutedEventArgs e)
@@ -88,7 +93,7 @@ namespace BIF.ToyStore.WinUI
                 return;
             }
 
-            if (FindAncestor<SettingsPage>(source) is not null)
+            if (IsFocusableInteractionTarget(source))
             {
                 return;
             }
@@ -99,7 +104,25 @@ namespace BIF.ToyStore.WinUI
                 return;
             }
 
-            FocusSink.Focus(FocusState.Programmatic);
+            // Defer focus clear until pointer processing completes to avoid focus snapping back.
+            DispatcherQueue.TryEnqueue(() => FocusSink.Focus(FocusState.Programmatic));
+        }
+
+
+        private void ConfigureWindowBranding()
+        {
+            Title = "BIF Toy Store";
+
+            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppTiles", "AppIcon.ico");
+            if (!File.Exists(iconPath))
+            {
+                return;
+            }
+
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            appWindow.SetIcon(iconPath);
         }
 
         private static bool IsTextInputElement(DependencyObject? element)
@@ -121,19 +144,22 @@ namespace BIF.ToyStore.WinUI
             return false;
         }
 
-        private static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+        private static bool IsFocusableInteractionTarget(DependencyObject? element)
         {
             while (element is not null)
             {
-                if (element is T typed)
+                if (element is Control control
+                    && control.IsEnabled
+                    && control.IsTabStop
+                    && control is not ScrollViewer)
                 {
-                    return typed;
+                    return true;
                 }
 
                 element = VisualTreeHelper.GetParent(element);
             }
 
-            return null;
+            return false;
         }
 
         public void NavigateToInitialSetup()

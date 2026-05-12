@@ -1,7 +1,9 @@
 using BIF.ToyStore.Core.Interfaces;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Core.Settings;
+using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.ViewModels.Base;
+using BIF.ToyStore.ViewModels.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -11,6 +13,7 @@ namespace BIF.ToyStore.ViewModels.Pages
     public partial class CategoriesViewModel : PaginatedViewModel
     {
         private readonly ICategoryService _categoryService;
+        private readonly ILocalSettingsService _localSettingsService;
 
         [ObservableProperty]
         private ObservableCollection<Category> _categories = [];
@@ -19,14 +22,26 @@ namespace BIF.ToyStore.ViewModels.Pages
         [ObservableProperty]
         private string _searchText = string.Empty;
 
+        [ObservableProperty]
+        private bool _isAdminUser = true;
+
         // Computed property for total count label (notifies when TotalCount changes)
         public new string TotalCountLabel => $"Total categories in catalog: {TotalCount}";
+        public bool CanCreateCategories => IsAdminUser;
 
-        public CategoriesViewModel(ICategoryService categoryService)
+        public CategoriesViewModel(ICategoryService categoryService, ILocalSettingsService localSettingsService)
         {
             _categoryService = categoryService;
+            _localSettingsService = localSettingsService;
             Title = "Category Management";
+            IsAdminUser = Enum.TryParse<UserRole>(
+                _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString()),
+                true,
+                out var currentRole)
+                && currentRole == UserRole.Admin;
         }
+
+        partial void OnIsAdminUserChanged(bool value) => OnPropertyChanged(nameof(CanCreateCategories));
 
         [RelayCommand]
         public async Task LoadCategoriesAsync(string? direction = null)
@@ -82,6 +97,7 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task CreateCategoryAsync(Category input)
         {
+            EnsureAdminCanCreateCategories();
             await _categoryService.CreateCategoryAsync(input);
             await LoadCategoriesAsync();
         }
@@ -96,8 +112,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         [RelayCommand]
         public async Task DeleteCategoryAsync(int id)
         {
-            if (id == AppConstants.OtherCategoryId)
-                return; // Do not allow deleting the "Other" category
+            if (id <= 0 || id == AppConstants.OtherCategoryId)
+                return; // Do not allow invalid ids or deleting the "Other" category
 
             await _categoryService.DeleteCategoryAsync(id);
             await LoadCategoriesAsync();
@@ -108,6 +124,14 @@ namespace BIF.ToyStore.ViewModels.Pages
         {
             await _categoryService.RestoreCategoryAsync(id);
             await LoadCategoriesAsync();
+        }
+
+        private void EnsureAdminCanCreateCategories()
+        {
+            if (!CanCreateCategories)
+            {
+                throw new InvalidOperationException("Only admin users can add new categories.");
+            }
         }
     }
 }

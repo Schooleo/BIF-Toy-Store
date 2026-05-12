@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Threading.Tasks;
 using WinRT.Interop;
 using Microsoft.UI.Dispatching;
 
@@ -21,7 +22,10 @@ namespace BIF.ToyStore.WinUI.Views
         public ProductsPage()
         {
             ViewModel = App.Current.Services.GetRequiredService<ProductsViewModel>();
+            ViewModel.ImportFeedbackRequested += OnImportFeedbackRequestedAsync;
             InitializeComponent();
+
+            Unloaded += ProductsPage_Unloaded;
             
             _searchDebounceTimer = DispatcherQueue.CreateTimer();
             _searchDebounceTimer.Interval = TimeSpan.FromMilliseconds(400);
@@ -39,6 +43,107 @@ namespace BIF.ToyStore.WinUI.Views
                 await ViewModel.LoadCategoriesCommand.ExecuteAsync(null);
                 await ViewModel.LoadProductsCommand.ExecuteAsync(null);
             };
+        }
+
+        private void ProductsPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.ImportFeedbackRequested -= OnImportFeedbackRequestedAsync;
+        }
+
+        private Task OnImportFeedbackRequestedAsync(ProductsViewModel.ImportFeedback feedback)
+        {
+            return RunOnUiThreadAsync(() => ShowImportFeedbackAsync(feedback));
+        }
+
+        private async Task ShowImportFeedbackAsync(ProductsViewModel.ImportFeedback feedback)
+        {
+            if (XamlRoot is null || !feedback.HasErrors)
+            {
+                return;
+            }
+
+            if (!feedback.RequiresScrollableDialog)
+            {
+                await CommonDialog.ShowAsync(
+                    XamlRoot,
+                    CommonDialogType.Warning,
+                    title: "Import Report",
+                    message: feedback.DetailMessage,
+                    primaryButtonText: "OK",
+                    closeButtonText: null,
+                    defaultButton: ContentDialogButton.Primary);
+
+                return;
+            }
+
+            var summaryText = new TextBlock
+            {
+                Text = feedback.SummaryMessage,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var detailsText = new TextBlock
+            {
+                Text = feedback.DetailMessage,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollMode = ScrollMode.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                HorizontalScrollMode = ScrollMode.Disabled,
+                MinHeight = 220,
+                MaxHeight = 420,
+                Content = detailsText
+            };
+
+            var contentPanel = new StackPanel
+            {
+                Spacing = 12
+            };
+            contentPanel.Children.Add(summaryText);
+            contentPanel.Children.Add(scrollViewer);
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Import Report",
+                Content = contentPanel,
+                PrimaryButtonText = "OK",
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            await dialog.ShowAsync();
+        }
+
+        private Task RunOnUiThreadAsync(Func<Task> action)
+        {
+            if (DispatcherQueue.HasThreadAccess)
+            {
+                return action();
+            }
+
+            var completion = new TaskCompletionSource<bool>();
+
+            if (!DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    await action();
+                    completion.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    completion.TrySetException(ex);
+                }
+            }))
+            {
+                completion.TrySetException(new InvalidOperationException("Unable to enqueue dialog work on UI thread."));
+            }
+
+            return completion.Task;
         }
 
         private void CategoryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -133,6 +238,11 @@ namespace BIF.ToyStore.WinUI.Views
 
         private async void AddProduct_Click(object sender, RoutedEventArgs e)
         {
+            if (!ViewModel.CanCreateProducts)
+            {
+                return;
+            }
+
             var dialog = new Dialogs.AddProductForm(ViewModel.Categories)
             {
                 XamlRoot = this.XamlRoot
@@ -150,7 +260,7 @@ namespace BIF.ToyStore.WinUI.Views
                         ImportPrice = dialog.ResultProduct.ImportPrice,
                         RetailPrice = dialog.ResultProduct.RetailPrice,
                         StockQuantity = dialog.ResultProduct.StockQuantity,
-                        ImageUrl = dialog.ResultProduct.ImageUrl
+                        Images = dialog.ResultProduct.Images
                     };
 
                     await ViewModel.CreateProductAsync(input);

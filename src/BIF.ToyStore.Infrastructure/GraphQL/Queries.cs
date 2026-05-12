@@ -6,6 +6,7 @@ using BIF.ToyStore.Infrastructure.Services;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using HotChocolate;
 
@@ -33,7 +34,9 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             DateTime? fromDate,
             DateTime? toDate,
             int? employeeId,
-            [Service] AppDbContext dbContext)
+            [Service] AppDbContext dbContext,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
             var query = dbContext.Orders
                 .Include(o => o.Sale)
@@ -52,7 +55,23 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
                 query = query.Where(o => o.OrderDate <= toDate.Value);
             }
 
-            if (employeeId.HasValue)
+            if (HasActorContext(currentUserId, currentUserRole))
+            {
+                if (!IsAdminRole(currentUserRole))
+                {
+                    if (!currentUserId.HasValue || currentUserId.Value <= 0)
+                    {
+                        return query.Where(_ => false);
+                    }
+
+                    query = query.Where(o => o.SaleId == currentUserId.Value);
+                }
+                else if (employeeId.HasValue)
+                {
+                    query = query.Where(o => o.SaleId == employeeId.Value);
+                }
+            }
+            else if (employeeId.HasValue)
             {
                 query = query.Where(o => o.SaleId == employeeId.Value);
             }
@@ -64,10 +83,23 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
 
         public async Task<OrderPayload?> GetOrderById(
             int id,
-            [Service] IOrderService orderService)
+            [Service] IOrderService orderService,
+            int? currentUserId = null,
+            string? currentUserRole = null)
         {
             var order = await orderService.GetOrderByIdAsync(id);
-            return order is not null ? OrderPayload.FromOrder(order) : null;
+            if (order is null)
+            {
+                return null;
+            }
+
+            if (HasActorContext(currentUserId, currentUserRole)
+                && !CanAccessOrder(order, currentUserId, currentUserRole))
+            {
+                return null;
+            }
+
+            return OrderPayload.FromOrder(order);
         }
 
         [UsePaging(IncludeTotalCount = true)]
@@ -78,7 +110,7 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             return productRepository.QueryForGraphQL();
         }
 
-        [UsePaging(IncludeTotalCount = true)]
+        [UsePaging(IncludeTotalCount = true, MaxPageSize = 250)]
         [UseFiltering]
         [UseSorting]
         public IQueryable<Category> Categories([Service] ICategoryRepository categoryRepository)
@@ -166,11 +198,59 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
             var products = await orderService.GetReportTopProductsAsync(startDate, endDate, take);
             return products.Select(ReportTopProductPointPayload.FromModel).ToList();
         }
+
+        public async Task<DashboardTodaySummaryPayload> GetDashboardTodaySummary(
+            [Service] AppDbContext dbContext)
+        {
+            var todayStart = DateTime.Today;
+            var todayEnd = todayStart.AddDays(1).AddTicks(-1);
+
+            var todayOrders = dbContext.Orders
+                .AsNoTracking()
+                .Where(o => o.OrderDate >= todayStart && o.OrderDate <= todayEnd);
+
+            var orderCount = await todayOrders.CountAsync();
+            var revenue = await todayOrders
+                .Where(o => o.Status == OrderStatus.Paid)
+                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
+
+            return new DashboardTodaySummaryPayload
+            {
+                OrderCount = orderCount,
+                Revenue = revenue
+            };
+        }
+
+        private static bool HasActorContext(int? currentUserId, string? currentUserRole)
+        {
+            return currentUserId.HasValue || !string.IsNullOrWhiteSpace(currentUserRole);
+        }
+
+        private static bool IsAdminRole(string? currentUserRole)
+        {
+            return string.Equals(currentUserRole, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool CanAccessOrder(Order order, int? currentUserId, string? currentUserRole)
+        {
+            if (IsAdminRole(currentUserRole))
+            {
+                return true;
+            }
+
+            return currentUserId.HasValue && currentUserId.Value > 0 && order.SaleId == currentUserId.Value;
+        }
     }
 
     [ExtendObjectType(typeof(Category))]
     public class CategoryExtension
     {
+        [BindMember(nameof(Category.ProductCount))]
+        public int GetProductCount([Parent] Category category, [Service] IProductRepository productRepository)
+        {
+            return productRepository.QueryByCategoryForGraphQL(category.Id).Count();
+        }
+
         [BindMember(nameof(Category.Products))]
         public IQueryable<Product> GetProducts([Parent] Category category, [Service] IProductRepository productRepository)
         {
@@ -186,6 +266,12 @@ namespace BIF.ToyStore.Infrastructure.GraphQL
         {
             return await productRepository.ResolveEffectiveCategoryAsync(product);
         }
+    }
+
+    public sealed class DashboardTodaySummaryPayload
+    {
+        public int OrderCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 }
 

@@ -21,13 +21,14 @@
                         Orientation="Horizontal"
                         Spacing="12"
                         Padding="24,32,24,24">
-                <Border Background="{StaticResource FluentPlayPrimaryBrush}"
+                <Border Background="Transparent"
                         CornerRadius="8"
                         Width="32"
                         Height="32">
-                    <Image Source="ms-appx:///Assets/Icons/Robot.svg"
-                           Width="18"
-                           Height="18"/>
+                    <Image Source="ms-appx:///Assets/AppTiles/Square44x44Logo.png"
+                           Width="32"
+                           Height="32"
+                           Stretch="Uniform"/>
                 </Border>
                 <StackPanel Spacing="1"
                             VerticalAlignment="Center">

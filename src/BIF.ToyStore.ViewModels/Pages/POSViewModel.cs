@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 
 namespace BIF.ToyStore.ViewModels.Pages
 {
@@ -18,6 +19,17 @@ namespace BIF.ToyStore.ViewModels.Pages
         private readonly IMessenger _messenger;
         private readonly ILocalSettingsService _localSettingsService;
         private List<ProductItemViewModel> _allProducts = new();
+
+
+        [RelayCommand]
+        private void ClearFilter()
+        {
+            SearchText = string.Empty;
+            SelectedCategory = "All Categories";
+            SelectedSort = "Newest";
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+        }
 
         // ── Bound collections ─────────────────────────────────────────────────
         [ObservableProperty]
@@ -34,6 +46,9 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         [ObservableProperty]
         private string _selectedSort = "Newest";
+
+        [ObservableProperty]
+        private string _searchText = string.Empty;
 
         // ── Totals ────────────────────────────────────────────────────────────
         [ObservableProperty]
@@ -55,6 +70,8 @@ namespace BIF.ToyStore.ViewModels.Pages
         public string TaxDisplay => FormatCurrency(Tax);
         public string TotalDueDisplay => FormatCurrency(TotalDue);
         public string TaxLabel => $"Tax ({ConfiguredTaxRate * 100m:0.##}%)";
+        public bool HasFilteredProducts => FilteredProducts.Count > 0;
+        public bool IsFilteredProductsEmpty => !HasFilteredProducts;
 
         // ── Sort options ──────────────────────────────────────────────────────
         public ObservableCollection<string> SortOptions { get; } = new()
@@ -74,6 +91,7 @@ namespace BIF.ToyStore.ViewModels.Pages
 
         // ── Current sale's user id (set on login) ─────────────────────────────
         private int _currentSaleId;
+        private string _currentUserRole;
 
         // ─────────────────────────────────────────────────────────────────────
         public POSViewModel(IGraphQLClient graphQLClient, ILocalSettingsService localSettingsService, IMessenger messenger)
@@ -83,6 +101,7 @@ namespace BIF.ToyStore.ViewModels.Pages
             _messenger = messenger;
             Title = "Point of Sale";
             _currentSaleId = _localSettingsService.GetInt(AppPreferenceKeys.CurrentUserId, 0);
+            _currentUserRole = _localSettingsService.GetString(AppPreferenceKeys.CurrentUserRole, UserRole.Admin.ToString());
 
             _messenger.Register(this);
         }
@@ -90,7 +109,9 @@ namespace BIF.ToyStore.ViewModels.Pages
         public void Receive(LoginSucceededMessage message)
         {
             _currentSaleId = message.Value.Id;
+            _currentUserRole = message.Value.Role.ToString();
             _localSettingsService.SetInt(AppPreferenceKeys.CurrentUserId, _currentSaleId);
+            _localSettingsService.SetString(AppPreferenceKeys.CurrentUserRole, _currentUserRole);
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -174,13 +195,14 @@ namespace BIF.ToyStore.ViewModels.Pages
                             id
                             name
                             categoryId
-                             category {
-                                 id
-                                 name
-                             }
+                             categoryName
                              retailPrice
                              stockQuantity
-                             imageUrl
+                             images {
+                                 imageUrl
+                                 isPrimary
+                                 displayOrder
+                             }
                          }
                      }
                  }";
@@ -217,15 +239,22 @@ namespace BIF.ToyStore.ViewModels.Pages
         // ── Filter / Sort ─────────────────────────────────────────────────────
         partial void OnSelectedCategoryChanged(string value) => ApplyFilterAndSort();
         partial void OnSelectedSortChanged(string value) => ApplyFilterAndSort();
+        partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
 
         private void ApplyFilterAndSort()
         {
             IEnumerable<ProductItemViewModel> query = _allProducts;
             string currentCategory = string.IsNullOrWhiteSpace(SelectedCategory) ? "All Categories" : SelectedCategory;
+            string currentSearch = SearchText?.Trim() ?? string.Empty;
 
             if (!string.Equals(currentCategory, "All Categories", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(p => p.CategoryName == currentCategory);
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentSearch))
+            {
+                query = query.Where(p => p.Name.Contains(currentSearch, StringComparison.OrdinalIgnoreCase));
             }
 
             query = SelectedSort switch
@@ -243,6 +272,9 @@ namespace BIF.ToyStore.ViewModels.Pages
             {
                 FilteredProducts.Add(p);
             }
+
+            OnPropertyChanged(nameof(HasFilteredProducts));
+            OnPropertyChanged(nameof(IsFilteredProductsEmpty));
         }
 
         // ── Cart commands ─────────────────────────────────────────────────────
@@ -347,8 +379,8 @@ namespace BIF.ToyStore.ViewModels.Pages
             try
             {
                 const string mutation = @"
-                    mutation CreateOrder($input: CreateOrderInput!) {
-                        createOrder(input: $input) {
+                    mutation CreateOrder($input: CreateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                        createOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                             id
                             totalAmount
                             status
@@ -382,7 +414,12 @@ namespace BIF.ToyStore.ViewModels.Pages
 
                 var result = await _graphQLClient.ExecuteAsync<OrderResult>(
                     mutation,
-                    new { input },
+                    new
+                    {
+                        input,
+                        currentUserId = _currentSaleId,
+                        currentUserRole = _currentUserRole
+                    },
                     dataKey: "createOrder");
 
                 if (result != null)
@@ -392,8 +429,8 @@ namespace BIF.ToyStore.ViewModels.Pages
                     if (markAsPaid)
                     {
                         const string updateOrderMutation = @"
-                            mutation MarkOrderPaid($input: UpdateOrderInput!) {
-                                updateOrder(input: $input) {
+                            mutation MarkOrderPaid($input: UpdateOrderInput!, $currentUserId: Int, $currentUserRole: String) {
+                                updateOrder(input: $input, currentUserId: $currentUserId, currentUserRole: $currentUserRole) {
                                     id
                                     status
                                 }
@@ -408,7 +445,9 @@ namespace BIF.ToyStore.ViewModels.Pages
                                     id = result.Id,
                                     status = OrderStatus.Paid.ToString().ToUpperInvariant(),
                                     customerId = (int?)null
-                                }
+                                },
+                                currentUserId = _currentSaleId,
+                                currentUserRole = _currentUserRole
                             },
                             dataKey: "updateOrder");
 
@@ -519,8 +558,10 @@ namespace BIF.ToyStore.ViewModels.Pages
             Name = p.Name;
             Price = p.RetailPrice;
             StockQuantity = p.StockQuantity;
-            CategoryName = p.Category?.Name ?? string.Empty;
-            ImageUrl = p.ImageUrl;
+            CategoryName = string.IsNullOrWhiteSpace(p.CategoryName)
+                ? p.Category?.Name ?? string.Empty
+                : p.CategoryName;
+            ImageUrl = p.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? p.Images?.FirstOrDefault()?.ImageUrl ?? p.ImageUrl;
             CurrencySymbol = currencySymbol;
             CartQuantity = 0;
         }
@@ -582,3 +623,6 @@ namespace BIF.ToyStore.ViewModels.Pages
         public decimal TaxRate { get; set; } = 0.08m;
     }
 }
+
+
+

@@ -135,6 +135,32 @@ namespace BIF.ToyStore.Tests.ViewModels.Pages
         }
 
         [Fact]
+        public async Task LoadAsync_UsesGlobalCurrencySymbolForOrderTotals()
+        {
+            var client = new Mock<IGraphQLClient>();
+
+            client.Setup(x => x.ExecuteAsync<OrderAppConfigNode>(
+                    It.Is<string>(q => q.Contains("GetOrderAppConfig")),
+                    It.IsAny<object?>(),
+                    "appConfig"))
+                  .ReturnsAsync(new OrderAppConfigNode { CurrencySymbol = "USD" });
+
+            client.Setup(x => x.ExecuteAsync<OrderConnectionResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), "orders"))
+                  .ReturnsAsync(MakeOrdersResponse(1, false, false, (1, "New", "alice")));
+
+            client.Setup(x => x.ExecuteAsync<OrderUserListResponse>(
+                    It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<string>()))
+                  .ReturnsAsync(MakeUserListResponse((1, "alice")));
+
+            var vm = CreateViewModel(client);
+            await vm.LoadAsync();
+
+            Assert.Single(vm.Orders);
+            Assert.Equal("USD 100.00", vm.Orders[0].TotalDisplay);
+        }
+
+        [Fact]
         public async Task LoadAsync_GraphQLFailure_SetsErrorMessage()
         {
             var client = new Mock<IGraphQLClient>();

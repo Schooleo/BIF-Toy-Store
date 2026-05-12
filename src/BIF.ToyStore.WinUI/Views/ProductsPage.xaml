@@ -23,6 +23,7 @@
         <converters:InverseStringNullOrEmptyToVisibilityConverter x:Key="InverseStringNullOrEmptyToVisibilityConverter"/>
         <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
         <converters:StockFormatConverter x:Key="StockFormatConverter"/>
+        <converters:ImagesToPrimaryUrlConverter x:Key="ImagesToPrimaryUrlConverter"/>
         <SolidColorBrush x:Key="ProductsSurfaceCardBrush"
                          Color="{StaticResource FluentPlaySurfaceContainerLowestColor}"/>
         <SolidColorBrush x:Key="ProductsDangerBrush"
@@ -138,13 +139,15 @@
                             BorderBrush="{ThemeResource FluentPlayOutlineVariantBrush}"
                             Command="{x:Bind ViewModel.ImportExcelCommand}"
                             Content="Import Excel"
-                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"/>
+                            Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                            Visibility="{x:Bind ViewModel.CanCreateProducts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         <Button
                             Background="{ThemeResource FluentPlayPrimaryBrush}"
                             Click="AddProduct_Click"
                             Content="ADD NEW PRODUCT"
                             FontWeight="Bold"
-                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}">
+                            Foreground="{ThemeResource FluentPlayOnPrimaryBrush}"
+                            Visibility="{x:Bind ViewModel.CanCreateProducts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
                                                  Color="{StaticResource FluentPlayPrimaryHoverColor}"/>
@@ -302,7 +305,7 @@
                                             <ListView
                                                 Background="Transparent"
                                                 BorderThickness="0"
-                                                ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneWay}"
+                                                ItemsSource="{x:Bind ViewModel.SortOptions, Mode=OneTime}"
                                                 SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}"
                                                 SelectionChanged="SortFilter_SelectionChanged"
                                                 SelectionMode="Single">
@@ -338,69 +341,87 @@
                                 Width="200"
                                 Margin="8,4,8,0"
                                 VerticalAlignment="Center"
-                                Maximum="1000"
-                                Minimum="0"
+                                Maximum="{x:Bind ViewModel.PriceRangeMaximum, Mode=OneWay}"
+                                Minimum="{x:Bind ViewModel.PriceRangeMinimum, Mode=OneWay}"
                                 PointerReleased="Filter_Changed"
                                 RangeEnd="{x:Bind ViewModel.MaxPrice, Mode=TwoWay}"
                                 RangeStart="{x:Bind ViewModel.MinPrice, Mode=TwoWay}"
-                                StepFrequency="10"/>
+                                StepFrequency="{x:Bind ViewModel.PriceRangeStepFrequency, Mode=OneWay}"/>
                         </StackPanel>
                     </StackPanel>
 
                     <Button
                         Grid.Column="1"
                         VerticalAlignment="Bottom"
-                        Background="Transparent"
+                        Background="#FFFDB700"
+                        BorderThickness="0"
                         Command="{x:Bind ViewModel.ClearFilterCommand}"
                         Content="Reset Filters"
-                        Foreground="{ThemeResource FluentPlayPrimaryBrush}"/>
+                        FontWeight="Bold"
+                        Foreground="#FF6A4B00">
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver"
+                                             Color="#FFFFC94A"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed"
+                                             Color="#FFFFB300"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver"
+                                             Color="#FF6A4B00"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPressed"
+                                             Color="#FF6A4B00"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver"
+                                             Color="#FFFFC94A"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed"
+                                             Color="#FFFFB300"/>
+                        </Button.Resources>
+                    </Button>
+
                 </Grid>
 
                 <!--  DataGrid  -->
-                <controls:DataGrid
-                    x:Name="ProductsDataGrid"
-                    Grid.Row="2"
-                    AutoGenerateColumns="False"
-                    Background="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"
-                    BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                    BorderThickness="1"
-                    IsReadOnly="True"
-                    IsTabStop="False"
-                    CanUserReorderColumns="False"
-                    CanUserResizeColumns="False"
-                    CanUserSortColumns="False"
-                    CornerRadius="12"
-                    GridLinesVisibility="Horizontal"
-                    HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
-                    ItemsSource="{x:Bind ViewModel.Products, Mode=OneWay}"
-                    PointerPressed="ProductsDataGrid_PointerPressed"
-                    RowHeight="72"
-                    SelectionChanged="ProductsDataGrid_SelectionChanged"
-                    SelectionMode="Single"
-                    UseSystemFocusVisuals="False">
+                <Grid Grid.Row="2">
+                    <controls:DataGrid
+                        x:Name="ProductsDataGrid"
+                        AutoGenerateColumns="False"
+                        Background="{ThemeResource FluentPlaySurfaceContainerLowestBrush}"
+                        BorderBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                        BorderThickness="1"
+                        IsReadOnly="True"
+                        IsTabStop="False"
+                        CanUserReorderColumns="False"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False"
+                        CornerRadius="12"
+                        GridLinesVisibility="Horizontal"
+                        HorizontalGridLinesBrush="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
+                        ItemsSource="{x:Bind ViewModel.Products, Mode=OneWay}"
+                        PointerPressed="ProductsDataGrid_PointerPressed"
+                        RowHeight="72"
+                        SelectionChanged="ProductsDataGrid_SelectionChanged"
+                        SelectionMode="Single"
+                        UseSystemFocusVisuals="False">
 
-                    <controls:DataGrid.Resources>
-                        <Style TargetType="controls:DataGridCell">
-                            <Setter Property="BorderBrush"
-                                    Value="Transparent"/>
-                            <Setter Property="BorderThickness"
-                                    Value="0"/>
-                            <Setter Property="UseSystemFocusVisuals"
-                                    Value="False"/>
-                            <Setter Property="FocusVisualPrimaryBrush"
-                                    Value="Transparent"/>
-                            <Setter Property="FocusVisualSecondaryBrush"
-                                    Value="Transparent"/>
-                            <Setter Property="FocusVisualPrimaryThickness"
-                                    Value="0"/>
-                            <Setter Property="FocusVisualSecondaryThickness"
-                                    Value="0"/>
-                            <Setter Property="IsTabStop"
-                                    Value="False"/>
-                        </Style>
-                    </controls:DataGrid.Resources>
+                        <controls:DataGrid.Resources>
+                            <Style TargetType="controls:DataGridCell">
+                                <Setter Property="BorderBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                                <Setter Property="UseSystemFocusVisuals"
+                                        Value="False"/>
+                                <Setter Property="FocusVisualPrimaryBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="FocusVisualSecondaryBrush"
+                                        Value="Transparent"/>
+                                <Setter Property="FocusVisualPrimaryThickness"
+                                        Value="0"/>
+                                <Setter Property="FocusVisualSecondaryThickness"
+                                        Value="0"/>
+                                <Setter Property="IsTabStop"
+                                        Value="False"/>
+                            </Style>
+                        </controls:DataGrid.Resources>
 
-                    <controls:DataGrid.Columns>
+                        <controls:DataGrid.Columns>
                         <!--  COLUMN: PRODUCT  -->
                         <controls:DataGridTemplateColumn Width="2*"
                                                          Header="PRODUCT">
@@ -418,15 +439,15 @@
                                             Background="{ThemeResource FluentPlaySurfaceContainerHighBrush}"
                                             CornerRadius="8">
                                             <Grid>
-                                                <Image Source="{x:Bind ImageUrl, Mode=OneTime, Converter={StaticResource StringToImageSourceConverter}}"
+                                                <Image Source="{x:Bind Images, Mode=OneTime, Converter={StaticResource ImagesToPrimaryUrlConverter}, ConverterParameter='image'}"
                                                        Stretch="UniformToFill"
-                                                       Visibility="{x:Bind ImageUrl, Mode=OneTime, Converter={StaticResource InverseStringNullOrEmptyToVisibilityConverter}}"/>
+                                                       Visibility="{x:Bind Images, Mode=OneTime, Converter={StaticResource ImagesToPrimaryUrlConverter}, ConverterParameter='visibility_inv'}"/>
                                                 <FontIcon Glyph="&#xE7C3;"
                                                           FontSize="16"
                                                           HorizontalAlignment="Center"
                                                           VerticalAlignment="Center"
                                                           Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
-                                                          Visibility="{x:Bind ImageUrl, Mode=OneTime, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}"/>
+                                                          Visibility="{x:Bind Images, Mode=OneTime, Converter={StaticResource ImagesToPrimaryUrlConverter}, ConverterParameter='visibility'}"/>
                                             </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="1"
@@ -461,7 +482,7 @@
                                             FontSize="10"
                                             FontWeight="Bold"
                                             Foreground="{ThemeResource FluentPlayOnSurfaceBrush}"
-                                            Text="{x:Bind Category.Name, Mode=OneTime}"/>
+                                            Text="{x:Bind CategoryName, Mode=OneTime}"/>
                                     </Border>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
@@ -470,7 +491,7 @@
                         <!--  COLUMN: RETAIL  -->
                         <controls:DataGridTextColumn
                             Width="*"
-                            Binding="{Binding RetailPrice}"
+                            Binding="{Binding RetailPriceDisplay}"
                             Header="RETAIL"/>
 
                         <!--  COLUMN: STOCK  -->
@@ -534,8 +555,17 @@
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
                         </controls:DataGridTemplateColumn>
-                    </controls:DataGrid.Columns>
-                </controls:DataGrid>
+                        </controls:DataGrid.Columns>
+                    </controls:DataGrid>
+
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="{ThemeResource FluentPlayOnSurfaceVariantBrush}"
+                        Text="No products match your current search or filters."
+                        Visibility="{x:Bind ViewModel.IsProductsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </Grid>
 
                 <!--  Pagination  -->
                 <custom:PaginationControl
@@ -561,9 +591,11 @@
                 VerticalAlignment="Stretch"
                 Product="{x:Bind ViewModel.EditingProduct, Mode=OneWay}"
                 Categories="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                IsAdminUser="{x:Bind ViewModel.IsAdminUser, Mode=OneWay}"
                 SaveCommand="{x:Bind ViewModel.SaveProductEditCommand, Mode=OneWay}"
                 CancelCommand="{x:Bind ViewModel.CancelProductEditCommand, Mode=OneWay}"
                 EditErrorMessage="{x:Bind ViewModel.EditErrorMessage, Mode=TwoWay}"/>
         </Grid>
     </Grid>
 </Page>
+

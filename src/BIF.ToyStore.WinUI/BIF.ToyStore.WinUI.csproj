@@ -5,6 +5,7 @@
 		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
 		<RootNamespace>BIF.ToyStore.WinUI</RootNamespace>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<ApplicationIcon>Assets\AppTiles\AppIcon.ico</ApplicationIcon>
 		<Platforms>x86;x64;ARM64</Platforms>
 		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
 		<UseWinUI>true</UseWinUI>
@@ -20,11 +21,20 @@
 		<None Remove="Views\LoginPage.xaml" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="Assets\Branding\StoreInterior.png">
+		<Content Include="Assets\Branding\StoreInterior.jpg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\AppTiles\*.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<Content Include="Assets\AppTiles\*.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
 		<Content Include="Assets\Icons\*.svg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
 	</ItemGroup>
 
@@ -41,18 +51,19 @@
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="CloudinaryDotNet" Version="1.28.0" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.29.0" />
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.RangeSelector" Version="8.2.251219" />
 		<PackageReference Include="CommunityToolkit.WinUI.UI.Controls.DataGrid" Version="7.1.2" />
-		<PackageReference Include="HotChocolate.Data" Version="15.1.12" />
+		<PackageReference Include="HotChocolate.Data" Version="16.0.0" />
 		<PackageReference Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
-		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
 	</ItemGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\BIF.ToyStore.Abstractions\BIF.ToyStore.Abstractions.csproj" />
 		<ProjectReference Include="..\BIF.ToyStore.Core\BIF.ToyStore.Core.csproj" />
 		<ProjectReference Include="..\BIF.ToyStore.Infrastructure\BIF.ToyStore.Infrastructure.csproj" />
 		<ProjectReference Include="..\BIF.ToyStore.ViewModels\BIF.ToyStore.ViewModels.csproj" />

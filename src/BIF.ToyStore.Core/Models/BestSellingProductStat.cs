@@ -6,6 +6,7 @@ namespace BIF.ToyStore.Core.Models
         public string ProductName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public decimal RetailPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public int UnitsSold { get; set; }
         public int Rank { get; set; }
     }

@@ -1,6 +1,7 @@
 using BIF.ToyStore.Core.Enums;
 using BIF.ToyStore.Core.Models;
 using BIF.ToyStore.Infrastructure.Data;
+using BIF.ToyStore.Infrastructure.Repositories;
 using BIF.ToyStore.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +19,8 @@ namespace BIF.ToyStore.Tests.Services
                 .Options;
 
             _dbContext = new AppDbContext(options);
-            _authService = new AuthService(_dbContext);
+            var authRepository = new AuthRepository(_dbContext);
+            _authService = new AuthService(authRepository);
         }
 
         public void Dispose() => _dbContext.Dispose();
